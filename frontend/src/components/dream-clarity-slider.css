@@ -1,0 +1,12 @@
+@layer theme, base, components, utilities;
+@import 'tailwindcss/theme.css' layer(theme);
+@import 'tailwindcss/utilities.css' layer(utilities);
+@source './dream-clarity-slider.tsx';
+@source './ui/slider.tsx';
+
+.dream-clarity-scope { font-family: Inter, 'Microsoft YaHei', sans-serif; line-height: 1.7; }
+.dream-clarity-scope h2,.dream-clarity-scope p { margin: 0; }
+.dream-clarity-scope .nebula-control > span:last-child { top: 0; translate: 0 var(--orb-y); }
+.dream-clarity-scope [role=slider] { background: transparent; border: 0; padding: 0; box-shadow: none; }
+.dream-clarity-scope [role=slider]:active { transform: none; }
+.dream-clarity-scope [role=slider]:focus-visible { background: transparent; }

@@ -1,0 +1,16 @@
+private/.env
+private/*-token.txt
+data/
+__pycache__/
+*.pyc
+frontend/node_modules/
+frontend/dist/
+qa/browser/node_modules/
+qa/browser/test-results/
+qa/browser/playwright-report/
+vendor/
+qa/
+scene-source/
+next-web/
+.DS_Store
+Thumbs.db

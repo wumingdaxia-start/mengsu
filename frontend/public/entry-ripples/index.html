@@ -1,0 +1,888 @@
+<!DOCTYPE html>
+<!-- (c) 2026 konmari (@konmari_tweet) / pastel-lab.pages.dev — Konmari Playground -->
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>梦溯 | Mengsu</title>
+<link rel="stylesheet" href="assets/fonts.css">
+<style>
+  *{ margin:0; padding:0; box-sizing:border-box; }
+  html,body{ height:100%; overflow:hidden; }
+  body{
+    font-family:'Karla',sans-serif;
+    background:linear-gradient(180deg,#e8eef3,#d6e2ea);
+    -webkit-tap-highlight-color:transparent;
+    touch-action:none;
+    user-select:none;
+  }
+  #stage{ position:fixed; inset:0; cursor:none; }
+  #stage canvas{ position:absolute; inset:0; width:100%; height:100%; display:block; }
+
+  header{
+    position:fixed; top:24px; left:0; right:0;
+    text-align:center; pointer-events:none; z-index:5;
+  }
+  header h1{
+    font-family:'Cormorant Garamond',serif;
+    font-weight:500; font-style:italic;
+    font-size:clamp(19px, 2.8vw, 28px);
+    letter-spacing:.16em;
+    color:#54718c;
+    text-shadow:0 1px 0 rgba(255,255,255,.95), 0 0 14px rgba(255,255,255,.95);
+  }
+  header p{
+    margin-top:4px;
+    font-size:9.5px; letter-spacing:.46em; text-transform:uppercase;
+    color:#6c8aa3;
+    text-shadow:0 1px 0 rgba(255,255,255,.95), 0 0 10px rgba(255,255,255,.9);
+  }
+
+  #hint{
+    position:fixed; left:50%; top:55%;
+    transform:translate(-50%,-50%);
+    font-family:'Cormorant Garamond',serif; font-style:italic;
+    font-size:clamp(15px,2.2vw,19px);
+    letter-spacing:.24em; color:rgba(105,130,150,.85);
+    text-shadow:0 1px 3px rgba(255,255,255,.95);
+    pointer-events:none; z-index:6;
+    animation:hintFloat 3.2s ease-in-out infinite;
+    transition:opacity 1.2s ease;
+  }
+  #hint.gone{ opacity:0; }
+  @keyframes hintFloat{ 0%,100%{transform:translate(-50%,-52%)} 50%{transform:translate(-50%,-48%)} }
+
+  #cursor{
+    position:fixed; width:22px; height:22px; pointer-events:none; z-index:50;
+    transform:translate(-50%,-50%) rotate(-18deg);
+    transition:opacity .3s; opacity:0;
+  }
+
+  @media (max-width:720px){
+    #stage{ cursor:auto; }
+    #cursor{ display:none; }
+    header{ top:14px; }
+  }
+  #credit{
+    position:fixed; left:9px; bottom:6px; z-index:30;
+    font-family:'Karla',-apple-system,sans-serif;
+    font-size:9px; letter-spacing:.06em;
+    color:rgba(255,255,255,.62);
+    text-shadow:0 1px 2px rgba(60,80,95,.45);
+    text-decoration:none; pointer-events:auto;
+    mix-blend-mode:soft-light;
+  }
+  #credit:hover{ color:rgba(255,255,255,.92); }
+
+  /* Local integration: retain the original composition and author attribution. */
+  #stage { background: url('assets/water.jpg') center / cover no-repeat; }
+  :is(a,button,input,#stage):focus-visible { outline:2px solid #69899f; outline-offset:4px; }
+  .integration-control { position:fixed; z-index:20; min-height:38px; color:#54718c; background:rgba(250,253,255,.55); border:1px solid rgba(255,255,255,.75); backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px); box-shadow:0 4px 14px #7896af19; cursor:pointer; text-shadow:0 1px 0 #fff; text-decoration:none; }
+  #motionToggle { top:max(20px,env(safe-area-inset-top)); left:20px; width:38px; border-radius:50%; display:grid; place-items:center; }
+  #motionToggle span { font-size:18px; }
+  #motionToggle:disabled { opacity:.55; cursor:default; }
+  #mengsuEnter { top:max(20px,env(safe-area-inset-top)); right:20px; display:flex; align-items:center; gap:12px; padding:0 14px; border-radius:20px; font-size:11px; }
+  #renderStatus { position:fixed; left:50%; bottom:100px; transform:translateX(-50%); max-width:85vw; text-align:center; color:#49647a; font-size:12px; z-index:20; }
+  #stage:focus-visible { outline-offset:-6px; }
+  #cursor { left:0; top:0; }
+  .is-paused #hint { animation-play-state:paused; }
+  @media(max-width:720px){ #motionToggle { top:max(14px,env(safe-area-inset-top)); left:12px; } #mengsuEnter { top:auto; bottom:max(18px,env(safe-area-inset-bottom)); left:50%; right:auto; transform:translateX(-50%); min-height:44px; padding:0 20px; } #renderStatus { bottom:84px; } }
+  @media(prefers-reduced-motion:reduce){ *,*::before,*::after { animation:none!important; transition:none!important; } #stage { cursor:auto; } #cursor { display:none; } }
+
+  /* Mengsu copy: quiet Chinese typography, with no adjustment panel. */
+  body { color:#35495a; }
+  .mengsu-header { top:max(24px,env(safe-area-inset-top)); left:4.6%; right:4.6%; text-align:left; display:flex; align-items:center; min-height:44px; }
+  .mengsu-brand { display:inline-flex; align-items:center; gap:12px; color:inherit; text-decoration:none; pointer-events:auto; }
+  .mengsu-brand svg { width:32px; height:32px; }
+  .mengsu-brand span { font:500 25px/1.4 'Songti SC','STSong','SimSun',serif; letter-spacing:.04em; }
+  .mengsu-chapters { position:absolute; left:50%; transform:translateX(-50%); display:flex; align-items:center; gap:16px; pointer-events:auto; }
+  .mengsu-chapters button { display:flex; align-items:center; gap:10px; min-height:44px; padding:0 10px; background:none; border:0; color:inherit; font:14px/1.7 'Karla','Microsoft YaHei',sans-serif; cursor:pointer; }
+  .mengsu-chapters button::before { content:''; width:4px; height:4px; border:1px solid currentColor; border-radius:50%; }
+  .mengsu-chapters button[aria-pressed=true]::before { background:currentColor; }
+  .mengsu-copy { position:fixed; z-index:6; top:30%; left:6.6%; width:43%; pointer-events:none; text-shadow:0 1px 12px #fff,0 1px 2px #fff; }
+  .mengsu-copy h1 { font:500 clamp(30px,3.3vw,48px)/1.55 'Songti SC','STSong','SimSun',serif; letter-spacing:-.035em; white-space:pre-line; }
+  .mengsu-copy p { margin-top:28px; font-size:15px; line-height:1.8; }
+  #dreamLink { display:inline-flex; align-items:center; justify-content:space-between; gap:28px; min-height:44px; margin-top:34px; padding-bottom:7px; border-bottom:1px solid #50697966; color:inherit; text-decoration:none; font-size:14px; pointer-events:auto; }
+  .mengsu-caption { position:fixed; z-index:6; right:5%; bottom:20%; max-width:160px; font-size:13px; line-height:1.9; text-shadow:0 1px 10px #fff,0 1px 2px #fff; pointer-events:none; }
+  #mengsuEnter { top:max(24px,env(safe-area-inset-top)); right:4.6%; min-height:44px; border:0; border-radius:0; background:none; box-shadow:none; backdrop-filter:none; -webkit-backdrop-filter:none; color:inherit; font-size:14px; padding:0; gap:18px; }
+  #motionToggle { top:auto; bottom:max(30px,env(safe-area-inset-bottom)); left:4.6%; }
+  #hint { top:auto; left:calc(4.6% + 54px); bottom:max(39px,calc(env(safe-area-inset-bottom) + 9px)); transform:none; font:12px/1.6 'Karla','Microsoft YaHei',sans-serif; letter-spacing:0; animation:none; color:#35495a; text-shadow:0 1px 7px #fff; }
+  #hint.gone { opacity:1; }
+  @media(max-width:720px) {
+    .mengsu-header { top:max(16px,env(safe-area-inset-top)); left:6%; right:6%; }
+    .mengsu-brand span { font-size:22px; }.mengsu-brand svg { width:27px; height:27px; }
+    .mengsu-chapters { top:58px; width:100%; justify-content:center; gap:14px; }
+    .mengsu-chapters button { font-size:13px; }
+    #mengsuEnter { top:max(16px,env(safe-area-inset-top)); bottom:auto; right:6%; left:auto; transform:none; font-size:12px; min-height:44px; }
+    .mengsu-copy { top:30%; left:8%; width:84%; }.mengsu-copy h1 { font-size:34px; }
+    .mengsu-copy p { font-size:13px; margin-top:20px; }#dreamLink { margin-top:26px; font-size:13px; }
+    .mengsu-caption { right:8%; bottom:17%; max-width:145px; font-size:12px; }
+    #motionToggle { left:6%; bottom:max(30px,env(safe-area-inset-bottom)); }
+    #hint { left:calc(6% + 52px); font-size:11px; }
+  }
+  @media(max-height:600px) { .mengsu-copy { top:25%; }.mengsu-copy h1 { font-size:30px; }.mengsu-copy p { margin-top:12px; }#dreamLink { margin-top:14px; }.mengsu-caption { display:none; } }
+
+  #stage #moonSchool { display:none; }
+  .chapter-moon #stage { background:#e5e9f4; }
+  .chapter-moon #stage #moonSchool { display:block; }
+  .chapter-moon #gl,.chapter-moon #fx,.chapter-moon #credit { display:none!important; }
+  .chapter-moon #cursor { opacity:0!important; }
+  .chapter-moon body,.chapter-moon #stage,.chapter-moon :is(a,button) { cursor:none; }
+  .chapter-moon.is-paused body,.chapter-moon.is-paused #stage { cursor:auto; }
+  .chapter-moon.is-paused :is(a,button) { cursor:pointer; }
+  .chapter-moon body { color:#284b7c; }
+  .chapter-moon .mengsu-header,.chapter-moon .mengsu-header :is(a,button),.chapter-moon #mengsuEnter { cursor:pointer; }
+  .chapter-moon .mengsu-copy { top:39%; left:25%; width:50%; text-align:center; text-shadow:0 1px 2px #e5e9f4; }
+  .chapter-moon .mengsu-copy h1 { font-size:clamp(27px,2.7vw,40px); }
+  .chapter-moon .mengsu-copy p { margin-top:20px; }
+  .chapter-moon #dreamLink { margin-top:24px; }
+  .chapter-moon .mengsu-caption { right:50%; bottom:11%; transform:translateX(50%); max-width:320px; width:70%; text-align:center; }
+  .chapter-moon.moon-unavailable body,.chapter-moon.moon-unavailable #stage { cursor:auto; }
+  .chapter-moon.moon-unavailable :is(a,button) { cursor:pointer; }
+  @media(max-width:720px) {
+    .chapter-moon .mengsu-copy { top:39%; left:19%; width:62%; }
+    .chapter-moon .mengsu-copy h1 { font-size:27px; }
+    .chapter-moon .mengsu-copy p { font-size:12px; margin-top:16px; }
+    .chapter-moon #dreamLink { margin-top:18px; }
+  }
+  @media(max-height:600px) { .chapter-moon .mengsu-copy { top:28%; }.chapter-moon .mengsu-copy p { margin-top:10px; }.chapter-moon #dreamLink { margin-top:12px; } }
+  .chapter-moon #hint { color:#284b7c; text-shadow:0 1px 7px #e5e9f4; }
+  @media(prefers-reduced-motion:reduce) { .chapter-moon body,.chapter-moon #stage { cursor:auto; }.chapter-moon a,.chapter-moon button { cursor:pointer; } }
+
+  #stage #starGalaxy,#stage #starLights { display:none; }
+  .chapter-star { color-scheme:dark; }
+  .chapter-star body,.chapter-star #stage { background:#030308; color:#e3e5ef; cursor:auto; }
+  .chapter-star #stage #starGalaxy,.chapter-star #stage #starLights { display:block; }
+  .chapter-star #gl,.chapter-star #fx,.chapter-star #credit,.chapter-star #cursor { display:none!important; }
+  .chapter-star .mengsu-header,.chapter-star #mengsuEnter { color:#dfe3ef; text-shadow:0 1px 3px #030308; }
+  .chapter-star .mengsu-copy { top:15%; left:20%; width:60%; text-align:center; text-shadow:0 2px 10px #030308,0 1px 2px #030308; }
+  .chapter-star .mengsu-copy h1 { font-size:clamp(26px,2.4vw,34px); line-height:1.45; }
+  .chapter-star .mengsu-copy p { font-size:13px; color:#babdcc; margin-top:12px; }
+  .chapter-star #dreamLink { position:fixed; bottom:13%; left:50%; transform:translateX(-50%); margin:0; border-color:#e3e5ef55; color:#e3e5ef; }
+  .chapter-star .mengsu-caption { right:50%; bottom:8%; width:80%; max-width:360px; text-align:center; transform:translateX(50%); color:#aeb4c6; text-shadow:0 2px 5px #030308; font-size:12px; }
+  .chapter-star #hint,.chapter-star #renderStatus { color:#b4bbcf; text-shadow:0 1px 3px #030308; }
+  .chapter-star #motionToggle { color:#e3e5ef; background:#111119; border-color:#383846; box-shadow:none; backdrop-filter:none; text-shadow:none; }
+  .chapter-star :is(a,button,#stage):focus-visible { outline-color:#c8d8f5; }
+  .chapter-star ::selection { color:#030308; background:#d5e2ff; }
+  @media(max-width:720px) {
+    .chapter-star .mengsu-copy { top:18%; left:8%; width:84%; }
+    .chapter-star .mengsu-copy h1 { font-size:26px; }
+    .chapter-star .mengsu-copy p { font-size:12px; }
+    .chapter-star #dreamLink { bottom:17%; }
+    .chapter-star .mengsu-caption { bottom:11%; max-width:260px; font-size:11px; }
+  }
+  @media(max-height:600px) { .chapter-star .mengsu-copy { top:20%; left:6%; width:30%; text-align:left; }.chapter-star #dreamLink { left:6%; bottom:24%; transform:none; }.chapter-star .mengsu-caption { display:none; } }
+
+</style>
+</head>
+<body>
+<button id="motionToggle" class="integration-control" aria-label="暂停动态效果" aria-pressed="false" title="暂停动态效果"><span class="material-symbols-rounded" aria-hidden="true">pause</span></button>
+<a id="mengsuEnter" class="integration-control" href="/home" target="_top">进入梦溯 <span aria-hidden="true">↗</span></a>
+<p id="renderStatus" role="status" aria-live="polite"></p>
+<div id="stage" tabindex="0" role="application" aria-label="互动水面，移动鼠标或拖动手指产生涟漪，空格键轻触水面">
+  <canvas id="gl"></canvas>
+  <canvas id="fx"></canvas>
+  <canvas id="moonSchool" aria-hidden="true"></canvas>
+  <canvas id="starGalaxy" aria-hidden="true"></canvas>
+  <canvas id="starLights" aria-hidden="true"></canvas>
+</div>
+
+<header class="mengsu-header">
+  <a class="mengsu-brand" href="/entry" aria-label="梦溯入口"><svg viewBox="0 0 32 32" fill="none" aria-hidden="true"><path d="M23 5a12 12 0 1 0 4 18A13 13 0 0 1 23 5Z" stroke="currentColor" stroke-width="1.1"/><path d="m12 11 1 3 3 1-3 1-1 3-1-3-3-1 3-1Z" fill="currentColor"/></svg><span>梦溯</span></a>
+  <nav class="mengsu-chapters" aria-label="选择梦境篇章"><button type="button" data-chapter="0" aria-pressed="true">花屿</button><button type="button" data-chapter="1" aria-pressed="false">鱼庭</button><button type="button" data-chapter="2" aria-pressed="false">星笺</button></nav>
+</header>
+<main class="mengsu-copy" aria-live="polite" aria-atomic="true"><h1 id="dreamTitle">深呼吸，<br>让梦境浮现……</h1><p id="dreamDescription">从这里，回到昨夜的梦。</p><a id="dreamLink" href="/capture" target="_top"><span>记下我的梦</span><span aria-hidden="true">→</span></a></main>
+<aside class="mengsu-caption" id="dreamDetail">云朵缓缓经过，昨夜的片段还在。</aside>
+
+<div id="hint">轻触水面 · 拖动泛起涟漪</div>
+
+<svg id="cursor" aria-hidden="true" viewBox="0 0 24 24"><path d="M12 2 C17 5 20 10 19 16 C18 21 14 23 12 22 C10 23 6 21 5 16 C4 10 7 5 12 2 Z" fill="rgba(255,210,224,.85)" stroke="rgba(200,150,175,.9)" stroke-width="1"/></svg>
+
+<script src="moon-school.js"></script>
+<script src="star-galaxy.js"></script>
+<script>
+(() => {
+'use strict';
+
+/* ============================ photo (embedded) ============================ */
+const PHOTO_SRC = 'assets/water.jpg';
+
+/* ============================== setup ============================== */
+const glCv = document.getElementById('gl');
+const fxCv = document.getElementById('fx');
+const fctx = fxCv.getContext('2d');
+const DPR = Math.min(window.devicePixelRatio || 1, 2);
+const motionQuery = matchMedia('(prefers-reduced-motion: reduce)');
+let reduced = motionQuery.matches, paused = reduced, stopped = false, frameId = 0, ready = false, elapsed = 0;
+const motionToggle = document.getElementById('motionToggle');
+const renderStatus = document.getElementById('renderStatus');
+function updateMotionButton() {
+  document.documentElement.classList.toggle('is-paused', paused || reduced);
+  motionToggle.disabled = reduced;
+  motionToggle.setAttribute('aria-pressed', String(paused || reduced));
+  motionToggle.setAttribute('aria-label', reduced ? '动态效果已按系统设置静止' : paused ? '播放动态效果' : '暂停动态效果');
+  motionToggle.title = motionToggle.getAttribute('aria-label');
+  motionToggle.firstElementChild.textContent = paused || reduced ? 'play_arrow' : 'pause';
+}
+function queueFrame() { if (!frameId && ready && !stopped && !document.hidden) frameId = requestAnimationFrame(frame); }
+motionToggle.addEventListener('click', () => { paused = !paused; lastT = performance.now(); updateMotionButton(); queueFrame(); });
+motionQuery.addEventListener('change', e => { reduced = e.matches; paused = reduced; updateMotionButton(); lastT = performance.now(); queueFrame(); });
+document.addEventListener('visibilitychange', () => { if (document.hidden) { cancelAnimationFrame(frameId); frameId = 0; } else { lastT = performance.now(); queueFrame(); } });
+document.getElementById('mengsuEnter').addEventListener('click', e => { if (window.parent !== window) { e.preventDefault(); window.parent.postMessage({type:'mengsu:enter',path:'/home'}, location.origin); } });
+function freezeLoop() { stopped = true; cancelAnimationFrame(frameId); frameId = 0; }
+window.addEventListener('pagehide', freezeLoop);
+window.addEventListener('pageshow', () => { stopped = false; lastT = performance.now(); queueFrame(); });
+updateMotionButton();
+motionToggle.disabled = true;
+
+let W = 0, H = 0;
+const params = { sparkle: 1, ripple: 1, petals: 5, light: 1 };
+let activeChapter = 0;
+let moonScene = null;
+try { moonScene = window.MengsuMoonSchool?.create(document.getElementById('moonSchool')) || null; } catch { /* Keep the original water available if the optional school fails. */ }
+let starScene = null;
+try { starScene = window.MengsuStarGalaxy?.create(document.getElementById('starGalaxy'),document.getElementById('starLights')) || null; } catch { /* Other chapters and product navigation remain available. */ }
+function chooseEntryChapter(index) {
+  activeChapter = index;
+  const isMoon = index === 1;
+  const isStar = index === 2;
+  document.documentElement.classList.toggle('chapter-moon', isMoon);
+  document.documentElement.classList.toggle('chapter-star', isStar);
+  document.documentElement.classList.toggle('moon-unavailable', isMoon && !moonScene);
+  document.documentElement.dataset.scene = isMoon ? 'moon-school' : isStar ? 'star-galaxy' : 'water';
+  moonScene?.setActive(isMoon);
+  starScene?.setActive(isStar);
+  if(isMoon) moonScene?.resize(window.innerWidth,window.innerHeight);
+  if(isStar) starScene?.resize(window.innerWidth,window.innerHeight);
+  document.getElementById('hint').textContent = isMoon ? '移动红鱼 · 穿过鱼群' : isStar ? '轻移鼠标 · 星河随你流转' : '轻触水面 · 拖动泛起涟漪';
+  document.getElementById('stage').setAttribute('aria-label',isMoon ? '蓝色鱼群环游，红鱼随鼠标或手指转向，蓝鱼会轻轻避让' : isStar ? '旋转星尘与蓝黄双星，移动鼠标或拖动手指改变视角' : '互动水面，移动鼠标或拖动手指产生涟漪，空格键轻触水面');
+  ready = isMoon ? Boolean(moonScene) : isStar ? Boolean(starScene) : glReady;
+  renderStatus.textContent = isMoon && !moonScene ? '鱼群暂未载入，请刷新页面或返回花屿。' : isStar && !starScene ? '星河暂未载入，请刷新页面或选择其他篇章。' : '';
+  if(ready) updateMotionButton();
+  else motionToggle.disabled = true;
+  lastT = performance.now();
+  queueFrame();
+}
+function moveChapter(event) {
+  if(paused||reduced)return;
+  if(activeChapter===1)moonScene?.move(event.clientX,event.clientY);
+  if(activeChapter===2)starScene?.move(event.clientX,event.clientY,!event.target.closest('a,button,nav'));
+}
+document.addEventListener('pointermove',moveChapter);
+document.addEventListener('pointerdown',event=>{if(event.button===0)moveChapter(event);});
+function leaveChapter(){moonScene?.leave();starScene?.leave();}
+document.addEventListener('pointerleave',leaveChapter);
+document.addEventListener('pointercancel',leaveChapter);
+document.addEventListener('pointerup',event=>{if(event.pointerType==='touch')leaveChapter();});
+document.addEventListener('visibilitychange',()=>{if(document.hidden)starScene?.resetPointer();});
+window.addEventListener('blur',()=>starScene?.resetPointer());
+
+
+/* ===================== water sim (CPU, coarse) ===================== */
+const NX = 160;
+let NY = 160;
+let u, uPrev, simBytes;
+
+function allocSim() {
+  NY = Math.max(90, Math.min(288, Math.round(NX * H / W)));
+  u        = new Float32Array(NX * NY);
+  uPrev    = new Float32Array(NX * NY);
+  simBytes = new Uint8Array(NX * NY);
+  simBytes.fill(128);
+}
+
+function drop(gx, gy, radius, strength) {
+  const r2 = radius * radius;
+  const x0 = Math.max(1, Math.floor(gx - radius)), x1 = Math.min(NX - 2, Math.ceil(gx + radius));
+  const y0 = Math.max(1, Math.floor(gy - radius)), y1 = Math.min(NY - 2, Math.ceil(gy + radius));
+  for (let y = y0; y <= y1; y++) {
+    for (let x = x0; x <= x1; x++) {
+      const dx = x - gx, dy = y - gy;
+      const d2 = dx * dx + dy * dy;
+      if (d2 < r2) {
+        const k = Math.cos((Math.sqrt(d2) / radius) * Math.PI * 0.5);
+        u[y * NX + x] += strength * k * k;
+      }
+    }
+  }
+}
+
+function stepWater() {
+  const damp = 0.979;
+  for (let y = 1; y < NY - 1; y++) {
+    const row = y * NX;
+    for (let x = 1; x < NX - 1; x++) {
+      const i = row + x;
+      let v = (u[i - 1] + u[i + 1] + u[i - NX] + u[i + NX]) * 0.5 - uPrev[i];
+      uPrev[i] = v * damp;
+    }
+  }
+  const t = u; u = uPrev; uPrev = t;
+}
+
+function packSim() {
+  for (let i = 0; i < u.length; i++) {
+    let v = 128 + u[i] * 26;
+    simBytes[i] = v < 1 ? 1 : v > 254 ? 254 : v;
+  }
+}
+
+function gradAt(gx, gy) {
+  const x = Math.max(1, Math.min(NX - 2, gx | 0));
+  const y = Math.max(1, Math.min(NY - 2, gy | 0));
+  const i = y * NX + x;
+  return [u[i + 1] - u[i - 1], u[i + NX] - u[i - NX], u[i]];
+}
+
+/* ============================== WebGL ============================== */
+const gl = glCv.getContext('webgl', { preserveDrawingBuffer: true, antialias: false })
+        || glCv.getContext('experimental-webgl', { preserveDrawingBuffer: true });
+let prog, texPhoto, texSim, uni = {};
+let photoW = 1, photoH = 1;
+let glReady = false;
+
+const VSH = `
+attribute vec2 aPos;
+varying vec2 vUv;
+void main(){
+  vUv = vec2(aPos.x * 0.5 + 0.5, 0.5 - aPos.y * 0.5);
+  gl_Position = vec4(aPos, 0.0, 1.0);
+}`;
+
+const FSH = `
+precision mediump float;
+varying vec2 vUv;
+uniform sampler2D uPhoto;
+uniform sampler2D uSim;
+uniform vec2  uTexel;   // sim texel size
+uniform vec2  uFrac;    // cover-crop fractions
+uniform float uRefr;
+uniform float uLight;
+uniform float uTime;
+uniform float uAspect;  // photoH / photoW
+
+#define NF 5
+uniform vec3 uFl[NF];   // cx, cy, r   (photo uv)
+uniform vec4 uFlA[NF];  // rot, offX, offY, scale
+
+float h(vec2 p){ return texture2D(uSim, p).r - 0.5019608; }
+
+void main(){
+  vec2 e = uTexel;
+  float hl = h(vUv - vec2(e.x, 0.0));
+  float hr = h(vUv + vec2(e.x, 0.0));
+  float ht = h(vUv - vec2(0.0, e.y));
+  float hb = h(vUv + vec2(0.0, e.y));
+  vec2 grad = vec2(hr - hl, hb - ht);
+
+  vec2 puv = (vUv - 0.5) * uFrac + 0.5;
+
+  // floating blossoms: local swirl around each flower in the photo
+  for (int i = 0; i < NF; i++) {
+    vec2 d = puv - uFl[i].xy;
+    vec2 dw = vec2(d.x, d.y * uAspect);
+    float dist = length(dw);
+    float r = uFl[i].z;
+    if (dist < r) {
+      float f = smoothstep(r, r * 0.3, dist);
+      float ang = uFlA[i].x * f;
+      float cs = cos(ang), sn = sin(ang);
+      vec2 rotd = vec2(dw.x * cs - dw.y * sn, dw.x * sn + dw.y * cs);
+      rotd *= mix(1.0, uFlA[i].w, f);
+      puv = uFl[i].xy + vec2(rotd.x, rotd.y / uAspect) + uFlA[i].yz * f;
+    }
+  }
+
+  puv += grad * uRefr;
+  puv = clamp(puv, 0.002, 0.998);
+  vec3 col = texture2D(uPhoto, puv).rgb;
+
+  // diffuse ripple shading (sun upper-left)
+  float light = (grad.x + grad.y) * 2.4;
+  col += light * vec3(1.0, 0.98, 0.92);
+
+  // specular glints on crests
+  float spec = max(0.0, light - 0.045) * 5.5;
+  col += spec * vec3(1.0, 1.0, 0.96);
+
+  // slow drifting sun band
+  float band = sin(dot(vUv, vec2(1.3, 1.0)) * 2.6 - uTime * 0.2);
+  col += smoothstep(0.78, 1.0, band) * 0.065 * uLight;
+
+  // wandering pool of sunlight
+  vec2 sc = vec2(0.5 + 0.22 * cos(uTime * 0.07), 0.36 + 0.18 * sin(uTime * 0.09));
+  float pool = 1.0 - smoothstep(0.0, 0.55, distance(vUv * vec2(1.0, 1.35), sc * vec2(1.0, 1.35)));
+  col += pool * 0.055 * uLight;
+
+  gl_FragColor = vec4(col, 1.0);
+}`;
+
+function makeShader(type, src) {
+  const s = gl.createShader(type);
+  gl.shaderSource(s, src);
+  gl.compileShader(s);
+  if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) {
+    throw new Error(gl.getShaderInfoLog(s));
+  }
+  return s;
+}
+
+function initGL() {
+  prog = gl.createProgram();
+  gl.attachShader(prog, makeShader(gl.VERTEX_SHADER, VSH));
+  gl.attachShader(prog, makeShader(gl.FRAGMENT_SHADER, FSH));
+  gl.linkProgram(prog);
+  if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) {
+    throw new Error(gl.getProgramInfoLog(prog));
+  }
+  gl.useProgram(prog);
+
+  const buf = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 1,-1, -1,1, 1,1]), gl.STATIC_DRAW);
+  const loc = gl.getAttribLocation(prog, 'aPos');
+  gl.enableVertexAttribArray(loc);
+  gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
+
+  for (const n of ['uPhoto','uSim','uTexel','uFrac','uRefr','uLight','uTime','uAspect','uFl','uFlA']) {
+    uni[n] = gl.getUniformLocation(prog, n);
+  }
+  gl.uniform1i(uni.uPhoto, 0);
+  gl.uniform1i(uni.uSim, 1);
+  gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
+}
+
+function setupPhotoTexture(img) {
+  photoW = img.naturalWidth; photoH = img.naturalHeight;
+  texPhoto = gl.createTexture();
+  gl.activeTexture(gl.TEXTURE0);
+  gl.bindTexture(gl.TEXTURE_2D, texPhoto);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB, gl.RGB, gl.UNSIGNED_BYTE, img);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+}
+
+function setupSimTexture() {
+  if (texSim) gl.deleteTexture(texSim);
+  texSim = gl.createTexture();
+  gl.activeTexture(gl.TEXTURE1);
+  gl.bindTexture(gl.TEXTURE_2D, texSim);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.LUMINANCE, NX, NY, 0, gl.LUMINANCE, gl.UNSIGNED_BYTE, simBytes);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+}
+
+let coverFx = 1, coverFy = 1;
+function updateCover() {
+  // cover-crop: photo scaled to fill, center crop
+  const s = Math.max(W / photoW, H / photoH);
+  coverFx = W / (s * photoW);
+  coverFy = H / (s * photoH);
+  gl.uniform2f(uni.uFrac, coverFx, coverFy);
+  gl.uniform2f(uni.uTexel, 1 / NX, 1 / NY);
+  gl.uniform1f(uni.uAspect, photoH / photoW);
+}
+
+/* ============== photo blossoms: sway / breathe / ripple-kick ============== */
+// flower regions in photo uv (center x, center y, radius in photo-width units)
+const FLOWERS = [
+  { cx: 0.28, cy: 0.21, r: 0.27, phase: 0.0, speed: 0.34, kick: 0 },   // mint aqua, upper-left
+  { cx: 0.73, cy: 0.47, r: 0.28, phase: 2.1, speed: 0.27, kick: 0 },   // pale mint, right-center
+  { cx: 0.20, cy: 0.70, r: 0.30, phase: 4.0, speed: 0.31, kick: 0 },   // soft pink, lower-left
+  { cx: 0.83, cy: 0.92, r: 0.30, phase: 1.2, speed: 0.24, kick: 0 },   // blush, lower-right
+  { cx: 0.92, cy: 0.05, r: 0.22, phase: 5.3, speed: 0.29, kick: 0 }    // pink, top-right crop
+];
+const flArr  = new Float32Array(FLOWERS.length * 3);
+const flAArr = new Float32Array(FLOWERS.length * 4);
+
+function updateFlowerAnim(t) {
+  for (let i = 0; i < FLOWERS.length; i++) {
+    const f = FLOWERS[i];
+    // photo uv -> screen uv -> sim grid, to feel the ripples
+    const su = (f.cx - 0.5) / coverFx + 0.5;
+    const sv = (f.cy - 0.5) / coverFy + 0.5;
+    const [dx, dy] = gradAt(su * NX, sv * NY);
+    f.kick += ((dx + dy) * 0.5 - f.kick) * 0.08;        // smoothed wave kick
+    const kick = Math.max(-0.12, Math.min(0.12, f.kick));
+    const rot = Math.sin(t * f.speed + f.phase) * 0.05
+              + Math.sin(t * f.speed * 1.7 + f.phase * 2.0) * 0.018
+              + kick;
+    const ox = Math.sin(t * 0.2 + f.phase) * 0.0042 + dx * 0.02;
+    const oy = Math.cos(t * 0.17 + f.phase * 1.6) * 0.0038 + dy * 0.02;
+    const sc = 1 + Math.sin(t * 0.45 + f.phase) * 0.013;
+    flArr[i * 3]     = f.cx;
+    flArr[i * 3 + 1] = f.cy;
+    flArr[i * 3 + 2] = f.r;
+    flAArr[i * 4]     = rot;
+    flAArr[i * 4 + 1] = ox;
+    flAArr[i * 4 + 2] = oy;
+    flAArr[i * 4 + 3] = sc;
+  }
+  gl.uniform3fv(uni.uFl, flArr);
+  gl.uniform4fv(uni.uFlA, flAArr);
+}
+
+/* =================== overlay petals (procedural) =================== */
+function mulberry32(seed) {
+  let a = seed;
+  return function () {
+    a |= 0; a = a + 0x6D2B79F5 | 0;
+    let t = Math.imul(a ^ a >>> 15, 1 | a);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  };
+}
+
+const PALETTES = [
+  { petal:'#bce8de', edge:'#e6f8f2', deep:'#9fd8cb' },
+  { petal:'#def0e2', edge:'#f4faf1', deep:'#c2e4cc' },
+  { petal:'#f6cfde', edge:'#fde9f0', deep:'#eeb3ca' },
+  { petal:'#f8dce6', edge:'#fdf0f5', deep:'#f0c2d2' }
+];
+
+function makePetalSprite(px, pal, seed) {
+  const R = mulberry32(seed);
+  const S = Math.ceil(px * 2.6);
+  const cv = document.createElement('canvas');
+  cv.width = cv.height = S;
+  const c = cv.getContext('2d');
+  c.translate(S / 2, S / 2);
+  c.rotate(R() * Math.PI * 2);
+  c.globalAlpha = 0.85;
+  const g = c.createLinearGradient(-px * 0.5, 0, px, 0);
+  g.addColorStop(0, pal.edge);
+  g.addColorStop(0.45, pal.petal);
+  g.addColorStop(1, pal.edge);
+  c.fillStyle = g;
+  c.beginPath();
+  c.moveTo(-px * 0.5, 0);
+  c.bezierCurveTo(-px * 0.2, -px * 0.5, px * 0.66, -px * 0.44, px, -px * 0.06);
+  c.quadraticCurveTo(px * 0.92, 0, px, px * 0.06);   // sakura notch
+  c.bezierCurveTo(px * 0.66, px * 0.44, -px * 0.2, px * 0.5, -px * 0.5, 0);
+  c.fill();
+  c.globalAlpha = 0.4;
+  c.strokeStyle = pal.deep;
+  c.lineWidth = Math.max(0.5, px * 0.02);
+  c.beginPath();
+  c.moveTo(-px * 0.3, 0);
+  c.quadraticCurveTo(px * 0.3, -px * 0.06, px * 0.85, 0);
+  c.stroke();
+  c.globalAlpha = 0.7;
+  c.strokeStyle = 'rgba(255,255,255,0.9)';
+  c.lineWidth = Math.max(0.6, px * 0.025);
+  c.beginPath();
+  c.moveTo(-px * 0.5, 0);
+  c.bezierCurveTo(-px * 0.2, -px * 0.5, px * 0.66, -px * 0.44, px, -px * 0.06);
+  c.stroke();
+  return cv;
+}
+
+let petalsArr = [];
+let seedBase = 11;
+
+function makePetal(i) {
+  const R = mulberry32(seedBase + i * 13);
+  const frac = 0.024 + R() * 0.022;
+  const px = frac * Math.min(W, H);
+  return {
+    nx: 0.08 + ((i * 0.41 + R() * 0.3) % 0.84),
+    ny: 0.1 + ((i * 0.59 + R() * 0.3) % 0.8),
+    vx: 0, vy: 0,
+    rot: R() * Math.PI * 2,
+    vr: (R() - 0.5) * 0.0022,
+    phase: R() * Math.PI * 2,
+    px,
+    sprite: makePetalSprite(px * DPR, PALETTES[(R() * PALETTES.length) | 0], seedBase + i * 7)
+  };
+}
+function syncPetals() {
+  while (petalsArr.length < params.petals) petalsArr.push(makePetal(petalsArr.length));
+  if (petalsArr.length > params.petals) petalsArr.length = params.petals;
+}
+
+function updatePetals(dt, t) {
+  for (const p of petalsArr) {
+    const [dx, dy] = gradAt(p.nx * NX, p.ny * NY);
+    p.vx += dx * 0.0017;
+    p.vy += dy * 0.0017;
+    p.vx += Math.sin(t * 0.18 + p.phase) * 0.0000065;
+    p.vy += Math.cos(t * 0.14 + p.phase * 1.7) * 0.0000065;
+    const pad = 0.05;
+    if (p.nx < pad) p.vx += (pad - p.nx) * 0.0007;
+    if (p.nx > 1 - pad) p.vx -= (p.nx - (1 - pad)) * 0.0007;
+    if (p.ny < pad) p.vy += (pad - p.ny) * 0.0007;
+    if (p.ny > 1 - pad) p.vy -= (p.ny - (1 - pad)) * 0.0007;
+    p.vx *= 0.984; p.vy *= 0.984;
+    p.nx += p.vx * dt * 60;
+    p.ny += p.vy * dt * 60;
+    p.rot += p.vr + dx * 0.012;
+  }
+}
+
+function drawPetals(t) {
+  for (const p of petalsArr) {
+    const h = gradAt(p.nx * NX, p.ny * NY)[2];
+    const x = p.nx * W;
+    const y = p.ny * H + h * 3;
+    const sc = 1 + h * 0.15;
+    const sw = p.sprite.width / DPR;
+    // sunk shadow
+    fctx.save();
+    fctx.translate(x + p.px * 0.16, y + p.px * 0.26);
+    fctx.rotate(p.rot);
+    fctx.globalAlpha = 0.22;
+    fctx.fillStyle = 'rgba(95,125,155,0.6)';
+    fctx.beginPath();
+    fctx.ellipse(0, 0, p.px * 0.8, p.px * 0.42, 0, 0, Math.PI * 2);
+    fctx.fill();
+    fctx.restore();
+    // petal
+    fctx.save();
+    fctx.translate(x, y);
+    fctx.rotate(p.rot + Math.sin(t * 1.1 + p.phase) * 0.04);
+    fctx.scale(sc, sc);
+    fctx.drawImage(p.sprite, -sw / 2, -sw / 2, sw, sw);
+    fctx.restore();
+  }
+}
+
+/* ============================ sparkles ============================ */
+const sparkles = [];
+function addSparkle(px, py, big) {
+  const base = Math.max(1, Math.min(W, H) * 0.0042);
+  sparkles.push({
+    x: px, y: py,
+    life: 0,
+    max: 0.5 + Math.random() * (big ? 1.1 : 0.8),
+    size: base * ((big ? 1.6 : 1) + Math.random() * (big ? 2.2 : 1.4)),
+    rot: Math.random() * Math.PI,
+    vy: -(2 + Math.random() * 5),
+    warm: Math.random() < 0.3,
+    iri: Math.random() < 0.22
+  });
+}
+function burst(px, py, n) {
+  for (let i = 0; i < n; i++) {
+    const a = Math.random() * Math.PI * 2;
+    const r = Math.random() * Math.min(W, H) * 0.06;
+    addSparkle(px + Math.cos(a) * r, py + Math.sin(a) * r * 0.8, true);
+  }
+}
+function spawnAmbient(dt) {
+  let n = params.sparkle * 30 * dt;
+  while (n > 0) {
+    if (Math.random() < n) addSparkle(Math.random() * W, Math.random() * H, false);
+    n -= 1;
+  }
+}
+function updateDrawSparkles(dt, t) {
+  fctx.save();
+  fctx.globalCompositeOperation = 'lighter';
+  for (let i = sparkles.length - 1; i >= 0; i--) {
+    const s = sparkles[i];
+    s.life += dt;
+    if (s.life > s.max) { sparkles.splice(i, 1); continue; }
+    const k = s.life / s.max;
+    const al = Math.sin(k * Math.PI);
+    const y = s.y + s.vy * s.life;
+    const sz = s.size * (0.6 + 0.4 * al);
+    fctx.save();
+    fctx.translate(s.x, y);
+    fctx.rotate(s.rot + k * 0.7);
+    let g0;
+    if (s.iri) {
+      const hue = (t * 40 + s.rot * 90) % 360;
+      g0 = fctx.createRadialGradient(0, 0, 0, 0, 0, sz * 2.2);
+      g0.addColorStop(0, `hsla(${hue},85%,90%,${0.85 * al})`);
+      g0.addColorStop(1, `hsla(${hue},85%,90%,0)`);
+    } else {
+      const col = s.warm ? '255,240,205' : '255,255,255';
+      g0 = fctx.createRadialGradient(0, 0, 0, 0, 0, sz * 2.2);
+      g0.addColorStop(0, `rgba(${col},${0.85 * al})`);
+      g0.addColorStop(1, `rgba(${col},0)`);
+    }
+    fctx.fillStyle = g0;
+    fctx.beginPath(); fctx.arc(0, 0, sz * 2.2, 0, Math.PI * 2); fctx.fill();
+    fctx.strokeStyle = `rgba(255,255,255,${al})`;
+    fctx.lineWidth = 1;
+    fctx.lineCap = 'round';
+    fctx.beginPath();
+    fctx.moveTo(-sz * 1.9, 0); fctx.lineTo(sz * 1.9, 0);
+    fctx.moveTo(0, -sz * 1.9); fctx.lineTo(0, sz * 1.9);
+    fctx.stroke();
+    fctx.restore();
+  }
+  fctx.restore();
+}
+
+/* ============================== layout ============================== */
+function layout() {
+  W = window.innerWidth;
+  H = window.innerHeight;
+  moonScene?.resize(W,H);
+  starScene?.resize(W,H);
+  glCv.width = W * DPR;  glCv.height = H * DPR;
+  fxCv.width = W * DPR;  fxCv.height = H * DPR;
+  fctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  allocSim();
+  if (glReady) {
+    gl.viewport(0, 0, glCv.width, glCv.height);
+    setupSimTexture();
+    updateCover();
+  }
+  petalsArr = [];
+  syncPetals();
+  queueFrame();
+}
+window.addEventListener('resize', layout);
+
+/* ============================== input ============================== */
+const hint = document.getElementById('hint');
+const cursorEl = document.getElementById('cursor');
+let hinted = false;
+let lastMx = -1, lastMy = -1;
+
+function touchWater(px, py, big) {
+  if (activeChapter !== 0 || !glReady || paused || reduced) return;
+  const gx = (px / W) * NX, gy = (py / H) * NY;
+  if (big) {
+    drop(gx, gy, 6, 2.2 * params.ripple);
+    burst(px, py, Math.round(10 + params.sparkle * 12));
+  } else {
+    drop(gx, gy, 2.4, 0.45 * params.ripple);
+  }
+  if (!hinted) { hinted = true; hint.classList.add('gone'); }
+}
+
+const stage = document.getElementById('stage');
+stage.addEventListener('pointermove', (e) => {
+  if (activeChapter !== 0 || paused || reduced) return;
+  cursorEl.style.opacity = 1;
+  cursorEl.style.transform = `translate3d(${e.clientX - 11}px, ${e.clientY - 11}px, 0) rotate(-18deg)`;
+  if (lastMx >= 0) {
+    const dist = Math.hypot(e.clientX - lastMx, e.clientY - lastMy);
+    if (dist > 2) touchWater(e.clientX, e.clientY, false);
+  }
+  lastMx = e.clientX; lastMy = e.clientY;
+});
+stage.addEventListener('pointerdown', (e) => { if (e.button > 0) return; stage.setPointerCapture(e.pointerId); touchWater(e.clientX, e.clientY, true); });
+stage.addEventListener('keydown', e => { if (e.code === 'Space') { e.preventDefault(); touchWater(W / 2, H / 2, true); } });
+stage.addEventListener('pointerleave', () => { cursorEl.style.opacity = 0; lastMx = -1; });
+
+const $ = (id) => document.getElementById(id);
+const chapters = [
+  { title:'深呼吸，\n让梦境浮现……', description:'从这里，回到昨夜的梦。', link:'记下我的梦', path:'/capture', detail:'云朵缓缓经过，昨夜的片段还在。' },
+  { title:'散落的梦，\n也会慢慢相遇。', description:'月光落下来，照见那些熟悉的片段。', link:'翻开我的梦境', path:'/dreams', detail:'一端是白天，一端是夜晚，记忆在中间经过。' },
+  { title:'听，\n记忆正在回响。', description:'有些片段还没有答案，可以慢慢聊。', link:'和梦聊一聊', path:'/ask', detail:'你说过的话，会成为下一次回想的线索。' }
+];
+let requestedChapter = 0;
+document.querySelectorAll('[data-chapter]').forEach(button => button.addEventListener('click', () => {
+  const requested = Number(button.dataset.chapter);
+  if (requested === requestedChapter) return;
+  requestedChapter = requested;
+  const chapter = chapters[Number(button.dataset.chapter)];
+  chooseEntryChapter(Number(button.dataset.chapter));
+  document.querySelectorAll('[data-chapter]').forEach(item => item.setAttribute('aria-pressed', String(item === button)));
+  $('dreamTitle').textContent = chapter.title;
+  $('dreamDescription').textContent = chapter.description;
+  $('dreamLink').firstElementChild.textContent = chapter.link;
+  $('dreamLink').setAttribute('href', chapter.path);
+  $('dreamDetail').textContent = chapter.detail;
+  // Paint the incoming canvas before the browser captures its new scene.
+  cancelAnimationFrame(frameId);
+  frameId = 0;
+  frame(performance.now());
+}));
+$('dreamLink').addEventListener('click', e => {
+  if (window.parent === window) return;
+  e.preventDefault();
+  window.parent.postMessage({type:'mengsu:enter',path:$('dreamLink').getAttribute('href')}, location.origin);
+});
+document.querySelector('.mengsu-brand').addEventListener('click', e => { e.preventDefault(); document.querySelector('[data-chapter="0"]').click(); });
+
+/* ============================ main loop ============================ */
+let lastT = performance.now();
+let breathT = 0;
+
+function frame(now) {
+  frameId = 0;
+  if (stopped || document.hidden || !ready) return;
+  const dt = paused || reduced ? 0 : Math.min(0.05, (now - lastT) / 1000);
+  lastT = now;
+  elapsed += dt;
+  const t = elapsed;
+  if (activeChapter === 1) {
+    moonScene?.render(dt,t);
+    if (!paused && !reduced) queueFrame();
+    return;
+  }
+  if (activeChapter === 2) {
+    starScene?.render(dt,t);
+    if (!paused && !reduced) queueFrame();
+    return;
+  }
+  if (!glReady) return;
+
+  // ambient life: gentle kisses on the surface
+  breathT -= dt;
+  if (dt > 0 && breathT <= 0) {
+    breathT = 0.4 + Math.random() * 1.3;
+    drop(2 + Math.random() * (NX - 4), 2 + Math.random() * (NY - 4), 2, 0.14);
+  }
+
+  if (dt > 0) stepWater();
+  packSim();
+
+  // --- WebGL pass: photo + refraction + light ---
+  gl.activeTexture(gl.TEXTURE1);
+  gl.bindTexture(gl.TEXTURE_2D, texSim);
+  gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, NX, NY, gl.LUMINANCE, gl.UNSIGNED_BYTE, simBytes);
+  gl.uniform1f(uni.uRefr, 0.42);
+  gl.uniform1f(uni.uLight, params.light);
+  gl.uniform1f(uni.uTime, t);
+  updateFlowerAnim(t);
+  gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+
+  // --- 2D pass: petals + sparkles ---
+  fctx.clearRect(0, 0, W, H);
+  if (dt > 0) updatePetals(dt, t);
+  drawPetals(t);
+  spawnAmbient(dt);
+  updateDrawSparkles(dt, t);
+
+  if (!paused && !reduced) queueFrame();
+}
+
+/* ============================== boot ============================== */
+const img = new Image();
+function fallback(message) {
+  ready = activeChapter === 1 ? Boolean(moonScene) : activeChapter === 2 ? Boolean(starScene) : false; glReady = false; cancelAnimationFrame(frameId); frameId = 0;
+  glCv.style.display = 'none'; fxCv.style.display = 'none';
+  renderStatus.textContent = message;
+  motionToggle.disabled = true;
+  if (ready) { renderStatus.textContent = ''; updateMotionButton(); queueFrame(); }
+  window.parent.postMessage({type:'mengsu:ready'}, location.origin);
+}
+glCv.addEventListener('webglcontextlost', e => { e.preventDefault(); fallback('水面动态已暂停，仍可进入梦溯。'); });
+img.onload = () => {
+  try {
+    if (!gl) throw new Error('WebGL unavailable');
+    initGL(); setupPhotoTexture(img); glReady = true;
+    layout(); gl.viewport(0, 0, glCv.width, glCv.height);
+    ready = activeChapter === 1 ? Boolean(moonScene) : activeChapter === 2 ? Boolean(starScene) : true;
+    updateMotionButton(); lastT = performance.now(); queueFrame();
+    window.parent.postMessage({type:'mengsu:ready'}, location.origin);
+  } catch { fallback('当前设备暂不支持水面动态，仍可进入梦溯。'); }
+};
+img.onerror = () => fallback('背景暂时未能载入，请刷新页面或直接进入梦溯。');
+img.src = PHOTO_SRC;
+
+})();
+</script>
+<a id="credit" href="https://pastel-lab.pages.dev/" target="_blank" rel="noopener">© konmari · pastel-lab</a>
+</body>
+</html>

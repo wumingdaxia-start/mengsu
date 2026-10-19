@@ -1,0 +1,12 @@
+fastapi
+uvicorn
+httpx
+pydantic
+pyyaml
+python-frontmatter
+rapidfuzz
+rank-bm25
+jieba
+numpy
+zstandard
+mcp<2
