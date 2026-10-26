@@ -90,6 +90,10 @@ Windows 启动脚本需指定本机 Python 路径。未配置外部心潮、记�
 .\start.ps1 -PythonPath "<你的 Python 可执行文件路径>" -NoXinchao -NoMemory
 ```
 
+## ☁️ 部署到 Ubuntu 服务器
+
+可按 [Ubuntu 部署指南](docs/deploy-ubuntu.md) 配置 Nginx、HTTPS 与 systemd。FastAPI 同时托管前端静态文件和 API。
+
 ## 🗂️ 项目结构
 
 ```text
