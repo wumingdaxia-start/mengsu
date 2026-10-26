@@ -5,6 +5,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>梦溯 | Mengsu</title>
+<script>if(new URLSearchParams(location.search).get('background')==='1')document.documentElement.classList.add('health-background');</script>
+<style>.health-background :is(.mengsu-header,.mengsu-copy,.integration-control,#dreamDetail,#hint,#credit,#cursor,header,nav){display:none!important}</style>
 <link rel="stylesheet" href="assets/fonts.css">
 <style>
   *{ margin:0; padding:0; box-sizing:border-box; }
@@ -177,7 +179,7 @@
 </head>
 <body>
 <button id="motionToggle" class="integration-control" aria-label="暂停动态效果" aria-pressed="false" title="暂停动态效果"><span class="material-symbols-rounded" aria-hidden="true">pause</span></button>
-<a id="mengsuEnter" class="integration-control" href="/home" target="_top">进入梦溯 <span aria-hidden="true">↗</span></a>
+<a hidden style="display:none" id="mengsuEnter" class="integration-control" href="/home" target="_top">进入梦溯 <span aria-hidden="true">↗</span></a>
 <p id="renderStatus" role="status" aria-live="polite"></p>
 <div id="stage" tabindex="0" role="application" aria-label="互动水面，移动鼠标或拖动手指产生涟漪，空格键轻触水面">
   <canvas id="gl"></canvas>
@@ -191,8 +193,8 @@
   <a class="mengsu-brand" href="/entry" aria-label="梦溯入口"><svg viewBox="0 0 32 32" fill="none" aria-hidden="true"><path d="M23 5a12 12 0 1 0 4 18A13 13 0 0 1 23 5Z" stroke="currentColor" stroke-width="1.1"/><path d="m12 11 1 3 3 1-3 1-1 3-1-3-3-1 3-1Z" fill="currentColor"/></svg><span>梦溯</span></a>
   <nav class="mengsu-chapters" aria-label="选择梦境篇章"><button type="button" data-chapter="0" aria-pressed="true">花屿</button><button type="button" data-chapter="1" aria-pressed="false">鱼庭</button><button type="button" data-chapter="2" aria-pressed="false">星笺</button></nav>
 </header>
-<main class="mengsu-copy" aria-live="polite" aria-atomic="true"><h1 id="dreamTitle">深呼吸，<br>让梦境浮现……</h1><p id="dreamDescription">从这里，回到昨夜的梦。</p><a id="dreamLink" href="/capture" target="_top"><span>记下我的梦</span><span aria-hidden="true">→</span></a></main>
-<aside class="mengsu-caption" id="dreamDetail">云朵缓缓经过，昨夜的片段还在。</aside>
+<main class="mengsu-copy" aria-live="polite" aria-atomic="true"><h1 id="dreamTitle">深呼吸，<br>感受此刻的自己。</h1><p id="dreamDescription">记录身体、睡眠与心情，慢慢看见生活的节奏。</p><a id="dreamLink" href="/home" target="_top"><span>进入梦溯</span><span aria-hidden="true">→</span></a></main>
+<aside class="mengsu-caption" id="dreamDetail">从一条记录开始，留意每天细小的变化。</aside>
 
 <div id="hint">轻触水面 · 拖动泛起涟漪</div>
 
@@ -775,9 +777,9 @@ stage.addEventListener('pointerleave', () => { cursorEl.style.opacity = 0; lastM
 
 const $ = (id) => document.getElementById(id);
 const chapters = [
-  { title:'深呼吸，\n让梦境浮现……', description:'从这里，回到昨夜的梦。', link:'记下我的梦', path:'/capture', detail:'云朵缓缓经过，昨夜的片段还在。' },
-  { title:'散落的梦，\n也会慢慢相遇。', description:'月光落下来，照见那些熟悉的片段。', link:'翻开我的梦境', path:'/dreams', detail:'一端是白天，一端是夜晚，记忆在中间经过。' },
-  { title:'听，\n记忆正在回响。', description:'有些片段还没有答案，可以慢慢聊。', link:'和梦聊一聊', path:'/ask', detail:'你说过的话，会成为下一次回想的线索。' }
+  { title:'深呼吸，\n感受此刻的自己。', description:'记录身体、睡眠与心情，慢慢看见生活的节奏。', link:'进入梦溯', path:'/home', detail:'从一条记录开始，留意每天细小的变化。' },
+  { title:'日常的点滴，\n汇成照顾自己的方式。', description:'把活动、饮食和睡眠，轻轻记在这里。', link:'进入日常锻炼', path:'/activity', detail:'不必追求完美，按照自己的节奏慢慢积累。' },
+  { title:'回看记录，\n看见日常里的变化。', description:'汇总睡眠、饮食、活动与心情，了解自己的记录轨迹。', link:'进入安全健康分析', path:'/health-analysis', detail:'从已有记录出发，慢慢积累，认真回看。' }
 ];
 let requestedChapter = 0;
 document.querySelectorAll('[data-chapter]').forEach(button => button.addEventListener('click', () => {
@@ -881,8 +883,21 @@ img.onload = () => {
 img.onerror = () => fallback('背景暂时未能载入，请刷新页面或直接进入梦溯。');
 img.src = PHOTO_SRC;
 
+if (new URLSearchParams(location.search).get('background') === '1') {
+  const initialScene = Number(new URLSearchParams(location.search).get('scene'));
+  chooseEntryChapter([0, 1, 2].includes(initialScene) ? initialScene : 0);
+  window.addEventListener('message', event => {
+    if (event.origin !== location.origin || event.source !== window.parent || event.data?.type !== 'mengsu:background-pointer') return;
+    const { x, y } = event.data;
+    if (!Number.isFinite(x) || !Number.isFinite(y)) return;
+    if (activeChapter === 0) touchWater(x, y, false);
+    else moveChapter({ clientX: x, clientY: y, target: stage });
+  });
+}
+
 })();
 </script>
 <a id="credit" href="https://pastel-lab.pages.dev/" target="_blank" rel="noopener">© konmari · pastel-lab</a>
 </body>
 </html>
+

@@ -7,6 +7,7 @@ import DreamsView from './DreamsView.vue'
 import AskView from './AskView.vue'
 import MeView from './MeView.vue'
 import HomeView from './HomeView.vue'
+import FeelingSliders from '../components/FeelingSliders.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -78,6 +79,7 @@ onMounted(load)
           </article>
         </template>
         <form class="sleep-composer" @submit.prevent="save"><label for="sleep-note">补充这一天的睡眠</label><textarea id="sleep-note" v-model="text" required rows="3" placeholder="例如：昨晚大约一点入睡，早上七点醒，夜里醒了一次，醒来有点累。" /><button :disabled="busy || !text.trim() || !day">{{ busy ? '正在保存与整理……' : '保存睡眠记录' }}</button><p v-if="status" role="status">{{ status }}</p></form>
+        <FeelingSliders category="sleep" :day="day" />
         <div class="sleep-shortcuts"><button @click="select('capture')">记下醒来的梦 →</button><button @click="select('cue')">准备睡前线索 →</button><button @click="select('ask')">回忆以前聊过的事 →</button></div>
       </section>
       <KeepAlive><component :is="active.component" v-if="active.component" :key="active.key" :go="go" :sleep-only="active.key === 'cue'" /></KeepAlive>

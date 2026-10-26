@@ -1528,8 +1528,8 @@ main {
 /* ---------- 底部导航 ---------- */
 
 .app:not(.chromeless) .app-main {
-  width: calc(100% - 240px);
-  margin-left: 240px;
+  width: calc(100% - 210px);
+  margin-left: 210px;
 }
 
 nav {
@@ -1540,10 +1540,10 @@ nav {
   right: auto;
   z-index: 3;
   display: grid;
-  grid-template-rows: repeat(5, minmax(48px, 1fr));
+  grid-template-rows: repeat(6, minmax(48px, 1fr));
   align-content: center;
   gap: 4px;
-  width: 240px;
+  width: 210px;
   padding: 16px;
   background: rgba(255, 255, 255, 0.92);
   border-right: 1px solid var(--line);

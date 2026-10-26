@@ -6,7 +6,7 @@ const router = useRouter()
 const frame = ref(null)
 const failed = ref(false)
 let loadingTimer = 0
-function enter(path = '/home') {
+function enter(path = '/login') {
   sessionStorage.setItem('mengsu-entered', '1')
   router.push(path)
 }
@@ -15,7 +15,8 @@ function receive(event) {
   if (event.data?.type === 'mengsu:ready') { clearTimeout(loadingTimer); failed.value = false }
   if (event.data?.type === 'mengsu:enter') {
     const path = event.data.path || '/home'
-    if (['/home', '/capture', '/dreams', '/ask'].includes(path)) enter(path)
+    if (['/activity', '/health-analysis'].includes(path)) enter({ path: '/login', query: { next: path } })
+    else if (['/home', '/capture', '/dreams', '/ask', '/mood'].includes(path)) enter(path === '/home' ? '/login' : path)
   }
 }
 onMounted(() => {
@@ -27,7 +28,7 @@ onBeforeUnmount(() => { clearTimeout(loadingTimer); window.removeEventListener('
 
 <template>
   <section class="ripple-entry" aria-label="梦溯梦境入口">
-    <iframe ref="frame" src="/entry-ripples/index.html" title="梦溯互动：花屿水波、鱼庭鱼群与星笺星河"
+    <iframe ref="frame" src="/entry-ripples/index.html?v=health-destinations-20261026" title="梦溯互动：花屿水波、鱼庭鱼群与星笺星河"
       sandbox="allow-scripts allow-same-origin allow-downloads allow-popups allow-popups-to-escape-sandbox"
       referrerpolicy="no-referrer" @error="failed = true" />
     <div v-if="failed" class="ripple-entry-fallback" role="status">

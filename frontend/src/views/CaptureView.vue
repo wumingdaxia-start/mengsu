@@ -1,10 +1,12 @@
 <script setup>
 import { computed, defineAsyncComponent, onMounted, ref, watch } from 'vue'
+import { useRoute } from 'vue-router'
 import { api, today } from '../api'
 import { EMOTIONS, TAGS, emotionColor } from '../constants'
 const DreamClarityBridge = defineAsyncComponent(() => import('../components/DreamClarityBridge.vue'))
 
 const props = defineProps({ go: { type: Function, default: () => {} } })
+const route = useRoute()
 
 const DRAFT_KEY = 'mengsu-dream-draft'
 
@@ -171,6 +173,13 @@ watch([text, emotion, clarity, tags, people, place, day], persistDraft, { deep: 
 
 onMounted(() => {
   restoreDraft()
+  const healthFocus = typeof route.query.healthFocus === 'string' ? route.query.healthFocus.trim() : ''
+  if (healthFocus) {
+    const focusTag = `身体关注·${healthFocus}`
+    if (!tags.value.includes(focusTag)) tags.value = [...tags.value, focusTag]
+    if (!text.value.trim()) text.value = `身体关注部位：${healthFocus}\n\n此刻的感受：`
+    message.value = `已带入健康关注部位：${healthFocus}`
+  }
   loadTitle()
 })
 </script>
@@ -181,6 +190,7 @@ onMounted(() => {
   <section class="capture rise" style="--i: 0">
     <p class="capture-title">记录梦境</p>
     <p class="muted small">{{ day }} · {{ dayTitle || '今天的标题还没生成' }}</p>
+    <p class="capture-intro">把醒来时还留在心里的画面、声音或情绪，轻轻写下来。</p>
   </section>
 
   <section class="card capture-editor rise" style="--i: 1">
@@ -269,7 +279,7 @@ onMounted(() => {
 
 <style scoped>
 .capture-workspace {
-  position: relative; isolation: isolate;
+  position: relative; isolation: isolate; width: 100%; max-width: none; margin-inline: auto;
   --ink: #48445b; --ink-soft: #625d73; --muted: #716b80;
   --surface: rgba(255,255,255,.8); --surface-2: rgba(249,248,253,.8);
   --line: #e4dfef; --line-strong: #d4cbe6;
@@ -295,10 +305,23 @@ onMounted(() => {
 .capture-atmosphere i:nth-child(7) { top: 6%; right: 18%; animation-delay: -21s; }
 @keyframes capture-drift { from { transform: translate3d(-12px,8px,0); } to { transform: translate3d(20px,-20px,0); } }
 .capture-workspace > .card, .capture-workspace :deep(.dream-clarity-scope) {
-  background: rgba(255,255,255,.72); border: 1px solid rgba(218,211,235,.85);
-  border-radius: 20px; box-shadow: 0 3px 16px rgba(100,86,135,.035), inset 0 1px 0 rgba(255,255,255,.8);
-  -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
+  background: rgba(255,255,255,.16); border: 1px solid rgba(218,211,235,.12);
+  border-radius: 14px; box-shadow: none;
+  -webkit-backdrop-filter: blur(22px); backdrop-filter: blur(22px);
 }
+.capture-workspace { font-size: 14px; }
+.capture-workspace > .card { padding: 13px 15px; border-color: transparent; border-radius: 14px; }
+.capture-workspace .capture { text-align: center; padding: 14px 0 8px; }
+.capture-workspace .capture-title { margin-bottom: 4px; font-size: 18px; }
+.capture-workspace .capture-intro { max-width: 460px; margin: 6px auto 0; color: #8d849b; font-size: 12px; line-height: 1.7; }
+.capture-workspace .card-title { margin-bottom: 5px; font-size: 12px; }
+.capture-workspace :is(input, textarea) { padding: 7px 10px; font-size: 13px; }
+.capture-workspace .capture-editor textarea { min-height: 190px; }
+.capture-workspace .chip { padding: 3px 9px; font-size: 11px; }
+.capture-workspace :deep(.dream-clarity-scope) { padding: 13px !important; border-radius: 14px !important; }
+.capture-workspace :deep(.dream-clarity-scope h2) { font-size: 17px !important; }
+.capture-workspace :deep(.dream-clarity-scope > p) { padding-top: 4px !important; font-size: 12px !important; }
+.capture-workspace :deep(.dream-clarity-scope > div:last-child) { font-size: 12px !important; }
 .capture-workspace :is(input, textarea) { background: rgba(250,249,253,.75); border-color: #e3dfed; color: #48445b; caret-color: #9183b2; }
 .capture-workspace :is(input, textarea)::placeholder { color: #827b91; }
 .capture-workspace :is(input, textarea):focus-visible { background: rgba(255,255,255,.94); border-color: #b3a3cf; box-shadow: 0 0 0 3px rgba(178,157,211,.16), 0 0 16px rgba(178,157,211,.08); }
@@ -311,14 +334,23 @@ onMounted(() => {
 .capture-workspace .meta-row { flex-wrap: wrap; font-variant-numeric: tabular-nums; }
 .capture-workspace ::selection { background: #e2d8f0; color: #48445b; }
 @media (min-width: 960px) {
+  .capture-workspace { column-gap: 14px; row-gap: 12px; }
+  .capture-workspace > .card { padding: 12px 14px !important; }
+  .capture-workspace .capture-editor { grid-column: 1; grid-row: 2; align-self: start; }
+  .capture-workspace .capture-editor textarea { min-height: 190px; flex: initial; }
+  .capture-workspace .capture-actions { grid-column: 1 / -1; }
   .capture-workspace .row { flex-wrap: nowrap; }
   .capture-workspace .row input { flex: 1; min-width: 0; }
   .capture-workspace .row button { flex-shrink: 0; }
 }
 @media (max-width: 959px) {
+  .capture-workspace { width: 100%; max-width: none; }
   .capture-workspace::before { inset: -14px -10px; border-radius: 20px; }
-  .capture-editor textarea { min-height: 240px; }
+  .capture-workspace { display: grid; gap: 12px; }
+  .capture-editor textarea { min-height: 170px; }
   .capture-workspace :is(input, textarea) { font-size: 16px; }
+  .capture-workspace > .card { padding: 11px 12px !important; }
+  .capture-workspace :deep(.dream-clarity-scope) { padding: 12px !important; }
 }
 @media (prefers-reduced-motion: reduce) {
   .capture-atmosphere :is(span,i), .capture-workspace .rise { animation: none; }

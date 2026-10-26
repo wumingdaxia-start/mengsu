@@ -1,7 +1,20 @@
 const jsonHeaders = { 'Content-Type': 'application/json' }
+const REQUEST_TIMEOUT_MS = 8000
 
 async function call(path, options = {}) {
-  const response = await fetch(path, options)
+  const controller = new AbortController()
+  const timeout = window.setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS)
+  let response
+  try {
+    response = await fetch(path, { ...options, signal: options.signal || controller.signal })
+  } catch (error) {
+    if (error?.name === 'AbortError') {
+      throw new Error('本地服务暂时没有响应，请稍后刷新页面')
+    }
+    throw error
+  } finally {
+    window.clearTimeout(timeout)
+  }
   if (!response.ok) {
     const text = await response.text()
     throw new Error(`${response.status} ${text.slice(0, 200)}`)

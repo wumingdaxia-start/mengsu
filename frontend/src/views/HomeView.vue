@@ -2,6 +2,7 @@
 import { computed, onMounted, ref } from 'vue'
 import { api, shortDay, today } from '../api'
 import { emotionColor } from '../constants'
+import HealthTwinCard from '../components/HealthTwinCard.vue'
 
 const props = defineProps({ go: { type: Function, default: () => {} }, sleepOnly: Boolean })
 
@@ -119,6 +120,16 @@ onMounted(load)
       <span class="health-presence"><i /> 今日记录进行中</span>
     </div>
 
+    <HealthTwinCard
+      v-if="!sleepOnly"
+      :notes="dayData?.notes?.length || 0"
+      :sleep="dayData?.sleep?.length || 0"
+      :dreams="dayData?.fragments?.length || 0"
+      class="rise"
+      style="--i: 1"
+    />
+
+    
     <section class="health-top rise" style="--i: 1">
       <div class="health-welcome">
         <p class="health-eyebrow">HEALTH JOURNAL</p>
@@ -172,7 +183,7 @@ onMounted(load)
       </article>
     </section>
 
-    <section id="health-reminders" class="reminders rise" style="--i: 3">
+<section id="health-reminders" class="reminders rise" style="--i: 3">
       <div class="section-heading">
         <div><p class="health-eyebrow">A GENTLE CHECK-IN</p><h2>今天可以留意</h2></div>
         <span class="reminder-note">按自己的节奏来</span>
@@ -184,7 +195,7 @@ onMounted(load)
       </div>
     </section>
 
-    <div class="journal-tools rise" style="--i: 4">
+    <div v-if="sleepOnly" class="journal-tools rise" style="--i: 4">
       <section class="journal-section home-search">
         <div class="section-heading compact-heading"><div><p class="health-eyebrow">FIND A MEMORY</p><h2>回看梦境</h2></div><button class="text-action" @click="props.go('dreams')">全部记录 →</button></div>
         <div class="search"><input v-model="searchText" placeholder="搜索梦境、人物、地点" @keyup.enter="runSearch" /><button class="ghost" @click="runSearch">搜索</button></div>
@@ -209,7 +220,7 @@ onMounted(load)
       </section>
     </div>
 
-    <section class="dream-records rise" style="--i: 5">
+    <section v-if="sleepOnly" class="dream-records rise" style="--i: 5">
       <div class="section-heading compact-heading"><div><p class="health-eyebrow">DREAM JOURNAL</p><h2>最近的梦</h2></div><button class="text-action" @click="props.go('dreams')">打开梦境 →</button></div>
       <p v-if="!data?.recent?.length" class="empty-note">还没有梦境记录。醒来后记下记得的片段就好，不需要完整。</p>
       <div v-for="row in (data?.recent || []).slice(0, 3)" :key="row.id" class="dream-entry">
@@ -232,15 +243,15 @@ onMounted(load)
 .health-presence { display: inline-flex; align-items: center; gap: 8px; color: #8d779d; font-size: 12px; }
 .health-presence i { width: 7px; height: 7px; border-radius: 50%; background: #b59ac6; }
 .health-top { display: grid; grid-template-columns: minmax(0, 1.45fr) minmax(230px, .85fr); min-height: 232px; gap: 18px; }
-.health-welcome { position: relative; display: flex; flex-direction: column; align-items: flex-start; min-width: 0; padding: 27px 30px 22px; overflow: hidden; color: white; background: linear-gradient(112deg, #a58bb8, #c2a3c7); border-radius: 7px; }
+.health-welcome { position: relative; display: flex; flex-direction: column; align-items: flex-start; min-width: 0; padding: 27px 30px 22px; overflow: hidden; color: #6f627a; background: rgba(214,196,225,.36); border: 1px solid rgba(207,190,220,.18); border-radius: 7px; backdrop-filter: blur(18px); }
 .health-welcome::after { content: ''; position: absolute; width: 300px; height: 300px; right: -70px; bottom: -210px; border: 1px solid rgba(255,255,255,.2); border-radius: 50%; box-shadow: 0 0 0 28px rgba(255,255,255,.06), 0 0 0 58px rgba(255,255,255,.04); pointer-events: none; }
-.health-welcome .health-eyebrow { color: rgba(255,255,255,.76); }
+.health-welcome .health-eyebrow { color: rgba(111,98,122,.68); }
 .health-welcome h2 { max-width: 640px; margin: 15px 0 8px; font: 500 clamp(20px, 2vw, 28px)/1.35 var(--display); }
-.welcome-copy { max-width: 610px; margin: 0; color: rgba(255,255,255,.85); font-size: 14px; line-height: 1.75; }
-.welcome-foot { position: relative; z-index: 1; width: 100%; margin-top: auto; padding-top: 21px; font-size: 12px; color: rgba(255,255,255,.8); }
-.welcome-action { background: transparent; border: 0; border-radius: 0; padding: 5px 0; color: white; font-size: 13px; }
+.welcome-copy { max-width: 610px; margin: 0; color: rgba(94,84,107,.74); font-size: 14px; line-height: 1.75; }
+.welcome-foot { position: relative; z-index: 1; width: 100%; margin-top: auto; padding-top: 21px; font-size: 12px; color: rgba(103,91,115,.72); }
+.welcome-action { background: transparent; border: 0; border-radius: 0; padding: 5px 0; color: #806c91; font-size: 13px; }
 .welcome-action:hover:not(:disabled) { box-shadow: none; }
-.health-summary { position: relative; display: grid; place-items: center; min-height: 232px; overflow: hidden; border: 1px solid var(--health-line); border-radius: 7px; background: #fff; }
+.health-summary { position: relative; display: grid; place-items: center; min-height: 232px; overflow: hidden; border: 1px solid rgba(225,217,234,.34); border-radius: 7px; background: rgba(255,255,255,.3); backdrop-filter: blur(18px); }
 .summary-orbit { position: absolute; width: 152px; aspect-ratio: 1; border: 1px solid #e3d8eb; border-radius: 50%; }
 .orbit-two { width: 182px; border-color: #f1eaf5; }
 .summary-center { position: relative; display: flex; flex-direction: column; align-items: center; color: #8b7f95; font-size: 12px; }
@@ -248,7 +259,7 @@ onMounted(load)
 .summary-center strong { color: #655375; font-size: 29px; line-height: 1.2; font-weight: 600; font-variant-numeric: tabular-nums; }
 .health-summary small { position: absolute; bottom: 14px; color: #a398ac; font-size: 11px; }
 .health-metrics { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; margin-top: 15px; }
-.metric { min-width: 0; min-height: 176px; padding: 17px 18px 14px; border: 1px solid var(--health-line); border-radius: 7px; background: #fff; }
+.metric { min-width: 0; min-height: 176px; padding: 17px 18px 14px; border: 1px solid rgba(225,217,234,.26); border-radius: 7px; background: rgba(255,255,255,.24); backdrop-filter: blur(16px); }
 .metric-top { align-items: flex-start; }
 .metric-icon { display: grid; place-items: center; width: 31px; height: 31px; border-radius: 6px; color: #9a80ac; background: #f5eff9; font-size: 17px; }
 .metric-state { color: #97899f; font-size: 11px; }
@@ -262,14 +273,14 @@ onMounted(load)
 .section-heading h2 { font-size: 19px; }
 .reminder-note { color: #a197aa; font-size: 11px; }
 .reminder-list { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; margin-top: 12px; }
-.reminder-list article { display: grid; grid-template-columns: 26px minmax(0, 1fr) 24px; align-items: start; gap: 10px; min-height: 86px; padding: 14px 15px; border: 1px solid var(--health-line); border-left: 3px solid #b89ac9; border-radius: 5px; background: #fff; }
+.reminder-list article { display: grid; grid-template-columns: 26px minmax(0, 1fr) 24px; align-items: start; gap: 10px; min-height: 86px; padding: 14px 15px; border: 1px solid rgba(225,217,234,.24); border-left: 3px solid rgba(184,154,201,.38); border-radius: 5px; background: rgba(255,255,255,.2); backdrop-filter: blur(16px); }
 .reminder-number { color: #ac91bb; font-size: 11px; font-variant-numeric: tabular-nums; }
 .reminder-list h3 { margin: 0 0 3px; color: #675771; font-size: 12px; font-weight: 600; }
 .reminder-list p { margin: 0; color: #94899c; font-size: 11px; line-height: 1.55; }
 .reminder-list button { padding: 0; border: 0; background: transparent; color: #ac91bb; font-size: 15px; }
 .reminder-list button:hover:not(:disabled) { box-shadow: none; }
 .journal-tools { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 28px; }
-.journal-section, .dream-records { min-width: 0; padding: 19px 20px; border: 1px solid var(--health-line); border-radius: 7px; background: #fff; }
+.journal-section, .dream-records { min-width: 0; padding: 19px 20px; border: 1px solid rgba(225,217,234,.24); border-radius: 7px; background: rgba(255,255,255,.2); backdrop-filter: blur(16px); }
 .compact-heading h2 { font-size: 18px; }
 .search { display: flex; gap: 8px; margin-top: 14px; }
 .search input, .sleep-row input { min-width: 0; height: 40px; padding: 7px 11px; border-radius: 5px; font-size: 13px; }
@@ -301,3 +312,4 @@ onMounted(load)
 @media (max-width: 620px) { .health-heading { align-items: flex-end; } .health-heading h1 { font-size: 22px; } .health-presence { font-size: 10px; white-space: nowrap; } .health-top { grid-template-columns: 1fr; gap: 10px; } .health-welcome { min-height: 212px; padding: 20px; } .health-welcome h2 { margin-top: 12px; font-size: 21px; } .welcome-copy { font-size: 12px; } .health-summary { min-height: 144px; } .summary-orbit { width: 112px; } .orbit-two { width: 136px; } .health-metrics { gap: 9px; margin-top: 10px; } .metric { min-height: 160px; padding: 12px; } .metric-value { font-size: 21px; } .feeling-value { font-size: 18px; } .metric p { font-size: 10px; } .reminders { margin-top: 22px; } .reminder-list { grid-template-columns: 1fr; gap: 8px; } .reminder-list article { min-height: auto; padding: 11px 12px; } .journal-tools { grid-template-columns: 1fr; gap: 10px; margin-top: 22px; } .journal-section, .dream-records { padding: 16px 14px; } .dream-links { gap: 7px; } .dream-links button { gap: 7px; padding: 9px 7px; } .dream-links small { font-size: 9px; } .dream-entry { grid-template-columns: 8px minmax(0,1fr); } .dream-entry-meta { grid-column: 2; } }
 @media (prefers-reduced-motion: reduce) { .health-home .rise { animation: none; } }
 </style>
+
