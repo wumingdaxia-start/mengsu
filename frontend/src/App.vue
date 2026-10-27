@@ -247,7 +247,7 @@ onBeforeUnmount(() => {
         <span class="health-nav-mark" aria-hidden="true"><svg viewBox="0 0 32 32" fill="none"><path d="M23 5a12 12 0 1 0 4 18A13 13 0 0 1 23 5Z" stroke="currentColor" stroke-width="1.1"/><path d="m12 11 1 3 3 1-3 1-1 3-1-3-3-1 3-1Z" fill="currentColor"/></svg></span>
         <span><strong>梦溯</strong><small>把身体感受轻轻记下</small></span>
       </div>
-      <div v-for="(group, index) in healthNavigationGroups" :key="group.label" class="health-nav-group" :class="`health-nav-group-${index + 1}`">
+      <div v-for="(group, index) in healthNavigationGroups" :key="group.label" class="health-nav-group">
         <p><span>{{ String(index + 1).padStart(2, '0') }}</span> {{ group.label }}</p>
         <button
           v-for="item in group.items"
@@ -277,39 +277,21 @@ onBeforeUnmount(() => {
 .app .health-nav-mark svg { width:48px; height:48px; overflow:visible; }
 .app .health-nav-brand strong, .app .health-nav-profile strong { display: block; color: #494154; font: 600 19px/1.1 var(--display); }
 .app .health-nav-brand small, .app .health-nav-profile small { display: block; margin-top: 5px; color: #9b94a6; font-size: 10px; }
-.app .health-nav-group { display: grid; gap: 5px; margin: 4px 0 25px; padding-top: 14px; border-top: 1px solid rgba(222,216,232,.8); }
-.app .health-nav-group:first-of-type { padding-top: 0; border-top: 0; }
-.app .health-nav-group > p { margin: 0 0 7px 6px; color: #756984; font-size: 11px; font-weight: 700; letter-spacing: .02em; }
+.app .health-nav-group { display: grid; gap: 3px; margin-bottom: 23px; }
+.app .health-nav-group > p { margin: 0 0 5px 10px; color: #aaa3b1; font-size: 10px; font-weight: 600; letter-spacing: .12em; }
 .app .health-navigation button { flex: none; display: flex; align-items: center; justify-content: flex-start; gap: 13px; min-height: 47px; padding: 10px 12px; border: 0; border-radius: 11px; background: transparent; color: #827b91; font-size: 14px; font-weight: 500; text-align: left; white-space: nowrap; box-shadow: none; }
 .app .health-navigation button svg { display: block; width: 19px; height: 19px; flex-shrink: 0; }
-.app .health-navigation button.active { min-height: 54px; background: #e5def1; color: #56466f; font-weight: 700; box-shadow: inset 4px 0 0 #9b82b9; }
+.app .health-navigation button.active { background: #e5def1; color: #5f5275; font-weight: 600; box-shadow: inset 3px 0 0 #a790bd; }
 .app .health-navigation button:hover { background: rgba(230, 224, 242, .58); color: #625477; box-shadow: none; }
 .app .health-navigation button:focus-visible { outline: 2px solid #b3a3cf; outline-offset: -3px; box-shadow: none; }
 .app .health-nav-profile { margin-top: auto; padding-top: 17px !important; border-top: 1px solid #e5e0ee !important; border-radius: 0 !important; }
 .app .health-nav-profile .profile-seal { display: grid; place-items: center; width: 32px; height: 32px; border-radius: 50%; color: #7b6689; background: #e9e3f3; font: 600 13px/1 var(--display); }
 .app .health-nav-profile > span:nth-child(2) { flex: 1; }
 .app .health-nav-profile strong { font-size: 13px; }.app .health-nav-profile small { font-size: 9px; }.app .health-nav-profile b { color: #a7a0b0; font-size: 12px; letter-spacing: 1px; }
-.app .health-nav-group > p { display:flex;align-items:center;gap:9px;letter-spacing:0; }
-.app .health-nav-group > p > span { display:grid;place-items:center;width:30px;height:30px;border-radius:9px;background:#eeedf4;color:#858194;font-weight:600;font-size:11px; }
-.app .health-nav-group:nth-of-type(2) > p > span { background:#edf4f2;color:#64817b; }
-.app .health-nav-group:nth-of-type(3) > p > span { background:#f2edf6;color:#8b7194; }
-.app .health-nav-group-1 { padding: 12px 8px 14px; border-radius: 14px; background: #f3eef9; }
-.app .health-nav-group-2 { padding: 12px 8px 14px; border-radius: 14px; background: #edf6f2; }
-.app .health-nav-group-3 { padding: 12px 8px 14px; border-radius: 14px; background: #eef2f9; }
-.app .health-nav-group-1 > p { color: #745f8b; }
-.app .health-nav-group-2 > p { color: #557c72; }
-.app .health-nav-group-3 > p { color: #5f7190; }
-.app .health-nav-group-1 > p > span { background: #e7dcf2; color: #80679b; }
-.app .health-nav-group-2 > p > span { background: #dceee7; color: #5d887b; }
-.app .health-nav-group-3 > p > span { background: #dfe7f4; color: #657a9d; }
-.app .health-nav-group-1 button:hover { background: #e9def3; color: #614b78; }
-.app .health-nav-group-2 button:hover { background: #dfeee8; color: #4c756a; }
-.app .health-nav-group-3 button:hover { background: #e0e8f4; color: #536b90; }
-.app .health-nav-group-1 button.active { background: #e4d8f0; color: #57416f; box-shadow: inset 4px 0 0 #9b82b9; }
-.app .health-nav-group-2 button.active { background: #d7ebe3; color: #40695f; box-shadow: inset 4px 0 0 #6ca291; }
-.app .health-nav-group-3 button.active { background: #dce6f4; color: #4c6385; box-shadow: inset 4px 0 0 #7c9bc4; }
-@media(min-width:960px){.app .health-nav-group{margin-bottom:18px;gap:5px}.app .health-navigation button{min-height:48px}.app .health-navigation button svg{background:#eeedf4;border-radius:9px;padding:6px;box-sizing:content-box}.app .health-navigation button.active svg{background:#ffffff66}.app .health-navigation button.active{background:#e5def1;color:#56466f;box-shadow:inset 4px 0 0 #9b82b9}}
-.app .health-navigation button.active{background:#e5def1;color:#56466f;box-shadow:inset 4px 0 0 #9b82b9}
+.app .health-nav-group > p { display:flex;align-items:center;gap:8px;letter-spacing:0; }
+.app .health-nav-group > p > span { display:grid;place-items:center;width:24px;height:24px;border-radius:7px;background:#eeeef4;color:#9296a3;font-weight:500; }
+@media(min-width:960px){.app .health-nav-group{margin-bottom:18px;gap:4px}.app .health-navigation button{min-height:46px}.app .health-navigation button.active{background:#475f80;color:#fff;box-shadow:none}.app .health-navigation button svg{background:#eeedf4;border-radius:8px;padding:5px;box-sizing:content-box}.app .health-navigation button.active svg{background:#ffffff1c}}
+.app .health-navigation button.active{background:#e5def1;color:#5f5275;box-shadow:inset 3px 0 0 #a790bd}
 @media(max-width:959px){.app .health-navigation{overflow-x:auto;justify-content:flex-start!important}.app .health-navigation button{min-width:69px;flex-shrink:0!important}.app .health-nav-group > p{display:none}}
 @media (max-width: 959px) {
   .app .health-navigation { flex-direction: row; justify-content: space-around; gap: 0; padding: 8px 5px calc(8px + env(safe-area-inset-bottom)); border-right: 0; border-top: 1px solid #e4dfef; }
@@ -353,17 +335,6 @@ onBeforeUnmount(() => {
   background: transparent;
   box-shadow: none;
 }
-@media(min-width:960px){
-  .app .health-nav-group-1 button.active{background:#e4d8f0;color:#57416f;box-shadow:inset 4px 0 0 #9b82b9}
-  .app .health-nav-group-2 button.active{background:#d7ebe3;color:#40695f;box-shadow:inset 4px 0 0 #6ca291}
-  .app .health-nav-group-3 button.active{background:#dce6f4;color:#4c6385;box-shadow:inset 4px 0 0 #7c9bc4}
-}
-.app .health-nav-group-1 > p > span{color:#80679b;background:#e7dcf2}
-.app .health-nav-group-2 > p > span{color:#5d887b;background:#dceee7}
-.app .health-nav-group-3 > p > span{color:#657a9d;background:#dfe7f4}
-.app .health-navigation .health-nav-group-1 > p > span{color:#80679b!important;background:#e7dcf2!important}
-.app .health-navigation .health-nav-group-2 > p > span{color:#5d887b!important;background:#dceee7!important}
-.app .health-navigation .health-nav-group-3 > p > span{color:#657a9d!important;background:#dfe7f4!important}
 .app .ai-fab.flower-fab:focus-visible { outline: 2px solid #e891aa; outline-offset: 3px; }
 .header-link { padding: 8px 10px; min-height: 44px; background: transparent; color: var(--ink-soft); border-radius: 6px; font-size: 13px; font-weight: 400; }
 .header-link:hover:not(:disabled) { color: var(--accent); box-shadow: none; }

@@ -1,4 +1,5 @@
 <script setup>
+import { requireLogin } from '../auth'
 import { computed, onMounted, onBeforeUnmount, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { api, today } from '../api'
@@ -68,10 +69,12 @@ function persistMoodState() {
 const checkinStorageKey = () => `mengsu-health-checkins:${today()}`
 const reminderStorageKey = 'mengsu-health-reminders'
 function toggleCheckin(id) {
+  if (!requireLogin()) return
   todayCheckins.value = { ...todayCheckins.value, [id]: !todayCheckins.value[id] }
   localStorage.setItem(checkinStorageKey(), JSON.stringify(todayCheckins.value))
 }
 function toggleReminder(id) {
+  if (!requireLogin()) return
   enabledReminders.value = { ...enabledReminders.value, [id]: !enabledReminders.value[id] }
   localStorage.setItem(reminderStorageKey, JSON.stringify(enabledReminders.value))
 }

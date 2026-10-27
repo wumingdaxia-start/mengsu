@@ -1,5 +1,6 @@
 <script setup>
 import { computed, reactive, ref, watch } from 'vue'
+import { isLoggedIn, requireLogin } from '../auth'
 
 const key = 'mengsu-personal-profile-v1'
 const blank = { name: '', gender: '', birthday: '', blood: '', height: '', weight: '', activity: '', goal: '', allergies: '', conditions: '', contact: '', phone: '' }
@@ -22,9 +23,11 @@ const bmi = computed(() => {
 })
 const today = new Date().toLocaleDateString('sv-SE')
 watch(profile, () => {
+  if (!isLoggedIn()) { saveState.value = '未登录，填写内容尚未保存'; return }
   try { localStorage.setItem(key, JSON.stringify(profile)); saveState.value = '已保存档案' } catch { saveState.value = '暂时无法保存，请检查浏览器存储设置' }
 })
-function clearProfile() { Object.assign(profile, blank); clearing.value = false }
+function clearProfile() { if (!requireLogin()) return; Object.assign(profile, blank); clearing.value = false }
+function saveProfile() { if (!requireLogin()) return; try { localStorage.setItem(key, JSON.stringify(profile)); saveState.value = '已保存档案' } catch { saveState.value = '暂时无法保存' } }
 </script>
 
 <template>
@@ -40,12 +43,12 @@ function clearProfile() { Object.assign(profile, blank); clearing.value = false 
       <article><span>健康目标</span><strong class="goal">{{ profile.goal || '—' }}</strong><small>{{ profile.goal ? '当前记录目标' : '尚未选择' }}</small></article>
     </div>
     <form class="profile-form" @submit.prevent>
-      <header><div><small>MY INFORMATION</small><h2>填写个人信息</h2><p>除登录账号外，以下内容均可修改或清空。</p></div><span role="status" class="save-state">{{ saveState }}</span></header>
+      <header><div><small>MY INFORMATION</small><h2>填写个人信息</h2><p>除登录账号外，以下内容均可修改或清空。</p></div><span role="status" class="save-state">{{ saveState }}</span><button type="button" @click="saveProfile">保存档案</button></header>
       <section class="form-section">
         <div class="section-title"><b>01</b><div><h3>基础信息</h3><p>用于识别和完善自己的健康档案</p></div></div>
         <div class="field-grid">
           <label>姓名或称呼<input v-model="profile.name" maxlength="40" autocomplete="nickname" placeholder="请输入姓名或称呼" /></label>
-          <label>性别<select v-model="profile.gender"><option value="">请选择</option><option>男</option><option>女</option><option>其他</option><option>不便透露</option></select></label>
+          <label>性别<select v-model="profile.gender"><option value="">请选择</option><option>男</option><option>女</option></select></label>
           <label>出生日期<input v-model="profile.birthday" type="date" :max="today" autocomplete="bday" /></label>
           <label>血型<select v-model="profile.blood"><option value="">不清楚</option><option>A 型</option><option>B 型</option><option>AB 型</option><option>O 型</option><option>其他</option></select></label>
         </div>

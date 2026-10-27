@@ -1,7 +1,9 @@
+import { requireLogin } from './auth'
 const jsonHeaders = { 'Content-Type': 'application/json' }
 const REQUEST_TIMEOUT_MS = 8000
 
 async function call(path, options = {}) {
+  if (options.method && options.method !== 'GET' && !requireLogin()) throw new Error('请先登录账号后再保存')
   const controller = new AbortController()
   const timeout = window.setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS)
   let response
