@@ -1,22 +1,25 @@
 <script setup>
 import { onMounted, onBeforeUnmount, ref } from 'vue'
 import { useRouter } from 'vue-router'
+import { isLoggedIn, refreshSession } from '../auth'
+import { entryDestination } from '../workspaces'
 
 const router = useRouter()
 const frame = ref(null)
 const failed = ref(false)
 let loadingTimer = 0
-function enter(path = '/login') {
+async function enter(path = '/safety') {
+  await refreshSession()
+  const destination = entryDestination(path, isLoggedIn())
+  if (!destination) return
   sessionStorage.setItem('mengsu-entered', '1')
-  router.push(path)
+  router.push(destination)
 }
 function receive(event) {
   if (event.origin !== location.origin || event.source !== frame.value?.contentWindow) return
   if (event.data?.type === 'mengsu:ready') { clearTimeout(loadingTimer); failed.value = false }
   if (event.data?.type === 'mengsu:enter') {
-    const path = event.data.path || '/home'
-    if (['/activity', '/health-analysis'].includes(path)) enter({ path: '/login', query: { next: path } })
-    else if (['/home', '/capture', '/dreams', '/ask', '/mood'].includes(path)) enter(path === '/home' ? '/login' : path)
+    enter(event.data.path || '/safety')
   }
 }
 onMounted(() => {
@@ -28,12 +31,12 @@ onBeforeUnmount(() => { clearTimeout(loadingTimer); window.removeEventListener('
 
 <template>
   <section class="ripple-entry" aria-label="梦溯梦境入口">
-    <iframe ref="frame" src="/entry-ripples/index.html?v=health-destinations-20261026" title="梦溯互动：花屿水波、鱼庭鱼群与星笺星河"
+    <iframe ref="frame" src="/entry-ripples/index.html?v=three-workspaces-20261028" title="梦溯互动：花屿安全健康、鱼庭梦溯与星栈心理空间"
       sandbox="allow-scripts allow-same-origin allow-downloads allow-popups allow-popups-to-escape-sandbox"
       referrerpolicy="no-referrer" @error="failed = true" />
     <div v-if="failed" class="ripple-entry-fallback" role="status">
       <p>水面暂时未能载入。</p>
-      <button @click="enter()">进入梦溯</button>
+      <div class="fallback-links"><button @click="enter('/safety')">安全健康</button><button @click="enter('/dream')">梦溯</button><button @click="enter('/psychology')">心理空间</button></div>
     </div>
   </section>
 </template>

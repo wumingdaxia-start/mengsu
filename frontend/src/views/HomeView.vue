@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, onBeforeUnmount, ref } from 'vue'
 import { api, shortDay, today } from '../api'
 import { emotionColor } from '../constants'
 import HealthTwinCard from '../components/HealthTwinCard.vue'
@@ -17,13 +17,15 @@ const audioUrl = ref('')
 const sleepText = ref('')
 const message = ref('')
 const busy = ref(false)
-
 const dateBits = computed(() => {
   const now = new Date()
   const week = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'][now.getDay()]
   return { month: `${now.getMonth() + 1}月`, day: now.getDate(), week }
 })
-
+const profileGender = ref('')
+const personalActivity = ref([])
+const personalDiet = ref([])
+function recordHealth() { props.go('/activity') }
 const greeting = computed(() => {
   const hour = new Date().getHours()
   if (hour < 5) return '夜深了，先照顾好此刻的自己。'
@@ -48,6 +50,25 @@ const sleepDuration = computed(() => {
 const latestFeeling = computed(() => {
   const fragment = dayData.value?.fragments?.at(-1)
   return sleepRecord.value?.feeling || fragment?.emotion || ''
+})
+
+function loadPersonalHealthData() {
+  try {
+    const account = JSON.parse(sessionStorage.getItem('mengsu-auth') || '{}')?.email || 'guest'
+    personalActivity.value = JSON.parse(localStorage.getItem(`mengsu-activity-records-v1:${account}`) || '[]') || []
+    personalDiet.value = JSON.parse(localStorage.getItem(`mengsu-diet-records-v1:${account}`) || '[]') || []
+    const profile = JSON.parse(localStorage.getItem('mengsu-personal-profile-v1') || '{}') || {}
+    profileGender.value = profile.gender === '男' || profile.gender === '女' ? profile.gender : ''
+  } catch { personalActivity.value = []; personalDiet.value = []; profileGender.value = '' }
+}
+const todayActivity = computed(() => personalActivity.value.filter(row => row.date === today()))
+const todayDiet = computed(() => personalDiet.value.filter(row => row.date === today()))
+const activityMinutes = computed(() => todayActivity.value.reduce((sum, row) => sum + Number(row.minutes || 0), 0))
+const activityCalories = computed(() => todayActivity.value.reduce((sum, row) => sum + Number(row.calories || 0), 0))
+const dietCalories = computed(() => todayDiet.value.reduce((sum, row) => sum + Number(row.calories || 0), 0))
+const totalTodayRecords = computed(() => {
+  const record = dayData.value || {}
+  return (record.notes?.length || 0) + (record.sleep?.length || 0) + (record.fragments?.length || 0) + todayActivity.value.length + todayDiet.value.length
 })
 
 async function load() {
@@ -107,21 +128,20 @@ async function saveSleep() {
   await load()
 }
 
-onMounted(load)
+onMounted(() => {
+  loadPersonalHealthData()
+  load()
+  window.addEventListener('mengsu:auth-change', loadPersonalHealthData)
+})
+onBeforeUnmount(() => window.removeEventListener('mengsu:auth-change', loadPersonalHealthData))
 </script>
 
 <template>
   <div class="health-home" :class="{ 'sleep-only': sleepOnly }">
-    <div class="health-heading rise" style="--i: 0">
-      <div>
-        <p class="health-date">{{ dateBits.month }}{{ dateBits.day }}日 · {{ dateBits.week }}</p>
-        <h1>健康总览</h1>
-      </div>
-      <span class="health-presence"><i /> 今日记录进行中</span>
-    </div>
-
+    <header v-if="!sleepOnly" class="safety-page-heading"><p>健康看板 / 健康总览</p><h1>健康总览</h1><span>集中查看日常锻炼、饮食与睡眠记录。</span></header>
     <HealthTwinCard
       v-if="!sleepOnly"
+      :gender="profileGender"
       :notes="dayData?.notes?.length || 0"
       :sleep="dayData?.sleep?.length || 0"
       :dreams="dayData?.fragments?.length || 0"
@@ -135,13 +155,13 @@ onMounted(load)
         <p class="health-eyebrow">HEALTH JOURNAL</p>
         <h2>{{ greeting }}</h2>
         <p class="welcome-copy">
-          {{ data?.today_rows?.length
-            ? `今天已经留下 ${data.today_rows.length} 条梦境记录。活动、饮食和身体感受也可以慢慢补充。`
+          {{ totalTodayRecords
+            ? `今天已经留下 ${totalTodayRecords} 项记录。活动、饮食和身体感受也可以慢慢补充。`
             : '这里不为今天打分，只把你愿意记录的状态放在一起。想到什么，再慢慢补充。' }}
         </p>
         <div class="welcome-foot">
           <span>今日健康记录</span>
-          <button class="welcome-action" @click="props.go('capture')">记录此刻 <span aria-hidden="true">↗</span></button>
+          <button class="welcome-action" @click="recordHealth">记录活动 <span aria-hidden="true">↗</span></button>
         </div>
       </div>
       <div class="health-summary" aria-label="今日记录概况">
@@ -149,7 +169,7 @@ onMounted(load)
         <span class="summary-orbit orbit-two" />
         <div class="summary-center">
           <span class="summary-symbol" aria-hidden="true">✳</span>
-          <strong>{{ (dayData?.notes?.length || 0) + (dayData?.sleep?.length || 0) + (dayData?.fragments?.length || 0) }}</strong>
+          <strong>{{ totalTodayRecords }}</strong>
           <span>项今日记录</span>
         </div>
         <small>不生成健康分数</small>
@@ -158,22 +178,22 @@ onMounted(load)
 
     <section class="health-metrics rise" style="--i: 2" aria-label="健康维度">
       <article id="activity" class="metric metric-activity">
-        <div class="metric-top"><span class="metric-icon" aria-hidden="true">↗</span><span class="metric-state">待记录</span></div>
-        <strong class="metric-value">—</strong><span class="metric-unit">活动</span>
-        <p>今天的活动时长还没有记录</p>
-        <button class="metric-link" @click="props.go('capture')">补充一条 <span aria-hidden="true">→</span></button>
+        <div class="metric-top"><span class="metric-icon" aria-hidden="true">↗</span><span class="metric-state">{{ todayActivity.length ? '已记录' : '待记录' }}</span></div>
+        <strong class="metric-value">{{ todayActivity.length ? activityMinutes : '—' }}</strong><span class="metric-unit">{{ todayActivity.length ? '分钟' : '活动' }}</span>
+        <p>{{ todayActivity.length ? `今日活动消耗 ${activityCalories} 千卡` : '今天的活动时长还没有记录' }}</p>
+        <button class="metric-link" @click="props.go('/activity')">{{ todayActivity.length ? '查看记录' : '补充一条' }} <span aria-hidden="true">→</span></button>
       </article>
       <article id="nutrition" class="metric metric-food">
-        <div class="metric-top"><span class="metric-icon" aria-hidden="true">◌</span><span class="metric-state">待记录</span></div>
-        <strong class="metric-value">—</strong><span class="metric-unit">饮食</span>
-        <p>今天还没有饮食记录</p>
-        <button class="metric-link" @click="props.go('capture')">补充一条 <span aria-hidden="true">→</span></button>
+        <div class="metric-top"><span class="metric-icon" aria-hidden="true">◌</span><span class="metric-state">{{ todayDiet.length ? '已记录' : '待记录' }}</span></div>
+        <strong class="metric-value">{{ todayDiet.length ? dietCalories : '—' }}</strong><span class="metric-unit">{{ todayDiet.length ? '千卡' : '饮食' }}</span>
+        <p>{{ todayDiet.length ? `今日已记录 ${todayDiet.length} 餐` : '今天还没有饮食记录' }}</p>
+        <button class="metric-link" @click="props.go('/nutrition')">{{ todayDiet.length ? '查看记录' : '补充一条' }} <span aria-hidden="true">→</span></button>
       </article>
       <article id="sleep" class="metric metric-sleep">
         <div class="metric-top"><span class="metric-icon" aria-hidden="true">☾</span><span class="metric-state">{{ sleepRecord ? '已记录' : '待记录' }}</span></div>
         <strong class="metric-value">{{ sleepDuration || '—' }}</strong><span class="metric-unit">睡眠</span>
         <p>{{ sleepRecord?.feeling || (sleepRecord ? '已保存睡眠记录' : '还没有昨夜睡眠记录') }}</p>
-        <button class="metric-link" @click="props.go('capture')">{{ sleepRecord ? '查看记录' : '记下睡眠' }} <span aria-hidden="true">→</span></button>
+        <button class="metric-link" @click="props.go('/sleep')">{{ sleepRecord ? '查看记录' : '记下睡眠' }} <span aria-hidden="true">→</span></button>
       </article>
       <article class="metric metric-body">
         <div class="metric-top"><span class="metric-icon" aria-hidden="true">♡</span><span class="metric-state">{{ latestFeeling ? '已记录' : '待记录' }}</span></div>
@@ -189,9 +209,9 @@ onMounted(load)
         <span class="reminder-note">按自己的节奏来</span>
       </div>
       <div class="reminder-list">
-        <article><span class="reminder-number">01</span><div><h3>活动</h3><p>如果今天久坐了一阵，可以起身舒展一下。</p></div><button aria-label="记录活动" @click="props.go('capture')">↗</button></article>
-        <article><span class="reminder-number">02</span><div><h3>饮食</h3><p>有想记下的一餐或饮水情况，可以补充到日记。</p></div><button aria-label="记录饮食" @click="props.go('capture')">↗</button></article>
-        <article><span class="reminder-number">03</span><div><h3>睡眠与梦境</h3><p>醒来后的感受也很重要，不必只记时长。</p></div><button aria-label="记录睡眠与梦境" @click="props.go('capture')">↗</button></article>
+        <article><span class="reminder-number">01</span><div><h3>活动</h3><p>如果今天久坐了一阵，可以起身舒展一下。</p></div><button aria-label="记录活动" @click="props.go('/activity')">↗</button></article>
+        <article><span class="reminder-number">02</span><div><h3>饮食</h3><p>有想记下的一餐或饮水情况，可以补充到日记。</p></div><button aria-label="记录饮食" @click="props.go('/nutrition')">↗</button></article>
+        <article><span class="reminder-number">03</span><div><h3>睡眠与梦境</h3><p>醒来后的感受也很重要，不必只记时长。</p></div><button aria-label="记录睡眠与梦境" @click="props.go('/sleep')">↗</button></article>
       </div>
     </section>
 

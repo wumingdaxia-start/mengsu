@@ -1,4 +1,4 @@
-param([int[]]$Ports = @(8000, 18110, 18001))
+param([int[]]$Ports = @(8000, 18110, 18001, 3001))
 
 # ASCII-only file, same reason as start.ps1.
 

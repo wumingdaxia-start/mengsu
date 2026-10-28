@@ -1,23 +1,35 @@
 <script setup>
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { loginDestination, WORKSPACES } from '../workspaces'
+import { signIn } from '../auth'
 
 const router = useRouter()
 const route = useRoute()
-function destination() { return ['/activity', '/health-analysis'].includes(route.query.next) ? route.query.next : '/home' }
+function destination() { return loginDestination(route.query.next) }
+const selectedSpace = computed(() => WORKSPACES[router.resolve(destination()).meta.workspace || 'safety'])
+const selectedSpaceKey = computed(() => Object.entries(WORKSPACES).find(([, space]) => space === selectedSpace.value)?.[0] || 'safety')
 const email = ref('')
 const password = ref('')
 const remember = ref(true)
 const message = ref('')
+const busy = ref(false)
 
-function submit() {
+async function submit() {
+  if (busy.value) return
   if (!email.value.trim() || !password.value.trim()) {
-    message.value = '请填写手机号或邮箱和密码'
+    message.value = '请填写账号和密码'
     return
   }
-  sessionStorage.setItem('mengsu-auth', JSON.stringify({ email: email.value.trim(), remembered: remember.value }))
-  sessionStorage.setItem('mengsu-entered', '1')
-  router.push(destination())
+  busy.value = true
+  message.value = ''
+  try {
+    await signIn(email.value.trim(), password.value, remember.value)
+    sessionStorage.setItem('mengsu-entered', '1')
+    router.push(destination())
+  } catch (error) {
+    message.value = error.message || '账号或密码不正确'
+  } finally { busy.value = false }
 }
 
 function continueGuest() {
@@ -27,7 +39,7 @@ function continueGuest() {
 </script>
 
 <template>
-  <main class="login-page">
+  <main class="login-page" :class="`workspace-${selectedSpaceKey}`">
     <div class="login-wash" aria-hidden="true" />
     <header class="login-header">
       <button class="login-brand" type="button" @click="router.push('/entry')">
@@ -46,16 +58,17 @@ function continueGuest() {
       </div>
 
       <form class="login-form" @submit.prevent="submit">
+        <p class="login-destination">{{ selectedSpace.subtitle }}</p>
         <button class="login-return" type="button" @click="router.push('/entry')">← 返回水波首页</button>
-        <div class="login-form-heading"><p>欢迎回来</p><h2>进入梦溯</h2><span>登录后继续你的记录</span></div>
-        <label>手机号或邮箱<input v-model="email" type="text" autocomplete="username" placeholder="请输入手机号或邮箱" /></label>
+        <div class="login-form-heading"><p>欢迎回来</p><h2>进入{{ selectedSpace.name }}</h2><span>登录后继续你的记录</span></div>
+        <label>账号<input v-model="email" type="text" autocomplete="username" placeholder="请输入安康守护账号、手机号或邮箱" :disabled="busy" /></label>
         <label>密码<input v-model="password" type="password" autocomplete="current-password" placeholder="输入你的密码" /></label>
         <div class="login-form-options"><label class="remember"><input v-model="remember" type="checkbox" /> <span>记住我</span></label><button type="button" class="forgot">忘记密码？</button></div>
         <p v-if="message" class="login-message" role="status">{{ message }}</p>
-        <button class="login-submit" type="submit">登录梦溯 <span aria-hidden="true">→</span></button>
+        <button class="login-submit" type="submit" :disabled="busy">{{ busy ? '正在验证…' : '登录并进入' }} <span aria-hidden="true">→</span></button>
         <div class="login-divider"><span>或</span></div>
         <button class="login-guest" type="button" @click="continueGuest">先以访客方式进入</button>
-        <p class="login-note">你的记录保存在本机，登录界面仅用于进入个人空间。</p>
+        <p class="login-note">三个空间共用安康守护账号，登录后可在空间之间直接切换。</p>
       </form>
     </section>
   </main>
@@ -98,4 +111,36 @@ function continueGuest() {
 .login-form { zoom: .7; }
 .login-return { display: block; margin: 0 0 20px; padding: 4px 0; border: 0; background: transparent; color: #718295; font-size: 15px; box-shadow: none; }
 @media (prefers-reduced-motion: reduce) { .login-wash { animation: none; } }
+.login-submit:disabled { cursor: wait; opacity: .7; }
+.login-page.workspace-safety { --login-accent:#4d806d; --login-accent-strong:#376653; --login-soft:#e7f2eb; --login-ink:#31594c; }
+.login-page.workspace-dream { --login-accent:#6689a5; --login-accent-strong:#4d708e; --login-soft:#e8f0f6; --login-ink:#3e5a70; }
+.login-page.workspace-psychology { --login-accent:#a66a4e; --login-accent-strong:#895138; --login-soft:#f5e4d2; --login-ink:#654536; }
+.login-page[class*='workspace-']::before { background:linear-gradient(110deg, color-mix(in srgb, var(--login-soft) 88%, white), rgba(255,255,255,.72) 55%, color-mix(in srgb, var(--login-soft) 60%, white)); }
+.login-page[class*='workspace-'] .login-form-heading p,.login-page[class*='workspace-'] .login-destination { color:var(--login-accent); }
+.login-page[class*='workspace-'] .login-form-heading h2,.login-page[class*='workspace-'] .login-brand strong { color:var(--login-ink); }
+.login-page[class*='workspace-'] .login-submit { border-color:var(--login-accent); background:var(--login-accent); }
+.login-page[class*='workspace-'] .login-submit:hover { background:var(--login-accent-strong); }
+.login-page[class*='workspace-'] .remember input { accent-color:var(--login-accent); }
+.login-page[class*='workspace-'] .login-guest:hover { border-color:var(--login-accent); color:var(--login-accent-strong); }
+.login-page[class*='workspace-'] .login-form input:focus { border-color:var(--login-accent); box-shadow:0 0 0 3px color-mix(in srgb, var(--login-accent) 15%, transparent); }
+.login-page[class*='workspace-'] .login-wash { background:var(--login-soft); }
+.login-page[class*='workspace-'] .login-return { color:var(--login-accent-strong); }
+
+/* Warm palette for the psychology sign-in destination. */
+.login-page.workspace-psychology { color:#765c4d;background-color:#f6eadc; }
+.login-page.workspace-psychology::before { background:linear-gradient(110deg,rgba(247,229,207,.94),rgba(255,247,236,.86) 55%,rgba(245,220,204,.81)); }
+.login-page.workspace-psychology .login-form { background:rgba(255,250,242,.94);border-color:#fff6e8;box-shadow:0 24px 70px rgba(119,78,46,.1); }
+.login-page.workspace-psychology .login-form-heading span,
+.login-page.workspace-psychology .login-form>label,
+.login-page.workspace-psychology .remember,
+.login-page.workspace-psychology .forgot { color:#82624e; }
+.login-page.workspace-psychology .forgot:hover { color:#895138; }
+.login-page.workspace-psychology .login-form input:not([type='checkbox']) { color:#654536;background:rgba(255,253,248,.9);border-color:#d9c3ad; }
+.login-page.workspace-psychology .login-form input::placeholder { color:#9b8370;opacity:1; }
+.login-page.workspace-psychology .login-guest { background:#fffaf1;border-color:#d9c3ad;color:#82604a; }
+.login-page.workspace-psychology .login-divider { color:#927763; }
+.login-page.workspace-psychology .login-divider::before,
+.login-page.workspace-psychology .login-divider::after { background:#e4d2be; }
+.login-page.workspace-psychology .login-note { color:#927b68; }
+
 </style>

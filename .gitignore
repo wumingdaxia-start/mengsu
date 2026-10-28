@@ -14,3 +14,10 @@ scene-source/
 next-web/
 .DS_Store
 Thumbs.db
+
+# Bundled SBTI source assets (not runtime user data)
+!frontend/src/data/
+frontend/src/data/*
+!frontend/src/data/sbti.js
+!frontend/src/data/sbti-snapshot.json
+!frontend/src/data/sbti-wiki.json

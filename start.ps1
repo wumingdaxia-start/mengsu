@@ -57,6 +57,22 @@ if (-not $qwenModel) { $qwenModel = 'qwen-plus' }
 
 $xinchaoProcess = $null
 $memoryProcess = $null
+$safetyProcess = $null
+$safetyUrl = 'http://127.0.0.1:3001/api/me'
+try {
+    $probe = Invoke-WebRequest -Uri $safetyUrl -UseBasicParsing -TimeoutSec 2
+    $safetyRunning = $true
+} catch {
+    $safetyRunning = $_.Exception.Response -and [int]$_.Exception.Response.StatusCode -eq 401
+}
+if (-not $safetyRunning) {
+    $env:MENGSU_PARENT_PORT = [string]$Port
+    $safetyProcess = Start-Process -FilePath $NodePath -ArgumentList 'scripts/safety-workspace.cjs' `
+        -WorkingDirectory $root -PassThru -WindowStyle Hidden `
+        -RedirectStandardOutput (Join-Path $logs 'safety.out.log') `
+        -RedirectStandardError (Join-Path $logs 'safety.err.log')
+    Write-Host "[mengsu] safety workspace started, pid $($safetyProcess.Id)" -ForegroundColor Green
+}
 
 if (-not $NoXinchao) {
     $stateDir = Join-Path $root "data\xinchao"
@@ -116,7 +132,7 @@ try {
 }
 finally {
     Pop-Location
-    foreach ($proc in @($memoryProcess, $xinchaoProcess)) {
+    foreach ($proc in @($memoryProcess, $xinchaoProcess, $safetyProcess)) {
         if ($proc -and -not $proc.HasExited) {
             Stop-Process -Id $proc.Id -Force
         }
