@@ -1,3 +1,5 @@
+import { SAFETY_API_BASE } from './auth'
+
 const jsonHeaders = { 'Content-Type': 'application/json' }
 const REQUEST_TIMEOUT_MS = 8000
 
@@ -36,6 +38,13 @@ function query(params) {
 }
 
 export const api = {
+  weather: async (latitude, longitude) => {
+    try {
+      return await call(`${SAFETY_API_BASE}/api/weather${query({ latitude, longitude })}`)
+    } catch {
+      throw new Error('天气服务暂时不可用，请稍后重试或切换城市')
+    }
+  },
   health: () => call('/api/health'),
   companion: () => call('/api/companion/now'),
   home: () => call('/api/home'),
