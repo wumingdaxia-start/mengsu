@@ -1,0 +1,34 @@
+/* Only the embedded view changes; the original standalone site keeps its styles. */
+html[data-mengsu-embed='true'],html[data-mengsu-embed='true'] body{background:transparent!important}
+html[data-mengsu-embed='true'] .app-shell{background:transparent!important;grid-template-columns:280px minmax(0,1fr);padding-right:0}
+html[data-mengsu-embed='true'] .main{background:rgba(248,251,247,.18)!important;min-height:100vh;padding-left:28px;padding-right:28px;border-right:1px solid rgba(117,142,123,.1)}
+html[data-mengsu-embed='true'] .sidebar{background:rgba(248,250,249,.78)!important;backdrop-filter:blur(9px)}
+html[data-mengsu-embed='true'] .topbar{background:rgba(248,251,249,.22)!important}
+html[data-mengsu-embed='true'] .topbar{gap:12px;flex-wrap:wrap;position:relative;top:auto;left:auto;right:auto;margin:0;width:auto;padding:18px 0;background:transparent;box-shadow:none;min-height:100px}
+html[data-mengsu-embed='true'] .top-welcome{min-width:0;flex:1}
+html[data-mengsu-embed='true'] .weather-card{order:3;min-width:0;max-width:none;width:100%;flex-basis:100%;min-height:65px}
+html[data-mengsu-embed='true'] .page-heading{margin-top:20px}
+html[data-mengsu-embed='true'] .top-actions{gap:8px}
+.mengsu-return-entry{padding:9px 11px;min-height:38px;border:1px solid #d8e6df;border-radius:9px;background:rgba(255,255,255,.85);color:#4c7163;font:500 12px/1.5 'Microsoft YaHei',sans-serif;white-space:nowrap;cursor:pointer}
+.mengsu-return-entry:hover{background:#edf5ee;border-color:#aec9b7}
+.mengsu-return-entry:focus-visible{outline:2px solid #608b78;outline-offset:3px}
+.mengsu-return-floating{position:fixed;right:20px;top:20px;z-index:30}
+html[data-mengsu-embed='true'] .top-account{display:flex!important}
+html[data-mengsu-embed='true'] .top-welcome b{max-width:none;white-space:normal;overflow:visible;text-overflow:clip}
+html[data-mengsu-embed='true'] .mengsu-role-panel{display:grid;grid-template-columns:minmax(0,1fr) 210px;align-items:center;gap:22px;margin:0 0 20px;padding:22px 26px;border:1px solid rgba(111,150,132,.2);border-radius:18px;background:rgba(249,253,249,.72);box-shadow:0 12px 30px rgba(67,111,89,.06);backdrop-filter:blur(7px)}
+html[data-mengsu-embed='true'] .mengsu-role-eyebrow{margin:0 0 7px;color:#5c9078;font-size:10px;letter-spacing:.14em;font-weight:700}
+html[data-mengsu-embed='true'] .mengsu-role-copy h2{margin:0 0 8px;color:#315f50;font:500 23px/1.45 'Microsoft YaHei',sans-serif}
+html[data-mengsu-embed='true'] .mengsu-role-copy>p:not(.mengsu-role-eyebrow){margin:0;color:#769186;font-size:12px;line-height:1.7}
+html[data-mengsu-embed='true'] .mengsu-role-switch{display:flex;gap:5px;margin-top:15px;padding:3px;width:max-content;border:1px solid rgba(106,145,128,.2);border-radius:999px;background:rgba(255,255,255,.62)}
+html[data-mengsu-embed='true'] .mengsu-role-switch button{min-width:52px;padding:7px 14px;border:0;border-radius:999px;color:#789286;background:transparent;font-size:12px;cursor:pointer}
+html[data-mengsu-embed='true'] .mengsu-role-switch button.selected{color:#fff;background:#668f7d;box-shadow:0 4px 10px rgba(82,126,101,.2)}
+html[data-mengsu-embed='true'] .mengsu-role-switch button[aria-disabled='true']{cursor:default}
+html[data-mengsu-embed='true'] .mengsu-role-figure{display:grid;justify-items:center;align-self:stretch;min-height:150px;position:relative;overflow:hidden;border-left:1px solid rgba(112,145,127,.15)}
+html[data-mengsu-embed='true'] .mengsu-role-figure img{display:block;width:125px;height:155px;object-fit:contain;object-position:center bottom;filter:saturate(.8) brightness(1.04);mix-blend-mode:multiply}
+html[data-mengsu-embed='true'] .mengsu-role-figure span{position:absolute;right:4px;bottom:2px;color:#8ba095;font-size:10px}
+@media(min-width:1660px){html[data-mengsu-embed='true'] .topbar{flex-wrap:nowrap}html[data-mengsu-embed='true'] .weather-card{order:0;flex-basis:auto;max-width:350px}html[data-mengsu-embed='true'] .top-welcome{min-width:160px}}
+@media(max-width:1199px){html[data-mengsu-embed='true'] .app-shell{padding-right:0;grid-template-columns:240px minmax(0,1fr)}html[data-mengsu-embed='true'] .main{padding-left:22px;padding-right:22px}html[data-mengsu-embed='true'] .sidebar{padding-left:14px;padding-right:14px}}
+@media(max-width:959px){html[data-mengsu-embed='true'] .app-shell{padding-right:0}}
+@media(max-width:760px){html[data-mengsu-embed='true'] .app-shell{display:block}html[data-mengsu-embed='true'] .main{padding:0 18px 70px}html[data-mengsu-embed='true'] .topbar{gap:10px}html[data-mengsu-embed='true'] .top-welcome{flex-basis:100%}html[data-mengsu-embed='true'] .top-actions{margin-left:0;flex-wrap:wrap;max-width:100%}html[data-mengsu-embed='true'] .sidebar{width:min(280px,90vw)}html[data-mengsu-embed='true'] .weather-main small{display:none}}
+@media(max-width:760px){html[data-mengsu-embed='true'] .mengsu-role-panel{grid-template-columns:1fr;gap:12px;padding:18px}.mengsu-role-figure{grid-row:1;min-height:125px!important;border-left:0!important;border-bottom:1px solid rgba(112,145,127,.15);padding-bottom:8px}.mengsu-role-figure img{height:125px!important}.mengsu-role-figure span{bottom:5px}}
+@media(prefers-reduced-motion:reduce){html[data-mengsu-embed='true'] .page{animation:none}html[data-mengsu-embed='true'] *{scroll-behavior:auto;transition:none!important}}

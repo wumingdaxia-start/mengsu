@@ -9,6 +9,8 @@ import EntryView from './views/EntryView.vue'
 import HealthDetailView from './views/HealthDetailView.vue'
 import SleepWorkspaceView from './views/SleepWorkspaceView.vue'
 import LoginView from './views/LoginView.vue'
+const DreamWorkspaceView = () => import('./views/DreamWorkspaceView.vue')
+const PsychologyView = () => import('./views/PsychologyView.vue')
 
 export const tabs = [
   { path: '/home', label: '首页', component: HomeView, order: 0 },
@@ -19,6 +21,11 @@ export const tabs = [
 ]
 
 const routes = [
+  { path: '/safety', component: () => import('./views/SafetyWorkspaceView.vue'), meta: { workspace: 'safety', chrome: false, label: '安康守护' } },
+  { path: '/dream', component: DreamWorkspaceView, meta: { workspace: 'dream', healthPage: true, label: '梦境总览' } },
+  { path: '/dream/cues', component: HomeView, props: { sleepOnly: true }, meta: { workspace: 'dream', healthPage: true, label: '睡前线索' } },
+  { path: '/psychology', component: PsychologyView, meta: { workspace: 'psychology', healthPage: true, label: '心理总览' } },
+  ...['journal', 'breathe', 'history'].map(section => ({ path: `/psychology/${section}`, component: PsychologyView, props: { section }, meta: { workspace: 'psychology', healthPage: true } })),
   { path: '/profile', component: () => import('./views/ProfileView.vue'), meta: { label: '个人档案', healthPage: true } },
   { path: '/vision', component: () => import('./views/WellnessToolsView.vue'), props: { section: 'vision' }, meta: { label: '视力检测', healthPage: true } },
   { path: '/challenges', component: () => import('./views/WellnessToolsView.vue'), props: { section: 'challenges' }, meta: { label: '健康挑战赛', healthPage: true } },
@@ -45,7 +52,7 @@ const routes = [
   ...tabs.map((tab) => ({
     path: tab.path,
     component: tab.component,
-    meta: { label: tab.label, order: tab.order }
+    meta: { label: tab.label, order: tab.order, healthPage: true, workspace: tab.path === '/home' ? 'safety' : 'dream' }
   })),
   { path: '/:pathMatch(.*)*', redirect: '/home' }
 ]
