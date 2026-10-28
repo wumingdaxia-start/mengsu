@@ -610,6 +610,7 @@ onBeforeUnmount(() => {
 .app .health-navigation .health-nav-group > p > span{background:#e7dcf2!important;color:#80679b!important}
 .app .health-navigation .health-nav-group button:hover{background:#e9def3;color:#614b78}
 .app .health-navigation .health-nav-group button.active{background:#e4d8f0;color:#57416f;box-shadow:inset 4px 0 0 #9b82b9}
+
 .app-head-right { flex-wrap: wrap; gap: 10px; }
 
 .header-welcome { min-width: 0; }
@@ -742,6 +743,7 @@ onBeforeUnmount(() => {
   .header-weather-main b { font-size: 12px; }
   .header-weather-main span, .header-weather-copy p { font-size: 10px; }
 }
+
 .home-expanded .app-main {
   width: calc(100% - 248px);
   margin-left: 248px;

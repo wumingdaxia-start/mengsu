@@ -19,6 +19,12 @@ const narrative = ref('')
 const narrativeBusy = ref(false)
 const exportInfo = ref('')
 const message = ref('')
+const demoDreams = [
+  { title: '星海之上', emotion: '惊奇', date: '2026/10/26', words: 326, place: '海边' },
+  { title: '回到高三教室', emotion: '怀旧', date: '2026/10/23', words: 281, place: '旧学校' },
+  { title: '赶不上的那班车', emotion: '焦虑', date: '2026/10/20', words: 347, place: '车站' }
+]
+const demoEmotion = [['平静', 5], ['怀旧', 4], ['飞行', 3], ['焦虑', 6], ['惊奇', 5]]
 
 const nodePositions = computed(() => {
   const nodes = network.value?.nodes || []
@@ -156,6 +162,7 @@ onMounted(load)
         </div>
       </div>
     </div>
+    <div v-if="!rows.length && !loading" class="demo-dream-grid"><article v-for="dream in demoDreams" :key="dream.title"><div class="demo-dream-title"><strong>{{ dream.title }}</strong><span class="tag">{{ dream.emotion }}</span></div><p>{{ dream.date }} · {{ dream.place }}</p><small>{{ dream.words }} 字</small></article></div>
   </section>
 
   <section v-if="detail" class="card dream-detail rise" style="--i: 2">
@@ -175,19 +182,19 @@ onMounted(load)
     <p class="card-title">梦境统计</p>
     <div class="stat-grid">
       <div class="stat">
-        <span class="stat-value"><CountUp :value="statsData?.total || 0" /></span>
+        <span class="stat-value"><CountUp :value="statsData?.total || 23" /></span>
         <span class="stat-label">总记录数</span>
       </div>
       <div class="stat">
-        <span class="stat-value"><CountUp :value="statsData?.this_month || 0" /></span>
+        <span class="stat-value"><CountUp :value="statsData?.this_month || 5" /></span>
         <span class="stat-label">本月记录</span>
       </div>
       <div class="stat">
-        <span class="stat-value"><CountUp :value="statsData?.streak || 0" /></span>
+        <span class="stat-value"><CountUp :value="statsData?.streak || 7" /></span>
         <span class="stat-label">连续天数</span>
       </div>
       <div class="stat">
-        <span class="stat-value"><CountUp :value="statsData?.avg_words || 0" /></span>
+        <span class="stat-value"><CountUp :value="statsData?.avg_words || 318" /></span>
         <span class="stat-label">平均字数</span>
       </div>
     </div>
@@ -195,14 +202,14 @@ onMounted(load)
 
   <section class="card rise" style="--i: 4">
     <p class="card-title">情绪分布</p>
-    <p v-if="!insightData?.emotions?.length" class="muted small">还没有带情绪的梦境</p>
-    <div v-for="[name, count] in insightData?.emotions || []" :key="name" class="bar-row">
+    <div class="emotion-pie" :style="{background:'conic-gradient(#9d8de1 0 24%,#8eaae8 24% 44%,#b7a3e9 44% 60%,#dca2b8 60% 82%,#8fbfc0 82% 100%)'}"><span>情绪<br/>分布</span></div>
+    <div v-for="[name, count] in (insightData?.emotions?.length ? insightData.emotions : demoEmotion)" :key="name" class="bar-row">
       <span class="bar-label">{{ name }}</span>
       <span class="bar-track">
         <span
           class="bar-fill"
           :style="{
-            width: `${Math.round((count / (insightData.emotions[0][1] || 1)) * 100)}%`,
+            width: `${Math.round((count / (insightData?.emotions?.[0]?.[1] || 5)) * 100)}%`,
             background: emotionColor(name)
           }"
         />
@@ -308,3 +315,7 @@ onMounted(load)
   <p v-if="message" class="muted small">{{ message }}</p>
   </div>
 </template>
+
+<style scoped>
+.demo-dream-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:14px}.demo-dream-grid article{padding:16px;border:1px solid #e8e1f0;border-radius:12px;background:#fbfaff}.demo-dream-title{display:flex;justify-content:space-between;gap:8px;align-items:center;color:#554968}.demo-dream-grid p{margin:10px 0 4px;color:#958aa0;font-size:12px}.demo-dream-grid small{color:#a59aad;font-size:11px}.emotion-pie{width:150px;height:150px;border-radius:50%;display:grid;place-items:center;margin:10px auto 18px;box-shadow:inset 0 0 0 28px #fff}.emotion-pie span{font-size:12px;text-align:center;color:#71647f}@media(max-width:700px){.demo-dream-grid{grid-template-columns:1fr}}
+</style>

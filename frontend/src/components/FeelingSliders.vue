@@ -1,5 +1,6 @@
 <script setup>
 import { computed, ref, watch } from 'vue'
+import { requireLogin } from '../auth'
 import DreamClarityBridge from './DreamClarityBridge.vue'
 import { today } from '../api'
 
@@ -36,6 +37,7 @@ watch(storageKey, () => {
   } catch {}
 }, { immediate: true })
 function commit(id, value) {
+  if (!requireLogin()) { status.value = '请登录后保存，当前选择已保留。'; return }
   values.value[id] = value
   try { localStorage.setItem(storageKey.value, JSON.stringify(values.value)); status.value = `${props.day} 的感受已保存到本机。` }
   catch { status.value = '未能保存，请检查浏览器存储设置。' }
