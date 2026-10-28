@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+ <meta charset="UTF-8">
+ <meta name="viewport" content="width=device-width,initial-scale=1">
+ <meta name="description" content="安康守护健康安全管理网站">
+ <title>安康守护｜健康安全中心</title>
+ <link rel="stylesheet" href="/styles.css?v=20261020-1">
+ <link rel="stylesheet" href="/account-link.css?v=20261020-1">
+ <link rel="stylesheet" href="/dashboard.css?v=20261020-3">
+ <link rel="stylesheet" href="/profile.css?v=20261020-1">
+ <link rel="stylesheet" href="/plans.css?v=20261020-1">
+ <link rel="stylesheet" href="/challenges.css?v=20261021-1">
+ <link rel="stylesheet" href="/vision.css?v=20261020-3">
+ <link rel="stylesheet" href="/weather.css?v=20261022-2">
+ <link rel="stylesheet" href="/consult.css?v=20261022-1">
+ <link rel="stylesheet" href="/insight.css?v=20261025-1">
+ <link rel="stylesheet" href="/knowledge.css?v=20261025-1">
+</head>
+<body data-route="home">
+<div class="app-shell">
+ <aside class="sidebar" aria-label="网站导航">
+  <a class="brand" href="#home" aria-label="安康守护首页">
+   <span class="logo"><svg viewBox="0 0 40 40" aria-hidden="true"><path d="M32 7C18 7 9 13 9 24c0 5 3 9 8 10 0-8 4-15 12-20-6 6-9 12-10 20 9 0 16-5 17-14 1-5-1-10-4-13Z"/></svg></span>
+   <span>安康守护<small>健康安全管理平台</small></span>
+  </a>
+
+  <nav aria-label="主导航">
+   <section class="nav-group">
+    <p class="nav-label"><span class="nav-number">01</span>健康看板</p>
+    <div class="nav-branch nav-health">
+     <a href="#home" data-route="home"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M4 13a8 8 0 1 1 16 0M12 13l4-4M6 18h12"/></svg></span><span>健康总览</span></a>
+     <a href="#profile" data-route="profile"><span class="nav-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="3"/><path d="M5 20a7 7 0 0 1 14 0M4 4h16v16H4z"/></svg></span><span>个人档案</span></a>
+    </div>
+   </section>
+   <section class="nav-group nav-daily">
+    <p class="nav-label"><span class="nav-number">02</span>生活打卡</p>
+    <div class="nav-branch">
+     <a href="#exercise" data-route="exercise"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="m7 18 3-5 2 2 3-6M8 7h.01M5 20h14"/></svg></span><span>日常锻炼</span></a>
+     <a href="#diet" data-route="diet"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M6 3v7a3 3 0 0 0 6 0V3M9 3v18M17 3v18M17 3c3 2 3 7 0 9"/></svg></span><span>饮食健康</span></a>
+     <a href="#sleep" data-route="sleep"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M20 15.5A8.5 8.5 0 0 1 8.5 4 8.5 8.5 0 1 0 20 15.5Z"/></svg></span><span>睡眠监测</span></a>
+     <a href="#vision" data-route="vision"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg></span><span>视力检测</span></a>
+     <a href="#challenges" data-route="challenges"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M8 3h8v5a4 4 0 0 1-8 0V3Zm-3 2H3v2a4 4 0 0 0 5 4m11-6h2v2a4 4 0 0 1-5 4M12 12v6m-4 3h8m-6-3h4"/></svg></span><span>健康挑战赛</span></a>
+    </div>
+   </section>
+   <section class="nav-group">
+    <p class="nav-label"><span class="nav-number">03</span>趋势洞察</p>
+    <a href="#analysis" data-route="analysis"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M4 19V9M10 19V5M16 19v-7M22 19H2"/></svg></span><span>安全健康分析</span></a>
+    <a href="#consult" data-route="consult"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M4 5h16v11H9l-5 4V5Z"/><path d="M8 10h8m-8 3h5"/></svg></span><span>AI 健康问诊</span></a>
+   <a href="#knowledge" data-route="knowledge"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M12 5c-2-1.5-5-2-9-1v15c4-1 7-.5 9 1 2-1.5 5-2 9-1V4c-4-1-7-.5-9 1Zm0 0v15"/></svg></span><span>健康知识检索</span></a>
+   </section>
+  </nav>
+
+  <div class="sidebar-bottom">
+   <p class="nav-label account-label">账号空间</p>
+   <div class="account-menu" id="accountMenu" hidden><button id="logoutAccount" type="button">退出登录</button></div>
+   <button class="user-card" id="accountButton" type="button">
+    <span class="avatar" id="userAvatar">登</span>
+    <span class="user-copy"><b id="userName">登录账号</b><small id="userStatus">登录后同步健康档案</small></span>
+    <span class="more" aria-hidden="true">•••</span>
+   </button>
+   <div class="privacy-card"><span>✓</span><div><b>健康数据保护</b><small id="privacyStatus">正在读取记录…</small></div></div>
+  </div>
+ </aside>
+
+ <main class="main">
+  <header class="topbar">
+   <div class="top-welcome">
+    <button class="menu-btn" id="menuBtn" aria-label="打开导航">☰</button>
+    <div><b id="topGreeting">你好，健康生活从今天开始</b><p id="today"></p></div>
+   </div>
+   <section class="weather-card" id="weatherCard" aria-label="天气预报与穿衣建议">
+    <span class="weather-art" id="weatherArt" aria-hidden="true">☁</span>
+    <div class="weather-detail">
+     <div class="weather-head"><label for="weatherCity">城市天气</label><select id="weatherCity" aria-label="选择天气城市"><option value="beijing">北京</option><option value="shanghai">上海</option><option value="guangzhou">广州</option><option value="shenzhen">深圳</option><option value="chengdu">成都</option><option value="hangzhou">杭州</option><option value="wuhan">武汉</option><option value="xian">西安</option></select><button id="weatherLocate" type="button" title="经许可使用当前位置">定位</button></div>
+     <div class="weather-main"><strong id="weatherTemp">--°</strong><span id="weatherCondition">正在获取天气…</span><small id="weatherForecast">未来天气加载中</small></div>
+     <p id="weatherTip">天气和穿衣建议加载中</p>
+    </div>
+   </section>
+   <div class="top-actions">
+    <button class="icon-btn" id="noticeBtn" aria-label="健康记录待补充" title="健康记录待补充"><span id="noticeIcon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 2.5 20 5.4v6.1c0 5-3.1 8.2-8 10-4.9-1.8-8-5-8-10V5.4Z"/><path d="M12 7.4v8.2m-4.1-4.1h8.2"/></svg></span><i id="noticeDot"></i></button>
+    <button class="top-account" id="topAccountButton" type="button"><span><b id="topUserName">登录账号</b><small id="topUserRole">游客模式</small></span><span class="avatar" id="topUserAvatar">登</span></button>
+    <button class="top-logout" id="topLogout" type="button" hidden>退出</button>
+   </div>
+  </header>
+
+  <section class="page-heading">
+   <div>
+    <p class="breadcrumb"><span id="pageGroup">健康看板</span><i>›</i><span id="pageCrumb">健康总览</span></p>
+    <h1 id="pageTitle">健康总览</h1>
+    <p id="pageDescription">集中查看日常锻炼、饮食与睡眠记录。</p>
+   </div>
+   <div class="safe-pill"><i></i><span id="dataMode">正在加载</span></div>
+  </section>
+  <div class="heading-line" aria-hidden="true"></div>
+  <div id="page" class="page" aria-live="polite"></div>
+ </main>
+</div>
+<div class="modal" id="modal" hidden><div class="modal-card"><button class="modal-close" id="modalClose" aria-label="关闭">×</button><div id="modalBody"></div></div></div>
+<div class="toast" id="toast" role="status"></div>
+<script src="/vision.js?v=20261020-3" defer></script>
+<script src="/profile.js?v=20261020-1" defer></script>
+<script src="/plan-engine.js?v=20261020-1" defer></script>
+<script src="/plans.js?v=20261020-1" defer></script>
+<script src="/challenge-core.js?v=20261021-1" defer></script>
+<script src="/challenges.js?v=20261021-1" defer></script>
+<script src="/weather.js?v=20261022-1" defer></script>
+<script src="/consult.js?v=20261022-1" defer></script>
+<script src="/insight.js?v=20261025-1" defer></script>
+<script src="/knowledge.js?v=20261025-1" defer></script>
+<script src="/app.js?v=20261021-1" defer></script>
+</body>
+</html>

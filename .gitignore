@@ -1,4 +1,7 @@
 private/.env
+.venv/
+services/safety/node_modules/
+*.log
 private/*-token.txt
 data/
 __pycache__/

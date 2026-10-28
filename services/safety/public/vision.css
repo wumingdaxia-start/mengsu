@@ -1,0 +1,74 @@
+body[data-route="vision"] .main{
+ --page-accent:#167e91;--page-soft:#def4f7;--page-glow:#abe0eb;
+ --page-start:#e0f4f8;--page-end:#f0fbfc;background-color:var(--page-end);
+}
+.vision-banner{display:grid;grid-template-columns:1fr 210px;align-items:center;gap:24px;background:linear-gradient(120deg,#e3f7f5,#e0f0ff);padding:30px}
+.vision-banner h2{font-size:28px;margin:12px 0}
+.vision-banner p{color:#52717a;line-height:1.8;margin-bottom:20px}
+.vision-tags{display:flex;flex-wrap:wrap;gap:8px}
+.vision-tags span{padding:6px 10px;border:1px solid #c1e3e5;border-radius:20px;background:#ffffff75;font-size:11px;color:#477a83}
+.vision-art svg{width:100%;fill:none;stroke:#2b8698;stroke-width:2}
+.vision-art svg circle:nth-child(3){fill:#2b8698}
+.vision-disclaimer{padding:15px 2px;color:#667e85;font-size:12px;line-height:1.9}
+.vision-overview{margin-top:18px;display:flex;align-items:center;justify-content:space-between;gap:24px;border-left:4px solid #1596a5;background:linear-gradient(120deg,#f5feff 0%,#fff 72%)}
+.vision-overview h2{margin:8px 0 6px}
+.vision-overview p{margin:0;color:#65717d}
+.vision-overview-values{display:flex;gap:24px;margin:12px 0 5px}
+.vision-overview-values span{display:grid;gap:2px;min-width:92px}
+.vision-overview-values small{color:#71808a}
+.vision-overview-values b{color:#0d7583;font-size:25px}
+.vision-overview-link{flex:0 0 auto;display:inline-flex;align-items:center;gap:10px;color:#086b78;font-weight:700;text-decoration:none;padding:11px 14px;border:1px solid #b7e6eb;background:#ecfafb;border-radius:6px}
+.vision-overview-link:hover{background:#dff6f8}
+.vision-overview-analysis{margin-top:20px}
+.vision-summary{margin-top:3px}
+.vision-tools article{display:flex;flex-direction:column;align-items:flex-start}
+.vision-tool-icon{display:grid;place-items:center;width:46px;height:46px;border-radius:13px;background:#e0f3f5;color:#167e91;font-size:27px;font-weight:800;margin-bottom:18px}
+.vision-tools article>small{color:#7a949c;font-size:10px;letter-spacing:.08em}
+.vision-tools h3{font-size:19px;margin:9px 0}
+.vision-tools p{color:#69848c;font-size:13px;line-height:1.9;margin:0 0 22px;flex:1}
+.vision-tools button{width:100%;display:flex;justify-content:space-between;font-size:13px}
+.vision-color-icon{background:linear-gradient(130deg,#ffe6cf,#e5e6ff,#d3f3e8);color:#668488}
+.vision-count{padding:6px 11px;border-radius:20px;background:#def0f3;color:#317d8c;font-size:11px}
+.vision-source{color:#7c9198;font-size:11px;line-height:1.9;margin:25px 0 0}
+.vision-source a{color:#337f92;text-underline-offset:3px}
+.vision-modal{width:min(700px,100%);max-height:92vh;overflow-y:auto;--page-accent:#167e91;--page-soft:#def4f7}
+.vision-modal h2{margin:12px 24px 14px 0;font-size:23px}
+.vision-hint{color:#6b7d85;font-size:12px;line-height:1.9}
+.vision-modal .field input[type="range"]{padding:0;height:25px;accent-color:#167e91;box-shadow:none}
+.vision-ruler-wrap{overflow:hidden;min-height:55px;padding:8px 0 0}
+.vision-ruler{height:27px;border:solid #167e91;border-width:0 2px 2px;max-width:none;text-align:center;font-size:11px;color:#527a86}
+.vision-check{display:flex;align-items:flex-start;gap:8px;font-size:12px;color:#546a75;line-height:1.8}
+.vision-check input{margin-top:4px;accent-color:#167e91}
+.vision-optotype-stage{display:grid;place-items:center;min-height:290px;padding:12px;background:#fff;border:1px solid #e6ebef;border-radius:12px;overflow:auto}
+.vision-optotype-stage svg{display:block;flex-shrink:0}
+.vision-center{text-align:center}
+.vision-directions{display:flex;justify-content:center;gap:12px}
+.vision-directions button{width:58px;height:48px;border:1px solid #c8dee5;border-radius:10px;background:#f1fafc;color:#1c6476;font-size:27px}
+.vision-directions button:hover{background:#dbf1f6}
+.vision-secondary{display:block;margin:17px auto 0;padding:9px 18px;border:1px solid #d6e2e6;border-radius:9px;color:#617984;background:#fff}
+.vision-observation-stage{display:grid;place-items:center;background:#fff;border:1px solid #e7edef;border-radius:12px;margin-bottom:22px}
+.vision-radial{width:min(280px,100%);height:auto;display:block}
+.vision-results{display:flex;gap:16px;margin:25px 0}
+.vision-results>div{flex:1;text-align:center;border:1px solid #d9e9ed;border-radius:14px;padding:22px 12px;background:#f3fafb}
+.vision-results small{display:block;color:#6f858c;font-size:12px}
+.vision-results b{display:block;font-size:28px;color:#167e91;margin-top:10px}
+.vision-target{width:120px;height:100px;border-radius:15px;margin:26px auto;border:6px solid #fff;box-shadow:0 0 0 1px #d5dee4}
+.vision-color-choices{display:flex;justify-content:center;gap:15px;padding:20px 0}
+.vision-color-choices button{width:100px;padding:7px;border:1px solid #dae1e6;border-radius:12px;background:white;color:#73838c}
+.vision-color-choices button span{display:block;width:100%;height:65px;background:var(--swatch);border-radius:8px;margin-bottom:7px}
+.vision-color-choices button:hover{outline:2px solid #82b8c6}
+@media(max-width:760px){
+ .vision-banner{grid-template-columns:1fr;padding:24px}
+ .vision-banner h2{font-size:23px}
+ .vision-art{display:none}
+ .vision-modal{padding:23px 18px}
+ .vision-modal h2{font-size:20px}
+ .vision-optotype-stage{min-height:280px}
+ .vision-results b{font-size:22px}
+ .vision-results{gap:8px}
+ .vision-summary .metric-card b{font-size:23px}
+}
+@media(max-width:560px){
+ .vision-overview{align-items:stretch;flex-direction:column}
+ .vision-overview-link{justify-content:space-between}
+}
