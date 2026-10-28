@@ -6,7 +6,7 @@ export const WORKSPACES = {
 }
 
 export const ENTRY_PATHS = Object.values(WORKSPACES).map(space => space.home)
-export const LOGIN_DESTINATIONS = [...ENTRY_PATHS, '/home', '/profile', '/activity', '/nutrition', '/sleep', '/vision', '/challenges', '/smart-consult', '/mood', '/health-analysis', '/capture', '/dreams', '/ask', '/dream/cues', '/psychology/journal', '/psychology/breathe', '/psychology/history']
+export const LOGIN_DESTINATIONS = [...ENTRY_PATHS, '/home', '/profile', '/activity', '/nutrition', '/sleep', '/vision', '/challenges', '/smart-consult', '/mood', '/health-analysis', '/capture', '/dreams', '/ask', '/dream/cues', '/psychology/analysis', '/psychology/journal', '/psychology/breathe', '/psychology/history', '/psychology/personality', '/psychology/tarot', '/psychology/views-test']
 
 export function loginDestination(next) {
   return typeof next === 'string' && LOGIN_DESTINATIONS.includes(next) ? next : '/safety'
@@ -16,3 +16,4 @@ export function entryDestination(path, loggedIn) {
   if (!ENTRY_PATHS.includes(path)) return null
   return loggedIn ? path : { path: '/login', query: { next: path } }
 }
+

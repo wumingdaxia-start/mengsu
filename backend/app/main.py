@@ -8,6 +8,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 from . import db, insight, narrative, service
+from .tarot_api import router as tarot_router
 from .config import ATTACHMENT_DIR, AUDIO_DIR, BASE_DIR, ensure_dirs, load_settings
 from .memory import MemoryClient, MemoryUnavailable
 from .xinchao import XinchaoClient
@@ -16,6 +17,7 @@ db.init_db()
 ensure_dirs()
 
 app = FastAPI(title="梦溯 API", version="0.1.0")
+app.include_router(tarot_router)
 
 
 class InputBody(BaseModel):

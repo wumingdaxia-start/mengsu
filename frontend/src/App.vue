@@ -97,7 +97,8 @@ const healthNavigationGroups = computed(() => {
   ]
   if (workspaceKey.value === 'psychology') return [
     { label: '此刻的自己', items: [makeItem('心理总览', '/psychology'), makeItem('心情记录', '/psychology/journal')] },
-    { label: '照顾与回看', items: [makeItem('呼吸练习', '/psychology/breathe'), makeItem('情绪回顾', '/psychology/history')] }
+    { label: '心绪活动', items: [makeItem('人格测试', '/psychology/personality'), makeItem('塔罗牌测试', '/psychology/tarot'), makeItem('三观测试', '/psychology/views-test'), makeItem('呼吸练习', '/psychology/breathe')] },
+    { label: '心理分析', items: [makeItem('情绪回顾', '/psychology/history')] }
   ]
   return ['健康看板', '生活打卡', '健康洞察与交流'].map(label => ({ label, items: healthNavigation.filter(item => label === '健康洞察与交流' ? ['趋势洞察', '健康交流'].includes(item.group) : item.group === label).map(item => item.path === '/home' ? { ...item, path: '/safety' } : item) }))
 })
@@ -359,7 +360,7 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div class="app" :data-workspace="workspaceKey" :style="{ '--header-height': measuredHeaderHeight + 'px' }" :class="{ chromeless, 'home-expanded': route.path === '/home' || route.meta.healthPage }">
+  <div class="app" :data-workspace="workspaceKey" :data-psych-page="route.path.split('/')[2] || 'overview'" :style="{ '--header-height': measuredHeaderHeight + 'px' }" :class="{ chromeless, 'home-expanded': route.path === '/home' || route.meta.healthPage }">
     <HealthSceneBackground v-if="!chromeless" :scene="healthScene" />
     <main
       class="app-main"

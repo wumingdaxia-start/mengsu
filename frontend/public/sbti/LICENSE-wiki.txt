@@ -1,0 +1,17 @@
+Attribution-NonCommercial-ShareAlike 4.0 International (CC BY-NC-SA 4.0)
+
+本仓库内容为对 SBTI 人格测试（https://sbti.fancc.de5.net）结果的
+整理与存档，原始文案版权归原作者（B 站 up 主 "蛆肉儿串儿" · UID 417038183）
+所有。本仓库仅做非商业性的整理与展示，禁止任何形式的商业盈利使用。
+
+You are free to:
+  - Share: copy and redistribute the material in any medium or format
+  - Adapt: remix, transform, and build upon the material
+
+Under the following terms:
+  - Attribution: You must give appropriate credit.
+  - NonCommercial: You may not use the material for commercial purposes.
+  - ShareAlike: If you remix or build upon the material, you must distribute
+    your contributions under the same license as the original.
+
+Full license text: https://creativecommons.org/licenses/by-nc-sa/4.0/legalcode
