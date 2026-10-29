@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="安康盾个人健康用户登录">
+  <title>用户登录｜安康盾</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="admin-entry.css">
+</head>
+<body>
+  <main class="page-shell">
+    <section class="brand-panel" aria-label="安康盾健康安全平台介绍">
+      <nav class="brand">
+        <span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 40 40"><path d="M20 4.5 33 9v9.6c0 8-5.2 14.4-13 17-7.8-2.6-13-9-13-17V9Z"/><path fill="white" stroke="none" d="M17.5 12h5v5.2h5.2v5h-5.2v5.2h-5v-5.2h-5.2v-5h5.2Z"/></svg></span>
+        <span>安康盾</span>
+      </nav>
+      <div class="hero-copy">
+        <span class="eyebrow"><i></i> 健康监测 · 安全守护</span>
+        <h1>让每一份健康数据，<br><em>成为安全的防线</em></h1>
+        <p>连接健康监测、风险预警与应急响应，为组织和个人提供可信、及时的安全保障。</p>
+        <div class="trust-row" aria-label="平台优势">
+          <span><b>7×24h</b><small>健康风险监测</small></span>
+          <span><b>99.9%</b><small>平台稳定运行</small></span>
+          <span><b>3 min</b><small>异常快速响应</small></span>
+        </div>
+      </div>
+      <div class="service-card card-one"><span>✓</span><div><b>今日健康状态正常</b><small>监测更新 · 刚刚</small></div></div>
+      <div class="service-card card-two"><span>⌁</span><div><b>风险防护持续在线</b><small>所有安全模块运行正常</small></div></div>
+      <div class="decor decor-a"></div><div class="decor decor-b"></div>
+    </section>
+    <section class="auth-panel">
+      <div class="mobile-brand brand"><span class="brand-mark"><svg viewBox="0 0 40 40"><path d="M20 4.5 33 9v9.6c0 8-5.2 14.4-13 17-7.8-2.6-13-9-13-17V9Z"/><path fill="white" stroke="none" d="M17.5 12h5v5.2h5.2v5h-5.2v5.2h-5v-5.2h-5.2v-5h5.2Z"/></svg></span><span>安康盾</span></div>
+      <div class="login-view" id="loginView">
+        <header><span class="welcome">个人健康空间</span><h2 id="loginHeading">登录普通用户账号</h2><p id="loginDescription">登录后查看并保存自己的档案、锻炼、饮食、睡眠和健康计划</p></header>
+        <form id="loginForm" novalidate>
+          <label for="account">账号</label>
+          <div class="input-wrap"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4.5 21a7.5 7.5 0 0 1 15 0"/></svg><input id="account" autocomplete="username" placeholder="请输入用户账号" required></div>
+          <div class="label-row"><label for="password">密码</label><button type="button" class="text-button" id="forgotButton">忘记密码？</button></div>
+          <div class="input-wrap"><svg viewBox="0 0 24 24"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg><input id="password" type="password" autocomplete="current-password" placeholder="请输入密码" required><button type="button" class="eye-button" id="togglePassword" aria-label="显示密码"><svg viewBox="0 0 24 24"><path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z"/><circle cx="12" cy="12" r="2.5"/></svg></button></div>
+          <label class="remember"><input id="remember" type="checkbox"><span></span> 7 天内保持登录</label>
+          <p class="form-error" id="formError" role="alert"></p>
+          <button class="primary-button" id="submitButton" type="submit"><span>登录</span><b aria-hidden="true">→</b></button>
+        </form>
+        <div class="demo-box">请使用自己的账号和密码登录</div>
+        <a id="adminEntry" class="admin-entry" href="/account/?mode=admin&amp;returnTo=%2Fadmin%2F">安全健康管理员入口 →</a>
+        <footer>登录即代表您同意 <button type="button">《用户协议》</button> 和 <button type="button">《隐私政策》</button></footer>
+      </div>
+      <div class="dashboard-view" id="dashboardView" hidden>
+        <span class="success-icon">✓</span><p class="welcome">用户登录成功</p><h2>欢迎回来，<span id="displayName"></span></h2><p class="dashboard-subtitle">您已进入自己的个人健康空间</p>
+        <dl class="account-card"><div><dt>登录账号</dt><dd id="displayAccount"></dd></div><div><dt>账号角色</dt><dd id="displayRole"></dd></div><div><dt>绑定手机</dt><dd id="displayPhone"></dd></div></dl>
+        <div class="status"><i></i> 当前会话安全有效</div><button class="outline-button" id="logoutButton">退出登录</button>
+      </div>
+    </section>
+  </main>
+  <div class="toast" id="toast" role="status"></div>
+  <script src="app.js" defer></script>
+</body>
+</html>

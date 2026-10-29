@@ -2,7 +2,7 @@
 .app[data-workspace] { --workspace-ink:#576879;--workspace-muted:#8d9ba7;--workspace-accent:#6e8da4;--workspace-soft:#eaf1f6;--workspace-line:#dfe7ed;--workspace-sidebar:#f2f6fa; }
 .app[data-workspace='safety'] { --workspace-ink:#355b50;--workspace-muted:#869d92;--workspace-accent:#608b78;--workspace-soft:#e7f1e9;--workspace-line:#dfe9e1;--workspace-sidebar:#f2f7f3;--accent:#608b78;--accent-bright:#477663; }
 .app[data-workspace='psychology'] { --workspace-ink:#354f48;--workspace-muted:#667d73;--workspace-accent:#688a79;--workspace-soft:#e5ede2;--workspace-line:#dce5d9;--workspace-sidebar:#f4f5ed;--accent:#688a79;--accent-bright:#4d7260; }
-.app[data-workspace='dream'] { --accent:#6e8da4;--accent-bright:#5d7f9b; }
+.app[data-workspace='dream'] { --workspace-ink:#66566f;--workspace-muted:#9b8ba1;--workspace-accent:#9a7aa5;--workspace-soft:#f0e5f2;--workspace-line:#e8dce9;--workspace-sidebar:#f7f1f8;--accent:#9a7aa5;--accent-bright:#85658f; }
 .app[data-workspace] .health-navigation { background:var(--workspace-sidebar)!important;border-color:var(--workspace-line)!important;box-shadow:none!important; }
 .app[data-workspace] .health-nav-brand strong { color:var(--workspace-ink)!important;font-size:21px!important; }
 .app[data-workspace] .health-nav-brand small { color:var(--workspace-muted)!important;letter-spacing:0!important; }
@@ -30,7 +30,9 @@
 .app[data-workspace] .header-account strong { color:var(--workspace-ink)!important; }
 .app[data-workspace] .header-account-avatar { color:var(--workspace-accent)!important;background:var(--workspace-soft)!important;border-color:var(--workspace-line)!important;box-shadow:none!important; }
 .app[data-workspace] .health-scene-background .reading-veil { background:rgba(248,250,249,.93)!important; }
-.app[data-workspace='dream'] .health-scene-background .reading-veil { background:rgba(245,248,251,.92)!important; }
+.app[data-workspace='dream'] .health-scene-background .reading-veil { background:linear-gradient(118deg,rgba(250,245,250,.94),rgba(244,234,247,.88))!important; }
+.app[data-workspace='dream'] .app-main { background:linear-gradient(135deg,#fbf8fc 0%,#f5edf7 48%,#f8f2f8 100%); }
+.app[data-workspace='dream'] .app-head { background:rgba(251,247,252,.96)!important; }
 .app[data-workspace='psychology'] .health-scene-background .reading-veil { background:rgba(247,248,239,.94)!important; }
 .app[data-workspace='safety'] .health-home { color:#3d5a4f; }
 .app.app[data-workspace='safety'] .safety-workspace .health-scene-background .reading-veil{background:linear-gradient(110deg,rgba(250,248,252,.57),rgba(250,248,252,.28))!important}

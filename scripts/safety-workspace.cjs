@@ -1,10 +1,8 @@
 'use strict';
-// Reuse the local safety app and its database. No account or record files are copied.
+// Bundled safety app; all mutable data stays in the project data directory.
 const fs = require('node:fs');
 const path = require('node:path');
-const net = require('node:net');
-const { spawn } = require('node:child_process');
-const SAFETY_ROOT = process.env.MENGSU_SAFETY_ROOT || 'D:/\u6d4b\u8bd5/\u5b89\u5168';
+const SAFETY_ROOT = process.env.MENGSU_SAFETY_ROOT || path.resolve(__dirname, '../services/safety');
 const EMBED_PATH = '/__mengsu/';
 
 function integrateServer(server, { parentPort = 8000 } = {}) {
@@ -52,39 +50,12 @@ function integrateServer(server, { parentPort = 8000 } = {}) {
   return server;
 }
 
-function canConnect(port, host = '127.0.0.1') {
-  return new Promise(resolve => {
-    const socket = net.createConnection({ port, host });
-    const finish = result => { socket.destroy(); resolve(result); };
-    socket.setTimeout(700);
-    socket.once('connect', () => finish(true));
-    socket.once('error', () => finish(false));
-    socket.once('timeout', () => finish(false));
-  });
-}
-async function ensureMysql(config) {
-  if (!config || !['127.0.0.1', 'localhost'].includes(config.host) || await canConnect(config.port, config.host)) return;
-  const root = path.resolve(SAFETY_ROOT, '../mysql-local');
-  const executable = path.join(root, 'mysql-8.4.11-winx64/bin/mysqld.exe');
-  const ini = path.join(root, 'my.ini');
-  if (!fs.existsSync(executable) || !fs.existsSync(ini)) throw Error('Local MySQL is unavailable. Start the safety app database first.');
-  const child = spawn(executable, ['--defaults-file=' + ini], { cwd: root, windowsHide: true, stdio: 'ignore', detached: true });
-  child.on('error', () => {});
-  child.unref();
-  for (let i = 0; i < 30; i++) {
-    await new Promise(resolve => setTimeout(resolve, 500));
-    if (await canConnect(config.port, config.host)) return;
-  }
-  throw Error('Local MySQL did not become ready.');
-}
 async function start() {
   if (!fs.existsSync(path.join(SAFETY_ROOT, 'server.js'))) throw Error('Safety app missing. Set MENGSU_SAFETY_ROOT to its folder.');
   for (const name of ['HEALTH_AI_API_KEY', 'HEALTH_AI_MODEL', 'HEALTH_AI_BASE_URL']) {
     // Existing safety environment settings are inherited; never copy credentials into source.
     if (process.env[name] === '') delete process.env[name];
   }
-  const { loadMysqlConfig } = require(path.join(SAFETY_ROOT, 'mysql-store.js'));
-  await ensureMysql(loadMysqlConfig());
   const { createServer } = require(path.join(SAFETY_ROOT, 'server.js'));
   const server = integrateServer(createServer(), { parentPort: Number(process.env.MENGSU_PARENT_PORT || 8000) });
   await server.ready;

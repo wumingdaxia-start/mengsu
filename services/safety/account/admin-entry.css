@@ -1,0 +1,9 @@
+.admin-entry{display:block;text-align:center;margin-top:17px;color:#145e51;font-size:12px;text-decoration:none}.admin-entry:hover{text-decoration:underline}
+body.admin-mode{--green:#315fbb;--green-dark:#244a91;--mint:#e9efff;--ink:#182a47;--muted:#6e7892;--line:#d9e1ef;background:#f0f3fa}
+body.admin-mode .brand-panel{background:linear-gradient(145deg,#14243f 0%,#223b67 55%,#3357a0 100%)}
+body.admin-mode .auth-panel{background:linear-gradient(160deg,#f4f7fe,#e8eef9)}
+body.admin-mode .service-card{display:none}
+body.admin-mode .demo-box{color:#4d6188;background:#e7edfa}
+body.admin-mode .admin-entry{color:#315fbb}
+body.admin-mode .primary-button{box-shadow:0 12px 24px #315fbb33}
+body.admin-mode .input-wrap input:focus{box-shadow:0 0 0 4px #315fbb20}
