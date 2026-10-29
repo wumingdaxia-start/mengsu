@@ -27,9 +27,9 @@
 
 | 场景 | 视觉 | 登录后的入口 |
 | --- | --- | --- |
-| 花屿 | 柔光水纹与花瓣 | 健康总览 |
-| 鱼庭 | 游动鱼群与指针互动 | 日常锻炼 |
-| 星笺 | 星光与缓慢流动的星云 | 安全健康分析 |
+| 花屿 | 柔光水纹与花瓣 | 安全健康空间 |
+| 鱼庭 | 游动鱼群与指针互动 | 梦溯睡眠空间 |
+| 星栈 | 星光与缓慢流动的星云 | 心理空间 |
 
 各工作区复用对应场景作为低透明度动态背景，并保留清晰的内容阅读层。
 
@@ -40,59 +40,38 @@
 - **后端：** Python、FastAPI、SQLite。
 - **模型：** 千问 OpenAI 兼容接口；心潮和记忆服务为可选外部依赖。
 
-## 🚀 本地运行
+## 🚀 下载后快速启动
 
-准备 Python 3.10、Node.js 与 npm。以下以 Windows PowerShell 为例。
+只需先安装 **Python 3.12（最低 3.10，安装时勾选 Add Python to PATH）** 和 **Node.js 当前 LTS（最低 22.12，包含 npm）**。无需 Conda、Docker 或单独安装 MySQL。
 
-### 安装依赖
+1. 下载或克隆整个仓库并解压，进入项目根目录。
+2. Windows 双击 `start.cmd`；macOS / Linux 在终端运行 `sh start.sh`（Linux 需安装发行版的 `python3-venv` 包）。
+3. 首次启动自动创建 `.venv`、下载依赖并构建页面，需要联网。成功后自动打开 [梦溯入口](http://127.0.0.1:8000/entry)。保留启动窗口，再次运行会复用已安装依赖。
 
-```powershell
-git clone https://github.com/zkmluck/mengsu.git
-cd mengsu
-conda create -n sleep-agent python=3.10
-conda activate sleep-agent
-python -m pip install -r requirements.txt
-Copy-Item private/.env.example private/.env
-```
-
-在本机编辑 `private/.env`，填写 `QWEN_API_KEY` 及实际需要的配置。不要提交密钥或本地个人数据。
-
-### 构建前端并启动后端
+首次启动的全新本地安装会创建演示账号：**`demo` / `MengsuDemo2026!`**。三个空间共用这个账号。演示账号是公开的，仅供体验。创建独立账号：
 
 ```powershell
-cd frontend
-npm install
-npm run build
-cd ../backend
-python -m uvicorn app.main:app --host 127.0.0.1 --port 8000
+# 在项目根目录运行，按提示输入账号和密码（密码不显示）
+python scripts/launch.py --create-account
 ```
 
-保持终端运行，打开：
+macOS / Linux 把上述 `python` 换成 `python3`。可先完成依赖安装而不启动：`python scripts/launch.py --setup-only`。
 
-- 页面：[http://127.0.0.1:8000/entry](http://127.0.0.1:8000/entry)
-- 服务状态：[http://127.0.0.1:8000/api/health](http://127.0.0.1:8000/api/health)
-- API 文档：[http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)
+日常记录、健康档案和心理测试保存开箱可用。数据保存在本地 `data/`；重新启动仍可读取，退出账号保留数据。AI 对话/生成需自行配置千问密钥；天气需要网络；长期记忆、心潮为可选外部服务。未配置的功能会提示不可用，不阻止基础页面和记录功能。
 
-### 前端开发模式
+停止时在启动窗口按 Ctrl+C，或 Windows 双击 `stop.cmd`。端口 8000 / 3001 被占用会明确报错，先停止旧服务再启动。安装失败时保留错误信息并重试；若提示缺少 Python / npm，安装后重新打开终端。
 
-后端继续运行，另开终端，在项目根目录执行：
+### 可选配置与开发
 
-```powershell
-cd frontend
-npm run dev -- --host 127.0.0.1 --port 5173 --strictPort
-```
+复制 `private/.env.example` 为 `private/.env`，填写自己需要的 AI / MySQL 配置；没有密钥也能启动。MySQL 的已有数据不会自动迁移到本地文件，详见 [工作区与存储说明](LOCAL-WORKSPACES.md)。
 
-访问 [http://127.0.0.1:5173/entry](http://127.0.0.1:5173/entry)。开发服务器将 API 请求代理到 8000 端口；仅启动前端时，后端数据功能不可用。
+前端开发：先启动项目，再在 `frontend/` 运行 `npm run dev`。仅运行前端不能保存数据。修改后运行 `npm run build`；也可重新执行启动脚本自动构建。
 
-Windows 启动脚本需指定本机 Python 路径。未配置外部心潮、记忆服务时，可跳过：
-
-```powershell
-.\start.ps1 -PythonPath "<你的 Python 可执行文件路径>" -NoXinchao -NoMemory
-```
+对外分享请发送 Git 仓库源码，排除 `.venv/`、`node_modules/`、`data/` 和 `private/.env`；不要发送个人账号、数据库和密钥。对方需运行启动脚本，直接双击 HTML 不会启动后端。
 
 ## ☁️ 部署到 Ubuntu 服务器
 
-可按 [Ubuntu 部署指南](docs/deploy-ubuntu.md) 配置 Nginx、HTTPS 与 systemd。FastAPI 同时托管前端静态文件和 API。
+Ubuntu 本机启动与公网部署的区别见 [Ubuntu 运行说明](docs/deploy-ubuntu.md)。当前快速启动面向下载者在自己电脑使用。
 
 ## 🗂️ 项目结构
 
@@ -108,15 +87,15 @@ start.ps1          Windows 启动脚本
 
 ## 🔐 数据与登录方式
 
-- 当前登录是演示用的本地会话，不是服务端账户认证；没有实现多用户隔离或跨设备登录。
-- 个人档案、主观感受滑条和挑战打卡使用浏览器本地存储，不会自动同步到服务器或其他设备。
+- 三个空间共用账号服务的 HttpOnly 会话。健康档案和心理测试按账号分别保存；梦溯原有 SQLite 接口仍面向单机使用，不能据此视为完整的多人托管系统。
+- 健康档案、运动饮食睡眠和心理测试默认保存到 `data/safety/`；部分界面偏好仍保存在浏览器中。换电脑不会自动带上本机数据。
 - 后端记录使用本地 SQLite，默认数据库为 `data/mengsu.db`；媒体和导出文件保存在 `data/`。
 - AI 能力依赖有效模型配置；部分能力还需要独立安装、运行可选心潮和记忆服务。
 
 ## 🛠️ 页面打不开时
 
 1. 确认启动终端仍在运行，并查看终端是否报错。
-2. 使用 8000 端口时，先执行前端构建，再启动后端。
+2. 运行根目录启动脚本，让它自动安装依赖、构建前端并启动两个服务；只打开 HTML 或只运行前端不够。
 3. 使用 5173 端口时，同时保持 Vite 和后端运行。
 4. `127.0.0.1` 仅指向当前电脑；其他设备无法用这个地址访问本机项目。
 5. 端口被占用时检查占用进程。自带 `stop.cmd` 面向 8000、18110、18001，不负责关闭 5173 开发服务器。

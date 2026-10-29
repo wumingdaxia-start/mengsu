@@ -1,4 +1,4 @@
-"""Local tarot draws, adapted from daman-ovo-0404/tarot-skill (MIT)."""
+"""梦溯星栈映照网页接口。"""
 from typing import Literal
 from fastapi import APIRouter
 from pydantic import BaseModel, Field
@@ -12,7 +12,4 @@ class DrawBody(BaseModel):
 
 @router.post('/draw')
 def draw(body: DrawBody):
-    result = draw_cards(body.spread, body.question.strip())
-    # JavaScript cannot represent the upstream 64-bit seed without precision loss.
-    result['seed'] = str(result['seed'])
-    return result
+    return draw_cards(body.spread, body.question.strip())

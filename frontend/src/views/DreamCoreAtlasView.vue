@@ -1,5 +1,6 @@
 <script setup>
 import { computed, ref, onMounted, onBeforeUnmount, nextTick, watch } from 'vue'
+import { readDream, writeDream } from '../dream-account'
 import { useRouter } from 'vue-router'
 import { animate } from 'framer-motion'
 import { cores, questions, scoreAnswers } from '../data/dream-cores'
@@ -18,13 +19,13 @@ function select(i){answers.value[step.value]=i}
 function next(){if(answers.value[step.value]===undefined)return;if(step.value<11)step.value++;else{stage.value='result';nextTick(()=>root.value?.querySelector('h2')?.focus())}}
 function radarPoint(i,ratio=1){const angle=(i*45-90)*Math.PI/180;return [160+Math.cos(angle)*100*ratio,150+Math.sin(angle)*100*ratio]}
 const radar=computed(()=>cores.map((_,i)=>radarPoint(i,.12+ranking.value.find(x=>x.index===i).score/100*.88).join(',')).join(' '))
-function save(){
+async function save(){
  if(saved.value)return router.push('/dream')
  const now=new Date(), date=now.toLocaleDateString('sv-SE');const night=new Date(now);night.setDate(night.getDate()-1)
- // TODO: replace local storage with authenticated snapshot API; never imply a clinical diagnosis.
+ // Save the authored report to this account’s snapshot collection.
  const item={id:Date.now(),kind:'core-report',title:main.value.name+' × '+secondary.value.name+' · 梦核图鉴',date,nightDate:night.toLocaleDateString('sv-SE'),signal:main.value.slogan,feeling:main.value.feeling,motif:main.value.name,locked:false,coreReport:{primary:main.value.name,secondary:secondary.value.name,scores:ranking.value,answers:[...answers.value],inner:main.value.inner,gravity:main.value.gravity}}
- try{const existing=JSON.parse(localStorage.getItem('mengsu-signal-snapshots')||'[]');localStorage.setItem('mengsu-signal-snapshots',JSON.stringify([item,...existing]));saved.value=true;notify('已保存到此浏览器的意识碎片流')}
- catch{notify('保存未完成，浏览器存储空间可能不足，请先导出已有快照。')}
+ try{await writeDream('snapshots',[item,...readDream('snapshots',[])]);saved.value=true;notify('已保存到当前账号的意识碎片流')}
+ catch(error){notify(error.message||'保存未完成，请保留结果后重试。')}
 }
 async function share(){
  try{const c=document.createElement('canvas');c.width=1080;c.height=1440;const x=c.getContext('2d');x.fillStyle=main.value.bg;x.fillRect(0,0,1080,1440);x.fillStyle='#fffdf8';x.save();x.translate(540,500);x.rotate(-.035);x.shadowColor='#998ab633';x.shadowBlur=30;x.fillRect(-390,-340,780,800);const image=new Image();image.src=main.value.art;await image.decode();x.shadowBlur=0;const scale=Math.max(700/image.width,560/image.height);x.save();x.beginPath();x.rect(-350,-300,700,560);x.clip();x.drawImage(image,-image.width*scale/2,-20-image.height*scale/2,image.width*scale,image.height*scale);x.restore();x.fillStyle='#625c75';x.textAlign='center';x.font='44px serif';x.fillText(main.value.name+' × '+secondary.value.name,0,345);x.restore();x.textAlign='center';x.fillStyle='#625c75';x.font='30px sans-serif';x.fillText('梦溯 · 梦核图鉴',540,110);x.font='40px serif';x.fillText(main.value.slogan,540,1090);x.font='23px sans-serif';x.fillText('一份关于梦境氛围的个人观察',540,1170);x.font='19px sans-serif';x.fillText('娱乐向 · 不具备心理诊疗、解梦功能',540,1330);c.toBlob(blob=>{if(!blob)return notify('海报未生成，请重试');const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='梦溯-'+main.value.name+'-梦核图鉴.png';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);notify('分享海报已生成，请查看下载')},'image/png')}

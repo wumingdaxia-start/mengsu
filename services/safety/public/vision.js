@@ -48,7 +48,7 @@ function vision(){
  advice('20–20–20 休息法','近距离用眼约 20 分钟后，向约 6 米外看至少 20 秒，让眼睛适当放松。')+
  advice('光线与距离都合适','避免在昏暗环境或强反光下盯屏；屏幕亮度与环境相协调，注意眨眼。')+
  advice('关注持续变化','反复模糊、重影或两眼差异明显时，建议到眼科检查；网页自测不能测出近视度数。')+
- '</section><p class="vision-source">功能设计参考 <a href="https://github.com/MikeDean2367/AI-EYE" target="_blank" rel="noopener noreferrer">AI-EYE 开源项目</a> 的视力、散光、色觉与历史记录模块；本页为网页自测版本，未启用摄像头测距或手势识别。</p>';
+ '</section>';
 }
 function bindVision(){
  document.querySelectorAll('[data-vision-start]').forEach(button=>button.onclick=()=>openVision(button.dataset.visionStart));

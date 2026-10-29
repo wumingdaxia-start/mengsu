@@ -1,10 +1,10 @@
 from __future__ import annotations
 
 from contextlib import asynccontextmanager
-from typing import Any, AsyncIterator
+from typing import Any, AsyncIterator, TYPE_CHECKING
 
-from mcp import ClientSession
-from mcp.client.streamable_http import streamablehttp_client
+if TYPE_CHECKING:
+    from mcp import ClientSession
 
 from .config import Settings
 
@@ -24,6 +24,11 @@ class MemoryClient:
 
     @asynccontextmanager
     async def _session(self) -> AsyncIterator[ClientSession]:
+        try:
+            from mcp import ClientSession
+            from mcp.client.streamable_http import streamablehttp_client
+        except ImportError as exc:
+            raise MemoryUnavailable("可选记忆客户端未安装，请运行 pip install -r requirements-memory.txt") from exc
         async with streamablehttp_client(self._url, headers=self._headers) as (read, write, _):
             async with ClientSession(read, write) as session:
                 await session.initialize()

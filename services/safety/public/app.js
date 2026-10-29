@@ -18,7 +18,6 @@ function exerciseList(){return data.exercise.length?'<div class="list">'+data.ex
 function dietList(){return data.diet.length?'<div class="list">'+data.diet.map((x,index)=>'<div class="list-item"><span class="list-icon">♧</span><div><b>'+escapeHtml(x.food)+'</b><small>'+escapeHtml(x.meal)+' · '+escapeHtml(x.date||'未记录日期')+'</small></div><div class="value"><b>'+x.calories+' kcal</b><small>蛋白质 '+x.protein+'g</small></div>'+deleteButton('diet',index)+'</div>').join('')+'</div>':empty('暂无饮食记录，点击“添加饮食”记录第一餐。')}
 function sleepList(){return '<div class="list sleep-history">'+data.sleep.map((x,index)=>'<div class="list-item"><span class="list-icon">☾</span><div><b>睡眠记录</b><small>'+escapeHtml(x.date||'未记录日期')+'</small></div><div class="value"><b>'+hours(x)+' 小时</b>'+(x.quality?'<small>主观质量 '+x.quality+'/5</small>':'')+'</div>'+deleteButton('sleep',index)+'</div>').join('')+'</div>'}
 function coverage(){return [daily(data.exercise).length,daily(data.diet).length,data.sleep.length].filter(Boolean).length}
-function updateCompletionStatus(){const button=q('#noticeBtn'),dot=q('#noticeDot');if(!button||!dot)return;const complete=Boolean(user)&&coverage()===3;dot.hidden=complete;button.classList.toggle('is-complete',complete);button.title=complete?'健康记录已填写完整':'健康记录待补充';if(button.setAttribute)button.setAttribute('aria-label',button.title)}
 function home(){const mins=sum(daily(data.exercise),'minutes'),cal=sum(daily(data.diet),'calories'),sl=data.sleep.length?hours(data.sleep.at(-1)):'—',percent=Math.round(coverage()/3*100);return '<section class="hero">'+hero(user?'欢迎回来，记录属于你的健康日常':'照顾健康，从一份日常记录开始','记录运动、饮食和睡眠，逐步了解自己的生活习惯。',percent).replace('今日健康目标','记录完整度')+ring(percent,'记录完整度 %')+'</section><section class="grid grid-4">'+metric('↗',mins,'分钟','今日活动时长','参考目标 60 分钟')+metric('♧',cal,'kcal','今日营养摄入',daily(data.diet).length+' 条记录')+metric('☾',sl,'小时','最近一次睡眠',data.sleep.length?'已记录':'待记录')+metric('✓',data.exercise.length+data.diet.length+data.sleep.length+visionRecords().length,'条','已保存记录',user?'当前账号':'请先登录')+'</section>'+visionOverview('home')+'<div class="section-head"><h2>日常健康提醒</h2></div><section class="grid grid-3">'+advice('每坐 60 分钟起身活动','轻微拉伸 3–5 分钟，减少连续久坐。')+advice('保持均衡饮食','适量搭配蔬菜、全谷物与优质蛋白。')+advice('保持规律作息','成年人通常建议每晚睡眠 7–9 小时。')+'</section>'}
 function exercise(){const mins=sum(daily(data.exercise),'minutes'),burn=sum(daily(data.exercise),'calories');return '<section class="grid grid-3">'+metric('◷',mins,'分钟','今日锻炼时长','参考目标 60 分钟')+metric('♨',burn,'kcal','今日活动消耗','来自已记录内容')+metric('✓',data.exercise.length,'条','累计锻炼记录','循序渐进')+'</section><div class="section-head"><div><h2>锻炼记录</h2><p>按日期保存，运动前充分热身</p></div><button class="primary" data-form="exercise">＋ 记录锻炼</button></div><article class="card">'+exerciseList()+'</article>'+planSection('exercise')+'<div class="section-head"><h2>安全锻炼建议</h2></div><section class="grid grid-3">'+advice('关注身体信号','出现胸闷、眩晕或异常疼痛时应立即停止运动。')+advice('控制运动强度','以能够正常交谈的强度为宜。')+advice('补水与恢复','分次补水，结束后舒缓拉伸。')+'</section>'}
 function diet(){const cal=sum(daily(data.diet),'calories'),pro=sum(daily(data.diet),'protein');return '<section class="hero">'+hero('均衡摄入，记录每一餐',(user?'今日已记录 '+cal+' kcal，蛋白质 '+pro+' g。热量参考目标因人而异。':'暂无饮食数据，登录后记录每一餐。'),Math.min(100,Math.round(cal/20)))+ring(Math.min(100,Math.round(daily(data.diet).length/3*100)),'三餐记录进度 %')+'</section><div class="section-head"><div><h2>饮食记录</h2><p>按日期记录，了解营养摄入</p></div><button class="primary" data-form="diet">＋ 添加饮食</button></div><article class="card">'+dietList()+'</article>'+planSection('diet')+'<div class="section-head"><div><h2>食物搭配注意</h2><p>日常饮食参考，不代表绝对的“食物相克”；如有过敏或疾病请遵循专业建议</p></div></div><section class="grid grid-2 diet-guidance"><article class="card guidance-card"><b>螃蟹 + 柿子</b><p>两者都偏寒凉，不建议一次大量同食；肠胃敏感时尤其要注意分量。</p></article><article class="card guidance-card"><b>牛奶 + 柑橘类水果</b><p>部分人同食后容易胃部不适或反酸，可以错开一段时间观察。</p></article><article class="card guidance-card"><b>蜂蜜 + 豆腐</b><p>不建议大量同时食用，容易增加胃肠负担；日常少量通常以个人耐受为准。</p></article><article class="card guidance-card"><b>菠菜 + 豆腐</b><p>两者都含有影响钙吸收的成分，建议焯菠菜后再搭配，均衡摄入即可。</p></article></section><div class="section-head"><div><h2>常见食物营养参考</h2><p>每份为日常估算值，品牌、分量和烹饪方式会造成差异</p></div></div><article class="card nutrition-reference"><div class="nutrition-row nutrition-head"><b>食物</b><b>参考分量</b><b>热量</b><b>蛋白质</b></div><div class="nutrition-row"><span>白粥</span><span>1 碗（约 250g）</span><strong>约 150 kcal</strong><strong>约 3g</strong></div><div class="nutrition-row"><span>馒头</span><span>1 个（约 100g）</span><strong>约 220 kcal</strong><strong>约 7g</strong></div><div class="nutrition-row"><span>鸡蛋</span><span>1 个</span><strong>约 70 kcal</strong><strong>约 6g</strong></div><div class="nutrition-row"><span>纯牛奶</span><span>250 ml</span><strong>约 150 kcal</strong><strong>约 8g</strong></div><div class="nutrition-row"><span>米饭</span><span>1 碗（约 150g）</span><strong>约 230 kcal</strong><strong>约 5g</strong></div><div class="nutrition-row"><span>鸡胸肉</span><span>100g（熟）</span><strong>约 165 kcal</strong><strong>约 31g</strong></div><div class="nutrition-row"><span>香蕉</span><span>1 根（约 120g）</span><strong>约 105 kcal</strong><strong>约 1g</strong></div><div class="nutrition-row"><span>燕麦片</span><span>40g（干重）</span><strong>约 150 kcal</strong><strong>约 5g</strong></div></article>'}
@@ -28,8 +27,16 @@ function safetyTrend(){const dates=[...new Set([...data.exercise,...data.diet,..
 function analysisCharts(){const summary=safetySummary(),trend=safetyTrend();if(!summary)return '<section class="grid grid-2 analysis-charts"><article class="card chart-card"><h2>安全状态占比</h2>'+empty('登录并记录后显示统计。')+'</article><article class="card chart-card"><h2>安全状态趋势</h2>'+empty('登录并记录后显示趋势。')+'</article></section>';const total=summary.safe+summary.attention,safeDeg=Math.round(summary.safe/total*360),pie='<div class="pie-chart" style="--safe-deg:'+safeDeg+'deg"><span>'+Math.round(summary.safe/total*100)+'%</span></div><div class="chart-legend"><span><i class="legend-safe"></i>安全 '+summary.safe+' 项</span><span><i class="legend-attention"></i>需关注 '+summary.attention+' 项</span></div>';let lineHtml='';if(trend.length){const width=560,height=190,padX=34,padY=20,innerW=width-padX*2,innerH=height-padY*2,points=trend.map((item,index)=>{const x=trend.length===1?width/2:padX+index*innerW/(trend.length-1),y=height-padY-item.value/100*innerH;return {x,y,item}}),polyline=points.map(p=>p.x.toFixed(1)+','+p.y.toFixed(1)).join(' '),dots=points.map(p=>'<circle cx="'+p.x.toFixed(1)+'" cy="'+p.y.toFixed(1)+'" r="4"><title>'+escapeHtml(p.item.date)+'：'+p.item.value+'%</title></circle>').join(''),labels=points.map(p=>'<span style="left:'+((p.x/width)*100).toFixed(2)+'%">'+escapeHtml(p.item.date.slice(5))+'</span>').join('');lineHtml='<div class="line-chart"><svg viewBox="0 0 '+width+' '+height+'" role="img" aria-label="安全状态趋势折线图"><path class="line-grid" d="M34 20H526 M34 95H526 M34 170H526"></path><polyline points="'+polyline+'"></polyline>'+dots+'</svg><div class="line-labels">'+labels+'</div></div>'}else lineHtml=empty('记录后显示趋势。');return '<section class="grid grid-2 analysis-charts"><article class="card chart-card"><h2>安全状态占比</h2><p class="chart-note">根据运动、饮食、睡眠三类记录覆盖情况统计</p>'+pie+'</article><article class="card chart-card"><h2>安全状态趋势</h2><p class="chart-note">按有记录日期计算，满分 100%，仅作日常管理参考</p>'+lineHtml+'</article></section>'}
 function analysis(){const count=coverage(),mins=sum(daily(data.exercise),'minutes'),last=data.sleep.length?hours(data.sleep.at(-1)):null;return '<section class="grid grid-2"><article class="card"><span class="tag">HEALTH RECORDS</span><div class="risk-score"><span class="risk-number">'+(user?count+'/3':'—')+'</span><div><span class="risk-label">'+(count===3?'记录已覆盖三类':'记录尚不完整')+'</span><p>今日运动、今日饮食与最近睡眠</p></div></div></article><article class="card"><h2>健康记录分析</h2><p>根据本人填写的记录提供生活习惯参考，不能据此判定身体安全或替代医疗诊断。</p></article></section><div class="section-head"><h2>分项记录情况</h2></div><section class="grid grid-3">'+advice('日常锻炼',daily(data.exercise).length?'今日活动 '+mins+' 分钟。'+(mins<60?'可根据身体情况适当增加活动。':'请注意运动后的休息与恢复。'):'暂无今日锻炼数据，请先记录。')+advice('饮食健康',daily(data.diet).length?'今日记录 '+daily(data.diet).length+' 餐，摄入 '+sum(daily(data.diet),'calories')+' kcal。营养需求因人而异。':'暂无今日饮食数据，请先记录。')+advice('睡眠监测',last===null?'暂无睡眠数据，请先记录。':'最近睡眠 '+last+' 小时。'+(last>=7&&last<=9?'处于成人常见建议时长范围。':'请结合年龄和身体情况关注作息。'))+'</section>'+analysisCharts()+visionOverview('analysis')}
 function analysisWithInsight(){return analysis()+insightPanel()}
-const pages={home,profile,exercise,diet,sleep,vision,challenges,analysis:analysisWithInsight,consult,knowledge},titles={home:'健康总览',profile:'个人档案',exercise:'日常锻炼',diet:'饮食健康',sleep:'睡眠监测',vision:'视力检测',challenges:'健康挑战赛',analysis:'安全健康分析',consult:'AI 健康问诊',knowledge:'健康知识检索'};
+function personalSpace(){
+ const name=user?currentDisplayName():'欢迎来到你的安康空间';
+ const total=user?data.exercise.length+data.diet.length+data.sleep.length+visionRecords().length:0;
+ const summary=user?'<p>当前账号：'+escapeHtml(user.account||user.name)+'</p>':'<p>登录后，可在这里查看自己的健康档案和记录。</p><a class="primary login-link" href="'+loginUrl()+'">登录账号 →</a>';
+ const stats='<dl class="space-statistics"><div><dt>健康记录</dt><dd>'+total+'<small> 条</small></dd></div><div><dt>档案完整度</dt><dd>'+(user?profileCompletion(data.profile||{}):0)+'<small> %</small></dd></div><div><dt>运动 / 饮食 / 睡眠</dt><dd>'+(user?[data.exercise.length,data.diet.length,data.sleep.length].join(' / '):'0 / 0 / 0')+'</dd></div></dl>';
+ return '<section class="card personal-space"><div class="section-head"><h2>'+escapeHtml(name)+'</h2><span>'+(user?'已登录':'游客模式')+'</span></div>'+summary+stats+'<p class="space-privacy-note">健康档案和记录按账号分别保存。</p><div class="space-shortcuts"><a href="#profile">个人档案 →</a><a href="#exercise">锻炼记录 →</a><a href="#diet">饮食记录 →</a><a href="#sleep">睡眠记录 →</a><a href="#analysis">健康分析 →</a></div></section>';
+}
+const pages={space:personalSpace,home,profile,exercise,diet,sleep,vision,challenges,analysis:analysisWithInsight,consult,knowledge},titles={space:'我的空间',home:'健康总览',profile:'个人档案',exercise:'日常锻炼',diet:'饮食健康',sleep:'睡眠监测',vision:'视力检测',challenges:'健康挑战赛',analysis:'安全健康分析',consult:'AI 健康问诊',knowledge:'健康知识检索'};
 const pageMeta={
+ space:{group:'安康',description:'查看当前账号的个人档案与健康记录。'},
  home:{group:'健康看板',description:'集中查看日常锻炼、饮食与睡眠记录。'},
  profile:{group:'健康看板',description:'填写、修改和查看属于当前账号的个人信息。'},
  exercise:{group:'生活打卡',description:'记录活动时长与消耗，循序渐进地完成锻炼。'},
@@ -48,6 +55,10 @@ function render(){
  q('#pageCrumb').textContent=titles[key];
  q('#pageGroup').textContent=pageMeta[key].group;
  q('#pageDescription').textContent=pageMeta[key].description;
+ let illustration=q('.health-page-illustration');
+ if(!illustration){illustration=document.createElement('figure');illustration.className='health-page-illustration';illustration.setAttribute('aria-hidden','true');illustration.innerHTML='<img alt="" width="340" height="220" decoding="async">';q('.page-heading').append(illustration)}
+ illustration.querySelector('img').src='/illustrations/'+key+'.svg';
+
  document.querySelectorAll('[data-route]').forEach(a=>a.classList.toggle('active',a.dataset.route===key));
  q('.sidebar').classList.remove('open');
  if(!ready){page.innerHTML='<article class="card empty-state">'+(loadError?escapeHtml(loadError)+'<br><button class="primary" id="retryData">重新加载</button>':'正在读取健康记录…')+'</article>';const retry=q('#retryData');if(retry)retry.onclick=loadAccount;return}
@@ -62,7 +73,6 @@ function render(){
  if(key==='consult')bindConsult();
  if(key==='analysis')bindInsight();
  if(key==='knowledge')bindKnowledge();
- updateCompletionStatus();
  scrollTo(0,0);
 }
 async function persist(candidate,identity,version){
@@ -118,24 +128,25 @@ async function deleteRecord(type,index){
 function notify(msg){const t=q('#toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),3000)}
 function identityUI(){
  const name=currentDisplayName();
- q('#userName').textContent=name||'登录账号';
- q('#userStatus').textContent=user?'已登录 · 独立健康档案':'登录后保存个人健康档案';
- q('#userAvatar').textContent=name?name.slice(0,1):'登';
+ q('#userName').textContent='我的空间';
+ q('#userStatus').textContent='健康档案与记录';
+ q('#userAvatar').textContent='安';
  q('#accountButton').dataset.logged=user?'true':'';
- q('#privacyStatus').textContent=user?'记录按账号独立保存':'登录后才能保存记录';
  q('#dataMode').textContent=user?'个人健康档案':'游客模式';
- q('#topUserName').textContent=name||'登录账号';
- q('#topUserRole').textContent=user?(user.role||'已登录'):'游客模式';
+ const embedded=document.documentElement.dataset.mengsuEmbed==='true';
+ q('#topUserName').textContent=embedded&&user?'\u5df2\u767b\u5f55\u8d26\u53f7':name||'登录账号';
+ q('#topUserRole').textContent=embedded&&user?'\u5f53\u524d\u8d26\u53f7\u5df2\u767b\u5f55':user?(user.role||'已登录'):'游客模式';
  q('#topUserAvatar').textContent=name?name.slice(0,1):'登';
  q('#topGreeting').textContent=name?'你好，'+name+'，愿你今天身心安康':'你好，健康生活从今天开始';
- q('#topLogout').hidden=!user;
+ q('#topLogout').hidden=true;
+ q('#topAccountButton').setAttribute('aria-expanded','false');
 }
 async function loadAccount(){
  resetVision();
  resetProfileDraft();
  planDraft=null;
  challengeRank={leaders:[],myRank:null};
- const epoch=++generation;ready=false;loadError='';modal.hidden=true;q('#accountMenu').hidden=true;render();
+ const epoch=++generation;ready=false;loadError='';modal.hidden=true;render();
  try{
   const res=await fetch('/api/me',{cache:'no-store'});
   if(epoch!==generation)return;
@@ -157,22 +168,22 @@ async function loadAccount(){
  refreshChallengeRank();
  if(typeof resetConsult==='function'){resetConsult();loadConsult()}
 }
-q('#accountButton').onclick=()=>{if(!ready)return;if(user)q('#accountMenu').hidden=!q('#accountMenu').hidden;else location.href=loginUrl()};
-q('#topAccountButton').onclick=()=>{if(!ready)return;if(user)q('#topLogout').hidden=!q('#topLogout').hidden;else location.href=loginUrl()};
+q('#accountButton').onclick=()=>{location.hash='space'};
+q('#topAccountButton').onclick=async()=>{if(!ready)await loadAccount();if(!ready)return;if(user){q('#topLogout').hidden=!q('#topLogout').hidden;q('#topAccountButton').setAttribute('aria-expanded',String(!q('#topLogout').hidden))}else location.href=loginUrl()};
+document.addEventListener('click',event=>{if(!event.target.closest('.top-actions')){q('#topLogout').hidden=true;q('#topAccountButton').setAttribute('aria-expanded','false')}});
+document.addEventListener('keydown',event=>{if(event.key==='Escape'){q('#topLogout').hidden=true;q('#topAccountButton').setAttribute('aria-expanded','false')}});
 async function logout(){
  if(saving)return notify('正在保存记录，请稍候');
- const button=q('#logoutAccount');button.disabled=true;
+ const button=q('#topLogout');button.disabled=true;
  q('#topLogout').disabled=true;
  try{const res=await fetch('/api/logout',{method:'POST'});if(!res.ok)throw new Error();await loadAccount();notify('已退出，游客模式不显示个人数据')}
  catch{notify('退出失败，请重试')}finally{button.disabled=false;q('#topLogout').disabled=false}
 }
-q('#logoutAccount').onclick=logout;
 q('#topLogout').onclick=logout;
 q('#today').textContent=new Intl.DateTimeFormat('zh-CN',{month:'long',day:'numeric',weekday:'long'}).format(new Date());
 q('#modalClose').onclick=()=>{if(!saving){resetVision();modal.hidden=true}};
 modal.onclick=e=>{if(e.target===modal&&!saving){resetVision();modal.hidden=true}};
 q('#menuBtn').onclick=()=>q('.sidebar').classList.toggle('open');
-q('#noticeBtn').onclick=()=>notify(Boolean(user)&&coverage()===3?'三类健康记录已填写完整':'健康分析基于已填写记录，请继续补充运动、饮食和睡眠');
 addEventListener('hashchange',render);
 addEventListener('focus',()=>{if(!saving&&modal.hidden&&!profileDraftActive())loadAccount()});
 loadAccount();

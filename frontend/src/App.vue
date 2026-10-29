@@ -3,6 +3,7 @@ import { computed, onMounted, onBeforeUnmount, nextTick, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { api } from './api'
 import { isLoggedIn, signOut, refreshSession, SAFETY_API_BASE } from './auth'
+import { dreamOwner, dreamReady, dreamError, retryDreamAccount } from './dream-account'
 import { WORKSPACES } from './workspaces'
 import { dreamNavigation } from './dream-navigation'
 import './workspace-themes.css'
@@ -36,6 +37,8 @@ let lastScrollY = 0
 const headerProfileName = ref('')
 const headerSession = ref(false)
 const spaceOpen = ref(false)
+const headerAccountOpen = ref(false)
+const signingOut = ref(false)
 const direction = ref('forward')
 const flowerOffset = ref({ x: 0, y: 0 })
 const flowerDragging = ref(false)
@@ -92,8 +95,17 @@ healthNavigation.splice(healthNavigation.findIndex(item => item.path === '/mood'
 healthNavigation.splice(5, 0,
   { label: '视力检测', path: '/vision', group: '生活打卡', icon: 'M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12Z M9 12a3 3 0 1 0 6 0 3 3 0 0 0-6 0' },
   { label: '健康挑战赛', path: '/challenges', group: '生活打卡', icon: 'M8 3h8v6a4 4 0 0 1-8 0Z M8 5H4v3a4 4 0 0 0 4 4 M16 5h4v3a4 4 0 0 1-4 4 M12 13v6 M8 21h8' })
+const psychologyNavIcons = {
+  '/psychology': 'M3 3h7v7H3Z M14 3h7v7h-7Z M3 14h7v7H3Z M17.5 21l-4-4a2.5 2.5 0 0 1 4-3 2.5 2.5 0 0 1 4 3Z',
+  '/psychology/journal': 'M5 3h9M5 3v18h14v-7 M8 7h3 M8 11h2 M12 13l7-8 3 3-7 8-4 1Z M17 7l3 3',
+  '/psychology/personality': 'M12 21v-4H8l-2-5H3l3-4a7 7 0 1 1 13 5v8 M10 8h.01 M15 8h.01 M10 12c1 1 3 1 4 0',
+  '/psychology/tarot': 'M7 3h13v18H7Z M4 5H2v16h2 M13.5 7l1.5 3 3 1.5-3 1.5-1.5 3-1.5-3-3-1.5 3-1.5Z M11 18h5',
+  '/psychology/views-test': 'M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20 M16 8l-3 7-5 1 3-7Z M12 2v2 M22 12h-2 M12 22v-2 M2 12h2',
+  '/psychology/breathe': 'M3 8h11a3 3 0 1 0-3-3 M3 12h15a3 3 0 1 1-3 3 M3 16h5a3 3 0 1 1-3 3',
+  '/psychology/history': 'M3 4v5h5 M3 9a9 9 0 1 1 1 9 M12 7v5l4 2'
+}
 const healthNavigationGroups = computed(() => {
-  const makeItem = (label, path, icon) => ({ label, path, icon: icon || 'M4 4h16v16H4Z M8 9h8 M8 14h5' })
+  const makeItem = (label, path, icon) => ({ label, path, icon: icon || psychologyNavIcons[path] || 'M4 4h16v16H4Z M8 9h8 M8 14h5' })
   if (workspaceKey.value === 'dream') return dreamNavigation
   if (workspaceKey.value === 'psychology') return [
     { label: '此刻的自己', items: [makeItem('心理总览', '/psychology'), makeItem('心情记录', '/psychology/journal')] },
@@ -116,6 +128,7 @@ watch(
   (path, oldPath) => {
     loadHeaderIdentity()
     spaceOpen.value = false
+    headerAccountOpen.value = false
     headerHidden.value = false
     lastScrollY = window.scrollY
     const before = tabs.findIndex(tab => tab.path === oldPath)
@@ -131,7 +144,7 @@ function loadHeaderIdentity() {
     return
   }
   try {
-    const saved = JSON.parse(localStorage.getItem('mengsu-personal-profile-v1') || '{}')
+    const saved = JSON.parse(sessionStorage.getItem('mengsu-auth') || '{}')
     headerProfileName.value = typeof saved?.name === 'string' ? saved.name.trim() : ''
   } catch {
     headerProfileName.value = ''
@@ -160,8 +173,14 @@ function go(key) {
 }
 
 function openAccount() {
-  if (headerSession.value) toggleSpaceMenu()
+  if (headerSession.value) headerAccountOpen.value = !headerAccountOpen.value
   else router.push({ path: '/login', query: { next: route.path } })
+}
+
+function openMySpace() {
+  if (workspaceKey.value === 'psychology') { spaceOpen.value = false; router.push('/psychology/space') }
+  else if (workspaceKey.value === 'dream') router.push('/dream/space')
+  else toggleSpaceMenu()
 }
 
 function toggleSpaceMenu() {
@@ -169,12 +188,21 @@ function toggleSpaceMenu() {
 }
 
 async function logout() {
+  if (signingOut.value) return
+  signingOut.value = true
   try { await signOut() }
   catch (error) { window.alert(error.message); return }
+  finally { signingOut.value = false }
   headerSession.value = false
   headerProfileName.value = ''
+  headerAccountOpen.value = false
   spaceOpen.value = false
   window.dispatchEvent(new Event('mengsu:auth-change'))
+}
+
+function closeHeaderAccount(event) {
+  if (event.type === 'keydown') { if (event.key === 'Escape') headerAccountOpen.value = false; return }
+  if (!event.target.closest('.header-account, .header-account-menu')) headerAccountOpen.value = false
 }
 
 function onSafetyAuthMessage(event) {
@@ -259,14 +287,6 @@ async function loadCompanion() {
   }
 }
 
-function nowLine() {
-  const data = companion.value
-  if (!data) return '正在连接'
-  if (!data.connected) return '心潮未连接'
-  const match = (data.now?.text ?? '').match(/情绪：(.+)/)
-  return match ? `此刻 · ${match[1]}` : '此刻 · 在线'
-}
-
 function weatherKind(code) {
   if (code === 0) return ['晴朗', 'sun']
   if (code <= 3) return ['多云', 'cloud']
@@ -343,6 +363,8 @@ onMounted(() => {
   loadHeaderIdentity()
   loadCompanion()
   chooseWeatherCity()
+  document.addEventListener('click', closeHeaderAccount)
+  document.addEventListener('keydown', closeHeaderAccount)
   window.addEventListener('storage', loadHeaderIdentity)
   window.addEventListener('mengsu:auth-change', loadHeaderIdentity)
   window.addEventListener('message', onSafetyAuthMessage)
@@ -351,6 +373,8 @@ onMounted(() => {
 })
 
 onBeforeUnmount(() => {
+  document.removeEventListener('click', closeHeaderAccount)
+  document.removeEventListener('keydown', closeHeaderAccount)
   window.removeEventListener('storage', loadHeaderIdentity)
   window.removeEventListener('mengsu:auth-change', loadHeaderIdentity)
   window.removeEventListener('message', onSafetyAuthMessage)
@@ -413,18 +437,18 @@ onBeforeUnmount(() => {
         </section>
         <div class="app-head-right">
           <button v-if="route.path !== '/entry'" class="header-link header-entry-link" @click="appRouter.push('/entry')">返回主页面</button>
-          <button class="header-health-status" type="button" :title="nowLine()" aria-label="健康连接状态">
-            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 2.5 20 5.4v6.1c0 5-3.1 8.2-8 10-4.9-1.8-8-5-8-10V5.4Z" /><path d="M12 7.4v8.2m-4.1-4.1h8.2" /></svg>
-            <i aria-hidden="true" />
-          </button>
-          <button class="header-account" type="button" @click="openAccount">
+          <button class="header-account" type="button" :aria-expanded="headerSession ? headerAccountOpen : undefined" :aria-controls="headerSession ? 'header-account-menu' : undefined" @click="openAccount">
             <span><strong>{{ headerSession ? '已登录账号' : '登录账号' }}</strong><small>{{ headerSession ? '当前账号已登录' : '游客模式' }}</small></span>
             <b class="header-account-avatar">{{ headerSession ? (headerProfileName.slice(0, 1) || '我') : '登' }}</b>
           </button>
+          <div v-if="headerSession && headerAccountOpen" id="header-account-menu" class="header-account-menu"><button type="button" :disabled="signingOut" @click="logout">{{ signingOut ? '正在退出…' : '退出账号' }}</button></div>
         </div>
       </header>
 
-      <RouterView v-slot="{ Component }">
+      <section v-if="workspaceKey === 'dream' && !dreamReady" class="dream-account-loading" role="status" style="padding:32px">
+        <p>{{ dreamError || '正在读取你的梦境记录…' }}</p><button v-if="dreamError" @click="retryDreamAccount">重新加载</button>
+      </section>
+      <RouterView v-else :key="workspaceKey === 'dream' ? dreamOwner : workspaceKey" v-slot="{ Component }">
         <Transition :name="direction === 'forward' ? 'push-left' : 'push-right'" mode="out-in">
           <div :key="route.path" class="route-surface"><section v-if="route.meta.dreamIntro && route.path !== '/dream'" class="dream-page-intro"><h1>{{ route.meta.label }}</h1><p>{{ route.meta.dreamIntro }}</p></section><component :is="Component" :go="go" /><p v-if="workspaceKey === 'dream'" style="margin:28px 0;text-align:center;color:#9298a6;font-size:11px;line-height:1.8">本工具仅用于个人感受观察，不具备医疗、心理诊疗、解梦占卜功能。</p></div>
         </Transition>
@@ -476,7 +500,7 @@ onBeforeUnmount(() => {
     <nav v-if="!chromeless" class="health-navigation" :aria-label="workspace.name + '导航'">
       <div v-if="workspaceKey==='dream'" class="dream-mobile-primary"><button v-for="item in [dreamNavigation[0].items[0],dreamNavigation[0].items[1],dreamNavigation[0].items[2]]" :key="item.path" :class="{active:route.path===item.path}" @click="openHealth(item.path)"><svg viewBox="0 0 24 24" aria-hidden="true"><path :d="item.icon"/></svg>{{item.label.replace('✦ ','')}}</button><button :aria-expanded="dreamMenuOpen" @click="dreamMenuOpen=!dreamMenuOpen"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h6v6H4Z M14 5h6v6h-6Z M4 15h6v6H4Z M14 15h6v6h-6Z"/></svg>全部功能</button></div>
       <div class="health-nav-brand">
-        <span class="health-nav-mark" aria-hidden="true"><svg viewBox="0 0 32 32" fill="none"><path d="M23 5a12 12 0 1 0 4 18A13 13 0 0 1 23 5Z" stroke="currentColor" stroke-width="1.1"/><path d="m12 11 1 3 3 1-3 1-1 3-1-3-3-1 3-1Z" fill="currentColor"/></svg></span>
+        <span class="health-nav-mark" aria-hidden="true"><svg viewBox="0 0 32 32" fill="none"><g v-if="workspaceKey === 'safety'"><path d="M16 28V14M16 20C7 20 4 14 5 7c8 0 12 5 11 13ZM16 17C16 9 22 5 28 6c0 8-5 13-12 11Z" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></g><g v-else-if="workspaceKey === 'psychology'"><path d="M16 25S5 18 5 11a6 6 0 0 1 11-3 6 6 0 0 1 11 3c0 7-11 14-11 14Z" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/><path d="M16 1v3M2 8l3 1m24-1-3 1M5 25l3-2m19 2-3-2" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/></g><g v-else><path d="M23 5a12 12 0 1 0 4 18A13 13 0 0 1 23 5Z" stroke="currentColor" stroke-width="1.1"/><path d="m12 11 1 3 3 1-3 1-1 3-1-3-3-1 3-1Z" fill="currentColor"/></g></svg></span>
         <span><strong>{{ workspace.name }}</strong><small>{{ workspace.subtitle }}</small></span>
       </div>
       <div v-for="(group, index) in healthNavigationGroups" :key="group.label" class="health-nav-group" :class="`health-nav-group-${index + 1}`">
@@ -488,14 +512,14 @@ onBeforeUnmount(() => {
           :aria-current="route.path === item.path ? 'location' : undefined"
           @click="openHealth(item.path)"
         >
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path :d="item.icon" /></svg>
+          <span class="health-nav-item-icon" :class="{ 'psych-nav-icon': workspaceKey === 'psychology' }" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path :d="item.icon" /></svg></span>
           <span>{{ item.label }}</span>
         </button>
       </div>
-      <button class="health-nav-profile" :class="{ active: spaceOpen }" :aria-expanded="spaceOpen" @click="workspaceKey === 'dream' ? router.push('/dream/space') : toggleSpaceMenu()">
-        <span class="profile-seal">梦</span><span><strong>我的空间</strong><small v-if="workspaceKey === 'dream'">账号设置、记录导出、个人偏好管理</small></span><b aria-hidden="true">{{ spaceOpen ? '⌃' : '···' }}</b>
+      <button class="health-nav-profile" :class="{ active: spaceOpen || route.path === '/psychology/space' }" :aria-expanded="workspaceKey === 'psychology' ? undefined : spaceOpen" :aria-current="route.path === '/psychology/space' ? 'page' : undefined" @click="openMySpace">
+        <span class="profile-seal">{{ workspaceKey === 'psychology' ? '心' : '梦' }}</span><span><strong>我的空间</strong><small v-if="workspaceKey === 'dream'">账号设置、记录导出、个人偏好管理</small></span><b aria-hidden="true">{{ workspaceKey === 'psychology' ? '›' : spaceOpen ? '⌃' : '···' }}</b>
       </button>
-      <div v-if="spaceOpen" class="health-nav-space-menu">
+      <div v-if="spaceOpen && workspaceKey !== 'psychology'" class="health-nav-space-menu">
         <button type="button" @click="logout"><span>退出账号</span><b aria-hidden="true">↗</b></button>
       </div>
     </nav>
@@ -505,6 +529,7 @@ onBeforeUnmount(() => {
 </template>
 
 <style scoped>
+.health-nav-item-icon { display:contents; }
 .app:not(.chromeless) .app-main{position:relative;z-index:1;background:transparent}
 .app .health-navigation { position: fixed; top: 0; right: auto; bottom: 0; left: 0; z-index: 3; display: flex; flex-direction: column; width: 248px; padding: 31px 18px 18px; overflow-y: auto; background: linear-gradient(165deg, #f5f2fa 0%, #fbfaff 47%, #f4f7fc 100%); border: 0; border-right: 1px solid #e5e0ee; box-shadow: 10px 0 30px rgba(92, 77, 112, .035); }
 .app .health-nav-brand { display: flex; align-items: center; gap: 11px; padding: 3px 10px 30px; color: #4e4660; }
@@ -626,17 +651,16 @@ onBeforeUnmount(() => {
 .app .health-navigation .health-nav-group button:hover{background:#e9def3;color:#614b78}
 .app .health-navigation .health-nav-group button.active{background:#e4d8f0;color:#57416f;box-shadow:inset 4px 0 0 #9b82b9}
 
-.app-head-right { flex-wrap: wrap; gap: 10px; }
+.app-head-right { position:relative; flex-wrap: wrap; gap: 10px; }
+.header-account-menu { position:absolute;right:0;top:calc(100% + 8px);z-index:10;min-width:132px;padding:6px;border:1px solid var(--workspace-line);border-radius:10px;background:#fff; }
+.header-account-menu button { width:100%;padding:10px 12px;text-align:left;font-size:13px;color:var(--workspace-ink);background:transparent; }
+.header-account-menu button:hover { background:var(--workspace-soft); }
 
 .header-welcome { min-width: 0; }
 .header-welcome > div { display: grid; gap: 5px; min-width: 0; }
 .header-welcome strong { display: block; max-width: 370px; color: #51445f; font-size: 15px; line-height: 1.3; font-weight: 700; letter-spacing: 0; white-space: normal; }
 .header-welcome span { color: #9b8da5; font-size: 12px; }
 
-.header-health-status { position: relative; display: grid; place-items: center; width: 45px; height: 45px; padding: 0; border: 1px solid #e7dfed; border-radius: 14px; color: #8a70a3; background: rgba(255, 253, 255, .9); box-shadow: 0 5px 15px rgba(92, 77, 112, .07); }
-.header-health-status svg { width: 23px; height: 23px; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
-.header-health-status i { position: absolute; top: 8px; right: 8px; width: 7px; height: 7px; border: 2px solid #fff; border-radius: 50%; background: #e77775; }
-.header-health-status:hover:not(:disabled) { color: #654d78; background: #f5eff9; box-shadow: 0 7px 18px rgba(92, 77, 112, .1); }
 .header-account { display: flex; align-items: center; gap: 10px; min-height: 45px; padding: 4px 5px 4px 9px; border: 0; border-radius: 15px; color: #5d4d6a; background: transparent; box-shadow: none; text-align: left; }
 .header-account:hover:not(:disabled) { background: rgba(255, 255, 255, .66); box-shadow: none; }
 .header-account > span { display: grid; gap: 2px; }

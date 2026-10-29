@@ -32,7 +32,7 @@
 ## 四、技术约定
 
 - 前端 Vue3 + Vite，**依赖用 npm 安装**（pnpm 11 会拦 esbuild 的构建脚本，装了也跑不起来）。
-- 后端 FastAPI，conda 环境 `sleep-agent`（Python 3.10）；模型统一千问（用户最新要求）。
+- 后端 FastAPI，启动脚本自动创建项目内 `.venv`（Python 3.10+，推荐 3.12）；无需固定 Conda 环境。模型统一千问。
 - 心潮（Node）与长期记忆服务（MCP）作为本机进程运行，不依赖 Docker。
 - 改完前端必须 `npm run build`，改完后端必须实测接口，再报告结果。
 - 启动：双击 `start.cmd`（**黑窗口不能关**）；停止：双击 `stop.cmd`。

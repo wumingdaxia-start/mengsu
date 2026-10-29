@@ -130,3 +130,118 @@
 .app[data-workspace='psychology'] .health-scene-background .reading-veil {
   background:hsl(var(--psych-hue) 30% 96% / .92)!important;
 }
+
+/* Dream navigation: section surface > numbered heading > indented destinations. */
+@media (min-width:960px) {
+  .app.app[data-workspace='dream'] .health-navigation .health-nav-group {
+    position:relative;
+    margin:0 0 14px!important;
+    padding:12px 8px 9px;
+    gap:3px;
+    border:1px solid #e5dce9!important;
+    border-radius:14px;
+    background:#fcf9fd!important;
+  }
+  .app.app[data-workspace='dream'] .health-navigation .health-nav-group>p {
+    display:flex;align-items:center;gap:9px;
+    margin:0 2px 6px;padding:0 0 10px;
+    border-bottom:1px solid #e9e0ed;
+    color:#685573!important;
+    font-size:12px;font-weight:700;line-height:1.5;
+  }
+  .app.app[data-workspace='dream'] .health-navigation .health-nav-group>p>span {
+    display:grid;place-items:center;flex-shrink:0;
+    width:26px;height:26px;border-radius:8px;
+    background:#ece1f0!important;color:#80608f!important;
+    font-size:11px;font-weight:600;
+  }
+  .app.app[data-workspace='dream'] .health-navigation .health-nav-group button {
+    position:relative;width:100%;min-height:41px;
+    gap:10px;padding:9px 8px 9px 16px;
+    border-radius:8px;font-size:13px;font-weight:400;
+    line-height:1.5;color:#786981!important;
+  }
+  .app.app[data-workspace='dream'] .health-navigation .health-nav-group button svg {
+    width:18px;height:18px;color:#9d88a8;
+  }
+  .app.app[data-workspace='dream'] .health-navigation .health-nav-group button:hover {
+    background:#f1eaf5!important;color:#65516f!important;
+  }
+  .app.app[data-workspace='dream'] .health-navigation .health-nav-group button.active {
+    min-height:41px;background:#e9dced!important;
+    color:#594364!important;font-weight:600;
+    box-shadow:inset 3px 0 0 #9574a4!important;
+  }
+  .app.app[data-workspace='dream'] .health-navigation .health-nav-group button.active svg {
+    color:#80608f;
+  }
+  .app.app[data-workspace='dream'] .health-navigation .health-nav-group button:focus-visible {
+    outline:2px solid #9574a4;outline-offset:1px;
+  }
+}
+
+@media (max-width:959px) {
+  .app.app[data-workspace='dream'] .health-navigation > .health-nav-profile { display:none!important; }
+}
+
+/* Center weather in the content header with balanced greeting/account columns. */
+@media (min-width:1200px) {
+  .app.app:is([data-workspace='dream'],[data-workspace='psychology']) .app-head {
+    grid-template-columns:minmax(0,1fr) minmax(280px,350px) minmax(0,1fr)!important;
+    gap:16px!important;
+  }
+  .app.app:is([data-workspace='dream'],[data-workspace='psychology']) .app-head .header-weather {
+    width:100%;min-width:0;max-width:350px;justify-self:center;margin:0;
+  }
+  .app.app:is([data-workspace='dream'],[data-workspace='psychology']) .app-head .header-welcome {
+    min-width:0;max-width:100%;
+  }
+  .app.app:is([data-workspace='dream'],[data-workspace='psychology']) .app-head .app-head-right {
+    justify-self:end;min-width:0;max-width:100%;
+  }
+}
+/* Distinct psychology symbols sit on soft sage tiles, matching 安康's icon treatment. */
+.app.app[data-workspace='psychology'] .health-navigation .psych-nav-icon {
+ display:grid;place-items:center;flex:0 0 30px;width:30px;height:30px;
+ border-radius:9px;background:#e5ede2;color:#64816f;
+}
+.app.app[data-workspace='psychology'] .health-navigation .psych-nav-icon svg {
+ display:block;width:19px;height:19px;flex-shrink:0;
+}
+.app.app[data-workspace='psychology'] .health-navigation button.active .psych-nav-icon {
+ background:#cbdcc5;color:#365b43;
+}
+.app.app[data-workspace='psychology'] .health-navigation button:hover .psych-nav-icon {
+ background:#d9e5d3;
+}
+@media(min-width:960px){
+ .app.app[data-workspace='psychology'] .health-navigation .health-nav-group button {
+  gap:11px;min-height:46px;padding:7px 10px 7px 12px;
+ }
+}
+@media(max-width:959px){
+ .app.app[data-workspace='psychology'] .health-navigation .psych-nav-icon {
+  flex:0 0 26px;width:26px;height:26px;border-radius:8px;
+ }
+ .app.app[data-workspace='psychology'] .health-navigation .psych-nav-icon svg {width:18px;height:18px}
+}
+
+/* Dream sidebar symbols use lavender tiles, matching the other workspace navigation. */
+.app.app[data-workspace='dream'] .health-navigation .health-nav-item-icon {
+ display:grid;place-items:center;flex:0 0 30px;width:30px;height:30px;
+ border-radius:9px;background:#eee5f3;color:#9575a5;
+}
+.app.app[data-workspace='dream'] .health-navigation .health-nav-item-icon svg {
+ display:block;width:19px;height:19px;flex-shrink:0;color:inherit;
+}
+.app.app[data-workspace='dream'] .health-navigation button.active .health-nav-item-icon {
+ background:#d9c6e3;color:#75518a;
+}
+.app.app[data-workspace='dream'] .health-navigation button:hover .health-nav-item-icon {
+ background:#e3d5ec;
+}
+@media(min-width:960px){
+ .app.app[data-workspace='dream'] .health-navigation .health-nav-group button {
+  gap:11px;min-height:46px;padding:7px 10px 7px 12px;
+ }
+}

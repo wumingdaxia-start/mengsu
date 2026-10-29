@@ -28,6 +28,7 @@ const moods = [
 const triggers = ['工作学习', '人际关系', '身体感受', '家庭', '生活琐事', '没有特别原因']
 const records = ref([])
 const loggedIn = ref(isLoggedIn())
+const spaceAccount = ref(null)
 const day = ref(today())
 const mood = ref('')
 const note = ref('')
@@ -41,6 +42,7 @@ function storageKey() {
 function load() {
   void loadTests()
   loggedIn.value = isLoggedIn()
+  try { spaceAccount.value = loggedIn.value ? JSON.parse(sessionStorage.getItem('mengsu-auth') || 'null') : null } catch { spaceAccount.value = null }
   records.value = []
   storageError.value = ''
   const key = storageKey()
@@ -76,7 +78,7 @@ const recordedDays = computed(() => new Set(records.value.map(row => row.date)).
 const distribution = computed(() => moods.map(item => ({ ...item, count: records.value.filter(row => row.mood === item.value).length })))
 const maxCount = computed(() => Math.max(1, ...distribution.value.map(row => row.count)))
 const latest = computed(() => records.value[0])
-const pageTitle = computed(() => ({ overview: '心理总览', analysis: '心理分析', journal: '心情记录', breathe: '呼吸练习', history: '情绪回顾' })[props.section])
+const pageTitle = computed(() => ({ space: '我的空间', overview: '心理总览', analysis: '心理分析', journal: '心情记录', breathe: '呼吸练习', history: '情绪回顾' })[props.section])
 const running = ref(false)
 const elapsed = ref(0)
 let ticker = 0
@@ -103,18 +105,25 @@ onBeforeUnmount(() => { testVersion++; pauseBreathing(); window.removeEventListe
 
 <template>
   <div class="psychology-home">
-    <header class="psych-page-heading"><p>星栈 / 内心与感受</p><h1>{{ pageTitle }}</h1><span>{{ section === 'analysis' ? '回看已保存的人格、塔罗与三观结果，了解本次回答呈现的倾向。' : '不用急着调整情绪，先给自己一点被听见的时间。' }}</span></header>
-    <div v-if="!loggedIn" class="psych-guest-note"><span>你正在以访客身份浏览。心情记录需要登录后保存。</span><button @click="router.push({ path: '/login', query: { next: '/psychology' } })">去登录 →</button></div>
+    <header class="psych-page-heading"><p>星栈 / 内心与感受</p><h1>{{ pageTitle }}</h1><span>{{ section === 'space' ? '整理属于你的心情与探索记录，随时回来看看自己。' : section === 'analysis' ? '回看已保存的人格、塔罗与三观结果，了解本次回答呈现的倾向。' : '不用急着调整情绪，先给自己一点被听见的时间。' }}</span></header>
+    <div v-if="!loggedIn" class="psych-guest-note"><span>你正在以访客身份浏览。心情记录需要登录后保存。</span><button @click="router.push({ path: '/login', query: { next: section === 'space' ? '/psychology/space' : '/psychology' } })">去登录 →</button></div>
     <p v-if="storageError" role="alert">{{ storageError }}</p>
+    <section v-if="section === 'space'" class="psych-panel psych-space-account">
+      <div class="psych-panel-heading"><div><span class="psych-eyebrow">心灵 / 我的账号</span><h2>{{ loggedIn ? (spaceAccount?.name || '我的账号') : '欢迎来到你的心灵空间' }}</h2></div><span>{{ loggedIn ? '已登录' : '游客模式' }}</span></div>
+      <p v-if="loggedIn">账号：{{ spaceAccount?.account || spaceAccount?.email }}</p><p v-else>登录后，这里会显示属于你的测试结果和心情记录。</p>
+      <dl class="psych-space-stats"><div><dt>已保存测试</dt><dd>{{ testsLoading ? '读取中…' : testsError ? '读取失败' : testRecords.length }}<small v-if="!testsLoading && !testsError"> 次</small></dd></div><div><dt>心情记录</dt><dd>{{ records.length }}<small> 次</small></dd></div><div><dt>最近的感受</dt><dd>{{ latest?.mood || '还没有记录' }}</dd></div></dl>
+      <p class="psych-space-note">测试结果保存在当前账号；心情记录保存在当前浏览器，并按账号区分。</p>
+      <div class="psych-space-links"><RouterLink to="/psychology/journal">记录心情 →</RouterLink><RouterLink to="/psychology/history">查看情绪回顾 →</RouterLink></div>
+    </section>
     <section v-if="section === 'overview'" class="psych-summary"><div><p class="psych-eyebrow">给自己一个温柔的问候</p><h2>今天，你还好吗？</h2><p>有些感受不需要立刻找到答案。<br />先记下来，再慢慢和自己相处。</p></div><dl><div><dt>留下的心情</dt><dd>{{ records.length }}<small> 次</small></dd></div><div><dt>认真记录的日子</dt><dd>{{ recordedDays }}<small> 天</small></dd></div><div><dt>最近一次感受</dt><dd class="latest-mood">{{ latest?.mood || '还没有记录' }}</dd></div></dl></section>
-    <section v-if="['overview', 'analysis'].includes(section)" class="psych-panel saved-tests">
+    <section v-if="['overview', 'analysis', 'space'].includes(section)" class="psych-panel saved-tests">
       <div class="psych-panel-heading"><div><span class="psych-eyebrow">心绪活动 / 我的测试</span><h2>留下探索自己的片段</h2></div><button :disabled="testsLoading" @click="loadTests">{{ testsLoading?'读取中…':'刷新记录' }}</button></div>
       <p v-if="testsError" role="alert">{{ testsError }} <button @click="loadTests">重试</button></p>
       <article v-for="kind in testKinds" :key="kind.type" class="saved-test-row"><div><h3>{{ kind.name }} <small>{{ latestTest(kind.type)?'已保存':testsLoading?'读取中':'尚未保存' }}</small></h3><template v-if="latestTest(kind.type)"><strong>{{ latestTest(kind.type).title }}</strong><p>{{ latestTest(kind.type).summary }}</p><time>{{ resultDate(latestTest(kind.type).createdAt) }}</time></template><p v-else>{{ testsLoading?'正在读取你的测试结果…':loggedIn?'登录后完成测试，结果会自动保存并显示在这里。':'登录后可保存并查看自己的测试结果。' }}</p></div><RouterLink :to="kind.path">{{ latestTest(kind.type)?'再测一次':'开始测试' }} →</RouterLink></article>
       <details v-if="testRecords.length" class="test-archive"><summary>查看已保存的测试与完整解读（最近 {{ testRecords.length }} 次）</summary><details v-for="record in testRecords" :key="record.id" class="test-detail"><summary>{{ testKinds.find(k=>k.type===record.type)?.name }} · {{ record.title }} <time>{{ resultDate(record.createdAt) }}</time></summary><p>{{ record.summary }}</p><section v-for="(part,i) in record.sections" :key="i"><h4>{{ part.title }}</h4><p v-for="(line,j) in part.lines" :key="j">{{ line }}</p></section></details></details>
       <small>测试记录保存在当前账号，仅供娱乐与自我探索。</small>
     </section>
-    <div v-if="section !== 'overview'" class="psych-content-grid" :class="{ 'single-panel': section !== 'overview' }">
+    <div v-if="!['overview', 'space'].includes(section)" class="psych-content-grid" :class="{ 'single-panel': section !== 'overview' }">
       <section v-if="['overview', 'journal'].includes(section)" class="psych-panel mood-editor"><div class="psych-panel-heading"><div><span class="psych-eyebrow">此刻的心情</span><h2>哪一个，更接近现在的你？</h2></div><label class="psych-date-label">记录日期<input v-model="day" type="date" :max="today()" required /></label></div>
         <form @submit.prevent="save"><fieldset class="mood-selector"><legend class="visually-hidden">选择心情</legend><button v-for="item in moods" :key="item.value" type="button" :class="{ selected: mood === item.value }" :aria-pressed="mood === item.value" :style="{ '--mood-color': item.color }" @click="mood = item.value"><span aria-hidden="true">{{ item.symbol }}</span><b>{{ item.value }}</b></button></fieldset>
         <label class="psych-field">发生了什么，或者有什么想说的？<textarea v-model="note" rows="4" maxlength="2000" placeholder="今天有一点累，也有一件让自己开心的小事……（可不填）" /><small>{{ note.length }} / 2000</small></label><fieldset class="psych-trigger-field"><legend>可能与什么有关？<span>（可多选）</span></legend><div><button v-for="item in triggers" :key="item" type="button" :class="{ selected: selectedTriggers.includes(item) }" :aria-pressed="selectedTriggers.includes(item)" @click="toggleTrigger(item)">{{ item }}</button></div></fieldset><div class="psych-save-row"><span>只保存在当前浏览器，按登录标记分开存放。</span><button class="psych-primary" type="submit">保存这份心情 ↗</button></div></form>
@@ -122,12 +131,14 @@ onBeforeUnmount(() => { testVersion++; pauseBreathing(); window.removeEventListe
       <section v-if="['overview', 'breathe'].includes(section)" class="psych-panel breathe-panel"><span class="psych-eyebrow">给自己 48 秒</span><h2>把注意力，放回呼吸。</h2><p>跟随提示，自然吸气 4 秒、呼气 4 秒，共 6 轮。<br />不必憋气，按照舒适的节奏来。</p><div class="breathing-circle" :class="{ active: running }" :style="{ '--breath-size': running ? 1 + Math.sin(Math.PI * (elapsed % 8) / 8) * .12 : 1 }"><div><strong aria-live="polite">{{ finished ? '做得很好' : running ? phase : elapsed > 0 ? '已暂停' : '准备好了么' }}</strong><span>{{ finished ? '留意此刻的身体感受' : running ? phaseSeconds + ' 秒' : '跟随自己的节奏' }}</span></div></div><div class="breathing-progress"><span>{{ Math.floor(elapsed) }} / 48 秒</span><span>{{ finished ? '已完成 6 轮' : '第 ' + Math.min(6, Math.floor(elapsed / 8) + 1) + ' 轮 / 6 轮' }}</span></div><progress :value="elapsed" :max="exerciseDuration" aria-label="呼吸练习进度" /><div class="breathing-actions"><button v-if="running" class="psych-primary" @click="pauseBreathing">暂停练习</button><button v-else class="psych-primary" @click="startBreathing">{{ finished ? '再来一遍' : elapsed > 0 ? '继续练习' : '开始练习' }}</button><button :disabled="!elapsed && !running" @click="resetBreathing">重置</button></div><small>感到不舒服时可随时停止。离开页面后会自动暂停。</small></section>
     </div>
     <p v-if="message" class="psych-message" role="status">{{ message }}</p>
-    <section v-if="section === 'history'" class="psych-panel psych-history"><div class="psych-panel-heading"><div><span class="psych-eyebrow">回看自己的节奏</span><h2>{{ section === 'history' ? '情绪回顾' : '最近留下的心情' }}</h2></div><button v-if="section === 'overview'" @click="router.push('/psychology/history')">查看全部 →</button></div><div v-if="!records.length" class="psych-empty"><span aria-hidden="true">—</span><p>还没有心情记录。从今天的一次感受开始，回顾会随着记录慢慢丰富。</p><button v-if="section === 'history'" @click="router.push('/psychology/journal')">记下今天的心情 →</button></div><template v-else><div v-if="section === 'history'" class="mood-distribution"><p>已记录心情的次数分布，仅呈现自填内容。</p><div v-for="item in distribution" :key="item.value"><span>{{ item.value }}</span><div><i :style="{ transform: 'scaleX(' + item.count / maxCount + ')', background: item.color }" /></div><b>{{ item.count }} 次</b></div></div><article v-for="row in (section === 'history' ? records : recent)" :key="row.id" class="psych-record"><div><time>{{ row.date }}</time><strong>{{ row.mood }}</strong><button type="button" :aria-label="'删除 ' + row.date + ' 的心情记录'" @click="removeRecord(row)">删除</button></div><p v-if="row.note">{{ row.note }}</p><span v-for="item in (row.triggers || [])" :key="item" class="psych-record-tag">{{ item }}</span></article></template></section>
+    <section v-if="['history', 'space'].includes(section)" class="psych-panel psych-history"><div class="psych-panel-heading"><div><span class="psych-eyebrow">回看自己的节奏</span><h2>{{ section === 'history' ? '情绪回顾' : '最近留下的心情' }}</h2></div><button v-if="section === 'overview'" @click="router.push('/psychology/history')">查看全部 →</button></div><div v-if="!records.length" class="psych-empty"><span aria-hidden="true">—</span><p>还没有心情记录。从今天的一次感受开始，回顾会随着记录慢慢丰富。</p><button v-if="section === 'history'" @click="router.push('/psychology/journal')">记下今天的心情 →</button></div><template v-else><div v-if="section === 'history'" class="mood-distribution"><p>已记录心情的次数分布，仅呈现自填内容。</p><div v-for="item in distribution" :key="item.value"><span>{{ item.value }}</span><div><i :style="{ transform: 'scaleX(' + item.count / maxCount + ')', background: item.color }" /></div><b>{{ item.count }} 次</b></div></div><article v-for="row in (section === 'history' ? records : recent)" :key="row.id" class="psych-record"><div><time>{{ row.date }}</time><strong>{{ row.mood }}</strong><button type="button" :aria-label="'删除 ' + row.date + ' 的心情记录'" @click="removeRecord(row)">删除</button></div><p v-if="row.note">{{ row.note }}</p><span v-for="item in (row.triggers || [])" :key="item" class="psych-record-tag">{{ item }}</span></article></template></section>
     <footer class="psych-footer">这里提供心情记录与日常放松练习，不作心理诊断。如果持续感到困扰，可以向信任的人或专业心理工作者寻求支持。</footer>
   </div>
 </template>
 
 <style scoped>
+.psych-space-account{margin-bottom:24px}.psych-space-account>p{font-size:13px;line-height:1.8}.psych-space-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px;margin:24px 0;padding:20px 0;border-block:1px solid var(--workspace-line)}.psych-space-stats dt{font-size:12px;color:var(--workspace-muted)}.psych-space-stats dd{margin:8px 0 0;font:500 22px/1.5 var(--display);overflow-wrap:anywhere}.psych-space-stats small{font:400 12px var(--ui)}.psych-space-note{color:var(--workspace-muted)}.psych-space-links{display:flex;gap:20px;flex-wrap:wrap;font-size:13px}.psych-space-links a{color:var(--workspace-accent)}@media(max-width:599px){.psych-space-stats{gap:12px;grid-template-columns:1fr}.psych-space-stats dd{font-size:20px}}
+
 .saved-test-row{display:flex;justify-content:space-between;gap:22px;align-items:center;padding:20px 0;border-top:1px solid hsl(var(--psych-hue, 145) 15% 93%)}.saved-test-row>div{min-width:0}.saved-test-row h3{font-size:15px;font-weight:500;margin:0 0 10px;color:hsl(var(--psych-hue, 145) 15% 44%)}.saved-test-row h3 small{font-size:11px;margin-left:12px;color:hsl(var(--psych-hue, 145) 15% 48%)}.saved-test-row strong{font-size:14px;font-weight:500}.saved-test-row p,.test-detail p{font-size:13px;line-height:1.9;white-space:pre-wrap;overflow-wrap:anywhere;color:hsl(var(--psych-hue, 145) 15% 44%)}.saved-test-row time,.test-detail time{font-size:11px;color:hsl(var(--psych-hue, 145) 16% 53%)}.saved-test-row a{flex-shrink:0;color:hsl(var(--psych-hue, 145) 16% 41%);font-size:12px}.test-archive{border-top:1px solid hsl(var(--psych-hue, 145) 15% 93%);padding:20px 0;font-size:13px;color:hsl(var(--psych-hue, 145) 16% 36%)}.test-archive summary{cursor:pointer;overflow-wrap:anywhere}.test-detail{margin-top:16px;padding:14px;border:1px solid hsl(var(--psych-hue, 145) 15% 93%);border-radius:8px}.test-detail time{display:block;margin-top:6px}.test-detail h4{font-size:14px;font-weight:500}.saved-tests>small{font-size:11px;color:hsl(var(--psych-hue, 145) 16% 53%)}@media(max-width:600px){.saved-test-row{align-items:flex-start;gap:10px}.saved-test-row h3 small{display:block;margin:5px 0 0}}
 
 .personality-entry{display:flex;align-items:center;justify-content:space-between;gap:24px;margin-bottom:24px}.personality-entry h2{margin-bottom:8px!important}.personality-entry p{font-size:13px;line-height:1.8;color:hsl(var(--psych-hue, 145) 15% 50%);margin:0}.personality-entry button{flex-shrink:0}@media(max-width:600px){.personality-entry{align-items:flex-start;flex-direction:column}}

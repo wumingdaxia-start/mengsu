@@ -11,23 +11,23 @@ const latest=computed(()=>selected.value||journals.value[0]),metric=computed(()=
 const duration=n=>Math.floor(n/60)+' 小时 '+n%60+' 分',flip=(arr,item)=>arr.includes(item)?arr.filter(x=>x!==item):[...arr,item]
 const done=computed(()=>rituals.value[today()]||[]),currentStage=computed(()=>sleepStages[stage.value]),completed=computed(()=>plan.value.completed||[])
 function before(n){const [h,m]=plan.value.bedtime.split(':').map(Number);const v=(h*60+m-n+1440)%1440;return String(Math.floor(v/60)).padStart(2,'0')+':'+String(v%60).padStart(2,'0')}
-function savePlan(){if(!bedtime.value||!wake.value||!started.value)return notify('先选好作息时刻和开始日期');save(commit,'plan',{...plan.value,bedtime:bedtime.value,wake:wake.value,started:started.value},'作息心愿已保存，可随时调整')}
-function saveDiary(){const f=form.value,m=sleepMetrics(f);if(!f.date||f.date>today())return notify('请选择今天或之前的晨起日期');if(m.inBed<=0||m.inBed>1200)return notify('请检查上床和起床时刻');if(!f.noSleep&&(m.latency+m.linger+Number(f.awakeMinutes)>m.inBed||m.sleep+m.latency+m.linger>m.inBed))return notify('时刻先后或清醒时长不一致，请回到前面检查');if(f.awakenings<0||f.awakenings>30||f.awakeMinutes<0||f.awakeMinutes>1200)return notify('请检查夜间清醒次数和时长');const entry={...f,id:Date.now()};if(save(commit,'journals',[entry,...journals.value.filter(j=>j.date!==f.date)],'这一晚已留下，星球也多了一点生机')){selected.value=entry;editing.value=false;step.value=0}}
+async function savePlan(){if(!bedtime.value||!wake.value||!started.value)return notify('先选好作息时刻和开始日期');await save(commit,'plan',{...plan.value,bedtime:bedtime.value,wake:wake.value,started:started.value},'作息心愿已保存，可随时调整')}
+async function saveDiary(){const f=form.value,m=sleepMetrics(f);if(!f.date||f.date>today())return notify('请选择今天或之前的晨起日期');if(m.inBed<=0||m.inBed>1200)return notify('请检查上床和起床时刻');if(!f.noSleep&&(m.latency+m.linger+Number(f.awakeMinutes)>m.inBed||m.sleep+m.latency+m.linger>m.inBed))return notify('时刻先后或清醒时长不一致，请回到前面检查');if(f.awakenings<0||f.awakenings>30||f.awakeMinutes<0||f.awakeMinutes>1200)return notify('请检查夜间清醒次数和时长');const entry={...f,id:Date.now()};if(await save(commit,'journals',[entry,...journals.value.filter(j=>j.date!==f.date)],'这一晚已留下，星球也多了一点生机')){selected.value=entry;editing.value=false;step.value=0}}
 function begin(){const existing=journals.value.find(j=>j.date===today());form.value=existing?{...existing,body:[...existing.body],emotion:[...existing.emotion]}:{...form.value,date:today()};step.value=0;editing.value=true}
 // Keep empty nights empty; only saved local receipts appear in the seven-night view.
 const weekNights=computed(()=>Array.from({length:7},(_,i)=>{const d=new Date(today()+'T12:00:00');d.setDate(d.getDate()-6+i);const date=d.toLocaleDateString('sv-SE');return{date,label:d.toLocaleDateString('zh-CN',{month:'numeric',day:'numeric'}),weekday:d.toLocaleDateString('zh-CN',{weekday:'short'}),entry:journals.value.find(j=>j.date===date)}}))
 const weekCount=computed(()=>weekNights.value.filter(n=>n.entry).length)
 function openNight(n){if(n.entry){selected.value=n.entry;return}form.value={date:n.date,bed:'22:30',asleep:'23:00',wake:'07:00',up:'07:15',noSleep:false,awakenings:0,awakeMinutes:0,quality:'一般',body:[],emotion:[],note:''};step.value=0;editing.value=true}
 function quickFeeling(feeling){begin();form.value.body=flip(form.value.body,feeling);step.value=4;notify('已带入醒来感受，完成后收下这一晚即可保存')}
-function checkTask(i){save(commit,'plan',{...plan.value,completed:flip(completed.value,stage.value+'-'+i)})}
-function checkRitual(key){save(commit,'rituals',{...rituals.value,[today()]:flip(done.value,key)})}
+async function checkTask(i){await save(commit,'plan',{...plan.value,completed:flip(completed.value,stage.value+'-'+i)})}
+async function checkRitual(key){await save(commit,'rituals',{...rituals.value,[today()]:flip(done.value,key)})}
 const days=computed(()=>Array.from({length:30},(_,i)=>{const d=new Date((plan.value.started||today())+'T12:00:00');d.setDate(d.getDate()+i);return{day:i+1,date:d.toLocaleDateString('sv-SE')}}))
 const routine=[{before:70,duration:30,title:'洗漱与日常护理',text:'温暖灯光、舒服睡衣，把工作通知放到明天。'},{before:40,duration:30,title:'放松、轻音乐或纸质书',text:'选一件让自己放缓的事，不必每项都完成。'},{before:10,duration:10,title:'安放情绪，留下种子',text:'写下一句话，把计时和期待轻轻放下。'}]
 onMounted(refresh)
 </script>
 <template>
 <div class="journey">
-<p class="j-notice"><span class="j-dot"></span>手动记录 · 数据保存在此浏览器；未连接手环或医疗设备。</p>
+<p class="j-notice"><span class="j-dot"></span>手动记录 · 数据保存在当前账号；未连接手环或医疗设备。</p>
 <template v-if="path==='/dream/sleep-diary'">
  <section v-if="!editing" class="j-panel diary-invite"><div><h2>把昨夜，轻轻交给今天</h2><p>从四个大致时刻开始，再留下醒来时的感受。</p><button class="j-primary" @click="begin">{{dates.has(today())?'修改今天的睡眠日记':'留下今天的睡眠日记'}}</button></div><img src="/dream-rooms/rest.png" alt="安静的睡前房间"></section>
  <template v-if="!editing">

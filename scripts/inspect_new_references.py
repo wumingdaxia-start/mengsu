@@ -3,7 +3,10 @@ import cv2
 from PIL import Image, ImageDraw
 
 root = Path(__file__).resolve().parents[1]
-base = Path('D:/赵/Documents/xwechat_files/wxid_a1b5rciddof622_e305/msg/video/2026-10')
+import argparse
+parser = argparse.ArgumentParser(description='Inspect supplied reference videos')
+parser.add_argument('reference_directory', type=Path)
+base = parser.parse_args().reference_directory
 out = root / 'qa' / 'new-references'
 out.mkdir(parents=True, exist_ok=True)
 for name, filename in [('ref-a','8bd1904016b4713c563cdcd5205b83a7.mp4'),('ref-b','be3b87cd3d6e4936239723257c20a043.mp4')]:

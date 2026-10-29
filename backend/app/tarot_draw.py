@@ -1,91 +1,86 @@
-#!/usr/bin/env python3
-"""塔罗抽牌：加权、无重复、可复现 JSON。"""
+"""梦溯「星栈映照」v1。独立实现；传统牌名保留，抽牌和反思文案重新编写。"""
+import secrets
+from datetime import datetime, timezone
 
-import argparse, hashlib, json, os, random, time
-from datetime import datetime
-
-MAJORS = (
-    "愚者 魔术师 女祭司 女皇 皇帝 教皇 恋人 战车 力量 隐士 命运之轮 正义 "
-    "倒吊人 死神 节制 恶魔 高塔 星星 月亮 太阳 审判 世界"
-).split()
-SUITS = {"权杖": "火", "圣杯": "水", "宝剑": "风", "星币": "土"}
-RANKS = "Ace 二 三 四 五 六 七 八 九 十 侍从 骑士 皇后 国王".split()
-MINORS = [f"{s}{r}" for s in SUITS for r in RANKS]
-ELEMENTS = dict(zip(MAJORS, "风 风 水 土 火 土 风 水 火 土 火 风 水 水 火 土 火 风 水 火 火 土".split()))
-ELEMENTS.update({c: SUITS[c[:2]] for c in MINORS})
-CARDS = MAJORS + MINORS
-
+# 传统塔罗的通用牌名，不采用第三方仓库的牌面或解读文本。
+MAJORS = ('愚者','魔术师','女祭司','女皇','皇帝','教皇','恋人','战车','力量','隐士','命运之轮','正义','倒吊人','死神','节制','恶魔','高塔','星星','月亮','太阳','审判','世界')
+SUITS = ('权杖','圣杯','宝剑','星币')
+RANKS = ('王牌','二','三','四','五','六','七','八','九','十','侍从','骑士','皇后','国王')
+DECK = MAJORS + tuple(suit + rank for suit in SUITS for rank in RANKS)
 SPREADS = {
-    "single": ("单张牌", "当前指引,1,0"),
-    "three": ("三牌阵", "过去,0,0|现在,1,0|未来,0,1"),
-    "diamond": ("五牌阵", "核心,1,0|根源,0,0|阻力,0,0|潜力,0,0|建议,1,1"),
-    "moon": ("月亮牌阵", "新月,1,0|上弦,0,0|满月,1,0|下弦,0,0"),
-    "horseshoe": (
-        "马蹄形",
-        "远期过去,0,0|近期过去,0,0|当前,1,0|近期未来,0,0|外部影响,1,0|建议,0,1|结果,1,1",
-    ),
-    "celtic": (
-        "凯尔特十字",
-        "核心,1,0|交叉,0,0|意识目标,0,0|根基过去,0,0|近期过去,1,0|近期未来,0,0|"
-        "自我,0,0|环境,0,0|希望与恐惧,0,0|结果,1,1",
-    ),
+    'single': ('此刻一束光', ('今天值得留意的需要',)),
+    'three': ('心绪三问', ('我正在经历什么','我容易忽略什么','我愿意试哪一步')),
+    'diamond': ('困惑拆信', ('说得出口的困惑','暂时没有说出的需要','已有的支持','需要重新核实的判断','可尝试的小行动')),
+    'moon': ('夜航四站', ('放下今天的一件事','保留今天的一点好','给自己的一句回应','明天的一小步')),
+    'horseshoe': ('关系照面', ('我的感受','我的需要','对方有待确认的视角','关系中的共同点','需要表达的边界','可以发起的对话','由我决定的行动')),
+    'celtic': ('生活展开页', ('此刻的焦点','身体发出的信号','我在意的关系','我反复使用的方法','仍然可用的资源','需要查明的事实','可以暂缓的事情','愿意守住的边界','想向谁寻求支持','今天能够开始的行动')),
 }
-TIME = {"morning": ("火", "风"), "afternoon": ("水", "土"), "night": ("major",)}
+MAJOR_NOTES = (
+    ('给尝试留一个入口','把开始缩小，就不必等到万事俱备。','哪件事可以只体验十分钟，而不急着决定要不要坚持？'),
+    ('把已有的东西用起来','先看看手边的时间、工具和经验。','不添置任何东西，你已经能做出怎样的第一步？'),
+    ('容纳还没成句的感受','不清楚的感受也可以被记录。','如果暂时不用解释，你会用哪个词描述此刻？'),
+    ('照料一件具体的小事','照顾自己可以从一顿饭或一次休息开始。','今天哪一种日常照料最容易被你放到最后？'),
+    ('确定能让你安心的边界','秩序的用途是支持生活，而不是挤满生活。','哪条约定值得保留，哪条可以放松一点？'),
+    ('分辨习惯与选择','沿用熟悉的规则之前，可以看看它是否仍合适。','你在遵循谁的期待，其中哪些也是自己的愿望？'),
+    ('让选择回应你在意的事','一次选择也可以同时承认不同需要。','两种方案各自保护了什么，你愿意先照顾哪一种？'),
+    ('给行动选一个方向','速度之前，先确认你愿意到达哪里。','这周最小、最清楚的目标可以是什么？'),
+    ('用可以持续的力气','坚持不必以耗尽自己为代价。','怎样做，能让这件事在明天仍有继续的余地？'),
+    ('让安静成为一段空间','暂时退开，可以是为了整理而非消失。','独处之后，你想把哪一个想法带回与人的联系？'),
+    ('为变化留出可调整的位置','不能控制全部变化，也能安排一个应对步骤。','发生变化时，哪件小事仍然由你决定？'),
+    ('把事实和期待分开摆放','公平可以从说清自己的责任与限度开始。','哪些是已经确认的事，哪些还只是你的推测？'),
+    ('允许暂时不用原来的办法','换一种站位，也许能发现被忽略的部分。','如果不用立刻解决，你还会怎样描述这个困惑？'),
+    ('为结束安排一个收尾','停止一件事，也需要具体而温和的手续。','有什么已经不适合继续，你想怎样与它告别？'),
+    ('找到能维持的份量','调整不是把每一部分都做到最多。','哪项安排减去一点，反而能让整体更舒服？'),
+    ('看见习惯带来的代价','熟悉的方式可能有用，也可能让你疲惫。','哪一次重复选择之后，你更需要为自己留一个出口？'),
+    ('重新检查支撑判断的东西','一项假设需要调整，不代表所有努力都失去意义。','哪个判断最值得补充事实，而不是继续猜测？'),
+    ('收集已经发生的小改善','希望可以来自被看见的微小进展。','最近哪件普通的小事，让生活比之前容易了一点？'),
+    ('在不确定中保留核实的机会','没有答案时，可以先区分担心与事实。','哪一份担心能通过一次询问得到更多信息？'),
+    ('让轻松也被认真对待','愉快不需要等到一切完成之后才出现。','今天有什么片刻，你愿意再给自己一次？'),
+    ('回看之后再作一次选择','过去提供线索，却不必替现在作决定。','如果允许重新安排，你想保留什么、改变什么？'),
+    ('认领一段已经走过的路','完成可以是暂告一段落，而非永远完美。','这一阶段结束时，你想带走怎样的经验？'),
+)
+SUIT_NOTES = {
+    '权杖': ('投入与尝试','做一件事时，你的热情和可用力气是否相配'),
+    '圣杯': ('感受与联系','你的感受是否被自己和信任的人听见'),
+    '宝剑': ('想法与表达','你正在使用的解释是否还有别的可能'),
+    '星币': ('日常与支持','时间、身体和身边资源能怎样支持现在的你'),
+}
+RANK_NOTES = (
+    ('一个起点','哪一步小到今天就能开始'),('两种需要','哪两种需要值得分别写下来'),
+    ('一次合作','可以请谁一起完成其中一部分'),('一段停留','哪些安排需要保留，哪些可以暂缓'),
+    ('一处分歧','分歧背后各自希望保护的是什么'),('一份来往','这段来往中，给予和接受是否都被允许'),
+    ('一次筛选','哪些选择值得继续，哪些可以放下'),('一段练习','反复做什么小动作能让事情更容易'),
+    ('自己的位置','不依赖别人的评价，你愿意认可自己的哪一部分'),('承载的份量','哪一项负担可以分担或缩小'),
+    ('学习的姿态','还有哪件事可以向可靠的人请教'),('行动的步速','怎样调整步速才能让自己跟得上'),
+    ('照顾的方式','怎样照顾自己，也给他人保留自主空间'),('承担的边界','哪一部分由你负责，哪一部分需要共同商量'),
+)
 
+def reflection(card, reversed_card):
+    if card in MAJORS:
+        theme, observation, question = MAJOR_NOTES[MAJORS.index(card)]
+    else:
+        suit = next(s for s in SUITS if card.startswith(s))
+        rank = card[len(suit):]
+        area, focus = SUIT_NOTES[suit]
+        stage, question = RANK_NOTES[RANKS.index(rank)]
+        theme, observation = f'{area} · {stage}', f'把这张牌当作一个观察入口：{focus}。'
+        question += '？'
+    angle = '反向阅读：先不急着推动，看看哪里需要休息、澄清或缩小。' if reversed_card else '正向阅读：看看这个主题中，已经有哪些资源可以使用。'
+    return {'theme':theme, 'observation':observation, 'orientation':angle, 'prompt':question}
 
-def make_seed(question=""):
-    data = os.urandom(32) + str(time.time_ns()).encode() + question.encode()
-    return int(hashlib.sha256(data).hexdigest()[:16], 16)
-
-
-def get_time_factor(hour=None):
-    h = datetime.now().hour if hour is None else hour
-    return "morning" if 6 <= h < 12 else "afternoon" if h < 18 else "night"
-
-
-def weight(card, key, boosted):
-    major = card in MAJORS
-    base = (60 / 28) if int(key) * major else 1.0
-    hit = ("major" in boosted) * major + (ELEMENTS[card] in boosted)
-    return base * (1.08 if hit else 1.0)
-
-
-def draw_cards(spread_key, question="", seed=None, time_factor=None):
-    spread_name, raw = SPREADS[spread_key]
-    final_seed = make_seed(question) if seed is None else seed
-    final_factor = get_time_factor() if time_factor is None else time_factor
-    rng, pool, boosted, cards = random.Random(final_seed), list(CARDS), TIME[final_factor], []
-    for item in raw.split("|"):
-        name, key, upright = item.split(",")
-        picked = rng.choices(pool, weights=[weight(c, key, boosted) for c in pool], k=1)[0]
-        pool.remove(picked)
-        card = {
-            "position": name,
-            "card": picked,
-            "orientation": "正位" if rng.random() < (0.7 if int(upright) else 0.6) else "逆位",
-            "is_major": picked in MAJORS,
-        }
-        cards.append(card)
-    return {
-        "seed": final_seed,
-        "spread": spread_key,
-        "spread_name": spread_name,
-        "question": question,
-        "time_factor": final_factor,
-        "cards": cards,
-    }
-
-
-def main():
-    parser = argparse.ArgumentParser(description="塔罗牌抽牌脚本")
-    parser.add_argument("--spread", required=True, choices=SPREADS)
-    parser.add_argument("--question", default="")
-    parser.add_argument("--seed", type=int)
-    parser.add_argument("--time-factor", choices=TIME)
-    parser.add_argument("--json-only", action="store_true", help=argparse.SUPPRESS)
-    args = parser.parse_args()
-    print(json.dumps(draw_cards(args.spread, args.question, args.seed, args.time_factor), ensure_ascii=False, indent=2))
-
-
-if __name__ == "__main__":
-    main()
+def draw_cards(spread_key, question=''):
+    if spread_key not in SPREADS:
+        raise ValueError('未知牌阵')
+    name, positions = SPREADS[spread_key]
+    # 系统随机源等概率无放回抽样；问题、时辰、账号不改变牌的概率。
+    selected = secrets.SystemRandom().sample(DECK, len(positions))
+    cards = []
+    for position, card in zip(positions, selected):
+        reversed_card = bool(secrets.randbits(1))
+        cards.append({'position':position, 'card':card, 'is_major':card in MAJORS,
+                      'orientation':'逆位' if reversed_card else '正位',
+                      'reflection':reflection(card, reversed_card)})
+    return {'engine':'mengsu-reflection-v1', 'draw_id':secrets.token_hex(12),
+            'created_at':datetime.now(timezone.utc).isoformat(), 'spread':spread_key,
+            'spread_name':name, 'question':question, 'cards':cards,
+            'method':'78 张传统牌等概率无放回抽取；正逆位各 50%；不使用问题或时段加权。'}

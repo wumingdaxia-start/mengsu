@@ -1,0 +1,3 @@
+# Optional remote MCP memory client; unnecessary for ordinary local use.
+-r requirements.txt
+mcp<2
