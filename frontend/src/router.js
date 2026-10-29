@@ -1,3 +1,4 @@
+import { dreamNavigation } from './dream-navigation'
 import { createRouter, createWebHistory } from 'vue-router'
 import HomeView from './views/HomeView.vue'
 import CaptureView from './views/CaptureView.vue'
@@ -15,7 +16,7 @@ const PsychologyView = () => import('./views/PsychologyView.vue')
 export const tabs = [
   { path: '/home', label: '首页', component: HomeView, order: 0 },
   { path: '/capture', label: '捕梦', component: CaptureView, order: 1 },
-  { path: '/dreams', label: '梦境', component: DreamsView, order: 2 },
+  { path: '/dreams', label: '漂流瓶', component: DreamsView, order: 2 },
   { path: '/ask', label: '先知', component: AskView, order: 3 },
   { path: '/me', label: '我的', component: MeView, order: 4 }
 ]
@@ -23,6 +24,7 @@ export const tabs = [
 const routes = [
   { path: '/safety', component: () => import('./views/SafetyWorkspaceView.vue'), meta: { workspace: 'safety', chrome: false, label: '安康守护' } },
   { path: '/dream', component: DreamWorkspaceView, meta: { workspace: 'dream', healthPage: true, label: '梦境总览' } },
+  { path: '/dream/planet', redirect: '/dream', meta: { workspace: 'dream', healthPage: true, label: '梦境总览' } },
   { path: '/dream/cues', component: HomeView, props: { sleepOnly: true }, meta: { workspace: 'dream', healthPage: true, label: '睡前线索' } },
   { path: '/psychology', component: PsychologyView, meta: { workspace: 'psychology', healthPage: true, label: '心理总览' } },
   { path: '/psychology/analysis', component: PsychologyView, props: { section: 'analysis' }, meta: { workspace: 'psychology', healthPage: true, label: '心理分析' } },
@@ -60,6 +62,32 @@ const routes = [
   })),
   { path: '/:pathMatch(.*)*', redirect: '/home' }
 ]
+
+// Each dream entry has a dedicated signal surface; the top app header stays intact.
+for (const item of dreamNavigation.flatMap(group => group.items)) {
+  let target = routes.find(route => route.path === item.path)
+  if (!target) {
+    target = { path: item.path }
+    routes.unshift(target)
+  }
+  if (item.path !== '/dream') {
+    const surfaces = {
+      bottle: () => import('./views/DreamBottleView.vue'),
+      library: () => import('./views/DreamLibraryView.vue'),
+      studio: () => import('./views/DreamStudioView.vue'),
+      sleep: () => import('./views/DreamSleepJourneyView.vue'),
+      companion: () => import('./views/DreamCompanionView.vue'),
+      community: () => import('./views/DreamCommunityView.vue')
+    }
+    target.component = item.path === '/dream/forgotten' ? () => import('./views/DreamCoreAtlasView.vue') : surfaces[item.surface] || (() => import('./views/SignalPagesView.vue'))
+    target.props = false
+  }
+  target.meta = { ...target.meta, workspace: 'dream', healthPage: true, label: item.path === '/capture' ? '记梦' : item.label, dreamIntro: item.intro }
+}
+
+// Keep existing toolbox links working after merging it into the tree hole.
+routes.unshift({path:'/dream/calm',redirect:'/dream/tree-hole#calm-tools'})
+routes.unshift({path:'/dream/space',component:()=>import('./views/SignalPagesView.vue'),meta:{workspace:'dream',healthPage:true,label:'我的空间',dreamIntro:'管理你的昼夜分身数据。'}})
 
 export const router = createRouter({
   history: createWebHistory(),

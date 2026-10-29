@@ -1,34 +1,30 @@
 <script setup>
-import { onMounted, ref } from 'vue'
-import { api, shortDay } from '../api'
-import { emotionColor } from '../constants'
-const props = defineProps({ go: { type: Function, default: () => {} } })
-const data = ref(null)
-const error = ref('')
-const loading = ref(true)
-async function load() {
-  loading.value = true
-  error.value = ''
-  try { data.value = await api.home() }
-  catch { error.value = '梦境记录暂时没有加载成功，请稍后重试。' }
-  finally { loading.value = false }
-}
-onMounted(load)
+import { computed, ref, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
+import DreamOverviewGallery from '../components/DreamOverviewGallery.vue'
+
+import { today, useDreamJourney } from '../composables/useDreamJourney'
+const router=useRouter()
+const { journals, plan, refresh }=useDreamJourney()
+const planetNotice=ref('')
+const planetDates=computed(()=>new Set(journals.value.map(j=>j.date)))
+const planetGrowth=computed(()=>Math.min(30,planetDates.value.size))
+const planetStart=computed(()=>plan.value.started||today())
+const planetDays=computed(()=>Array.from({length:30},(_,i)=>{const d=new Date(planetStart.value+'T12:00:00');d.setDate(d.getDate()+i);return{day:i+1,date:d.toLocaleDateString('sv-SE')}}))
+onMounted(refresh)
 </script>
-<template>
-  <div class="dream-home">
-    <header class="dream-page-heading"><p>鱼庭 / 梦境与记忆</p><h1>梦境总览</h1><span>记下梦里发生的事，也留意醒来后的感受。</span></header>
-    <section class="dream-writing">
-      <div><p class="dream-kicker">醒来之后，记忆还在。</p><h2>昨夜的梦，<br />还记得哪一段？</h2><p>一个画面、一句话，或一种说不清的感受。<br />不需要完整，记得多少就写多少。</p><button class="dream-primary" @click="props.go('capture')">写下一段梦 <span aria-hidden="true">↗</span></button></div>
-      <div class="dream-paper" aria-label="最近的梦境片段"><span>{{ data?.recent?.length ? '最近留下的一页' : '等待你的第一段梦' }}</span><blockquote>{{ data?.recent?.[0]?.text || '有些梦醒来就散了，有些片段，值得慢慢记住。' }}</blockquote><small>{{ data?.recent?.[0]?.fragment_date || '从一段真实的记录开始' }}</small></div>
-    </section>
-    <section class="dream-numbers" aria-label="梦境记录统计"><div><span>已留下的梦</span><strong>{{ data?.stats?.total ?? '—' }}<small> 条</small></strong></div><div><span>这个月的记录</span><strong>{{ data?.stats?.this_month ?? '—' }}<small> 条</small></strong></div><div><span>连续记录</span><strong>{{ data?.stats?.streak ?? '—' }}<small> 天</small></strong></div></section>
-    <div class="dream-columns">
-      <section class="dream-recent-panel"><div class="dream-section-title"><h2>最近的梦</h2><button @click="props.go('dreams')">打开梦境档案 →</button></div><p v-if="loading" class="dream-empty">正在读取你的梦境记录…</p><div v-else-if="error" class="dream-empty" role="status">{{ error }} <button @click="load">重新加载</button></div><div v-else-if="!data?.recent?.length" class="dream-empty"><p>还没有梦境记录。下次醒来时，试着记下最先想起的片段。</p><button @click="props.go('capture')">记下第一个梦 →</button></div><button v-for="row in (data?.recent || []).slice(0, 4)" :key="row.id" class="dream-record" @click="props.go('dreams')"><span class="dream-record-date">{{ shortDay(row.fragment_date) }}</span><span class="dream-record-text">{{ row.text }}</span><span class="dream-emotion" :style="{ color: emotionColor(row.emotion) }">{{ row.emotion || '未标注' }}</span><span aria-hidden="true">↗</span></button></section>
-      <aside class="dream-side"><section><span class="dream-kicker">睡前线索</span><h2>给今晚，留一个提示。</h2><p>从日间片段里挑选线索，整理成今晚的睡前提示。</p><button @click="props.go('/dream/cues')">整理睡前线索 →</button></section><section><span class="dream-kicker">梦境对话</span><h2>聊聊那些反复出现的事。</h2><p>回看梦里的人物、地点与情绪，从已有记录出发。</p><button @click="props.go('ask')">打开梦境对话 →</button></section></aside>
-    </div>
-  </div>
-</template>
+<template><div class="overview-page"><DreamOverviewGallery/><details class="sleep-growth"><summary>我的睡眠星球 <span>{{planetGrowth}} / 30 个夜晚</span></summary> <section class="planet-overview" aria-label="梦境星球成长"><div class="planet-orbit" aria-hidden="true"><svg viewBox="0 0 520 300"><defs><radialGradient id="overviewPlanet"><stop stop-color="#fff9eb"/><stop offset=".68" stop-color="#c9d9d5"/><stop offset="1" stop-color="#adb7cc"/></radialGradient></defs><g fill="#c5bdd8"><circle v-for="i in 18" :key="i" :cx="22+(i*71)%476" :cy="18+(i*47)%238" :r="i%3===0?2.3:1.1"/></g><ellipse cx="260" cy="160" rx="190" ry="42" fill="none" stroke="#d2c7df" stroke-width="2" transform="rotate(-16 260 160)"/><circle cx="260" cy="148" r="92" fill="url(#overviewPlanet)"/><path d="M178 146q38-29 76 5t92-9 M186 180q52-28 126 4" fill="none" stroke="#adc5b9" stroke-width="12" opacity=".65"/><g v-for="i in Math.min(planetGrowth,18)" :key="i" :transform="'translate('+(189+i*31%128)+' '+(104+i*23%88)+')'"><path d="M0 10V-7 M0 1q-12-13-11-15Q2-14 0 1 M0-3q12-12 14-10Q15-3 0-3" fill="#88a88c"/></g></svg></div><div class="planet-overview-copy"><span class="planet-kicker">梦境总览 · 30 天意识生长</span><h2>{{planetGrowth===0?'第一束微光，还在等你':planetGrowth<10?'小小的绿意，开始生长':planetGrowth<22?'星球已经长出自己的花园':'被照顾的夜晚，正在开花'}}</h2><p>每一次睡眠日记，都会为这颗星球留下一点生机。已留下 <strong>{{planetGrowth}}</strong> 个不同日期的睡眠回执。</p><button @click="router.push('/dream/sleep-diary')">{{planetDates.has(today())?'看看今天的回执':'给星球留下一晚'}} ↗</button><div class="planet-progress"><span :style="{transform:'scaleX('+planetGrowth/30+')'}"></span></div><small>记录旅程 {{Math.round(planetGrowth/30*100)}}% · 不是健康评分</small></div><div class="planet-days"><button v-for="d in planetDays" :key="d.date" :class="{'is-recorded':planetDates.has(d.date)}" :aria-label="d.date+(planetDates.has(d.date)?' 已记录':' 未记录')" @click="planetNotice=d.date+(planetDates.has(d.date)?' 已留下回执':' 还没有回执，按自己的节奏来')"><span>{{String(d.day).padStart(2,'0')}}</span><small>{{planetDates.has(d.date)?'已留光':'待生长'}}</small></button></div><p class="planet-notice" role="status">{{planetNotice}}</p></section>
+</details></div></template>
 <style scoped>
-.dream-home{max-width:1300px;margin:0 auto;color:#45556a}.dream-page-heading{margin:14px 0 30px}.dream-page-heading>p,.dream-kicker{color:#8091a2;font-size:11px;margin:0 0 8px}.dream-page-heading h1{font:500 29px/1.4 var(--display);margin:0 0 8px;color:#34495d}.dream-page-heading>span{font-size:14px;color:#8491a0}.dream-writing{display:grid;grid-template-columns:1.2fr 1fr;gap:38px;padding:36px;background:rgba(237,244,249,.8);border:1px solid #dfe8ef;border-radius:16px}.dream-writing h2{font:500 32px/1.6 var(--display);color:#40566b;margin:12px 0 17px}.dream-writing p:not(.dream-kicker){font-size:14px;line-height:1.9;color:#7a8c9c}.dream-home button{border-radius:7px;box-shadow:none}.dream-home .dream-primary{display:flex;justify-content:space-between;gap:45px;background:#627f99;color:#fff;font-size:14px;margin-top:22px;padding:11px 17px}.dream-paper{align-self:center;padding:30px;min-height:220px;transform:rotate(-2deg);background:#fffdf8;border:1px solid #e9e4db;border-radius:5px;color:#82909c}.dream-paper>span{font-size:11px}.dream-paper blockquote{display:-webkit-box;-webkit-line-clamp:5;-webkit-box-orient:vertical;overflow:hidden;margin:22px 0;font:500 17px/2 var(--display);color:#606b76}.dream-paper small{font-size:11px;color:#9b9e9e}.dream-numbers{display:grid;grid-template-columns:repeat(3,1fr);padding:24px 0;border-bottom:1px solid #dfe7ed}.dream-numbers>div{padding:0 25px;border-right:1px solid #dfe7ed}.dream-numbers>div:first-child{padding-left:0}.dream-numbers>div:last-child{border:0}.dream-numbers span{color:#8393a2;font-size:12px;display:block}.dream-numbers strong{font-size:28px;font-weight:500;color:#536a7f}.dream-numbers small{font-size:12px;color:#95a0aa;font-weight:400}.dream-columns{display:grid;grid-template-columns:1.6fr 1fr;gap:30px;margin-top:32px}.dream-section-title{display:flex;gap:10px;justify-content:space-between;align-items:center}.dream-home h2{font-family:var(--display);font-weight:500}.dream-section-title h2{font-size:20px}.dream-home button:not(.dream-primary){background:transparent;color:#6b859c;padding:6px 0;font-size:12px;border:0}.dream-home button:hover{color:#3e607e}.dream-record{width:100%;display:flex;align-items:center;gap:15px;padding:18px 0!important;border-bottom:1px solid #e1e7ed!important;text-align:left}.dream-record-date{font-size:12px;color:#a1abb5}.dream-record-text{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#52687c;font-size:14px}.dream-emotion{font-size:11px}.dream-empty{padding:30px 0;color:#8796a4;font-size:14px;line-height:1.8}.dream-side{border-left:1px solid #dfe7ed;padding-left:25px}.dream-side section+section{border-top:1px solid #dfe7ed;margin-top:22px;padding-top:22px}.dream-side h2{font-size:18px;margin:8px 0}.dream-side p{color:#8695a2;font-size:13px;line-height:1.8}.dream-home button:focus-visible{outline:2px solid #879caf;outline-offset:3px}@media(max-width:760px){.dream-writing{grid-template-columns:1fr;padding:24px;gap:20px}.dream-writing h2{font-size:26px}.dream-paper{transform:none}.dream-columns{grid-template-columns:1fr}.dream-side{padding-left:0;border-left:0}.dream-numbers>div{padding:0 12px}.dream-section-title{flex-wrap:wrap}}
+.overview-page{max-width:1100px;margin:auto}.sleep-growth{margin:16px auto;max-width:850px;border-top:1px solid #e6dfeb}.sleep-growth summary{cursor:pointer;padding:20px 4px;color:#81768c;font-size:14px}.sleep-growth summary>span{float:right;font-size:12px}.planet-overview button{font:inherit;cursor:pointer}button:focus-visible,summary:focus-visible{outline:2px solid #a693c4;outline-offset:4px}
+/* Sleep planet now lives within the overview, sharing the sleep diary state. */
+.planet-overview{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,.9fr);gap:12px 24px;align-items:center;margin-top:34px;padding:24px 26px;border:1px solid #e6e1ef;border-radius:30px;background:linear-gradient(115deg,#f8fbf9b8,#faf6fcb8)}
+.planet-orbit{min-width:0}.planet-orbit svg{display:block;width:100%;height:auto;max-height:310px}
+.planet-overview-copy{min-width:0}.planet-overview-copy h2{font-size:20px;line-height:1.6;margin:12px 0;font-family:var(--display,serif);color:#625e78}.planet-overview-copy p{font-size:14px;line-height:1.9;color:#747084}.planet-overview-copy strong{font-weight:600;color:#6b786f}
+.planet-kicker{font-size:12px;color:#777184}.planet-overview-copy button{padding:11px 17px;border:1px solid #d8cfe5;border-radius:16px;background:#f7f3fb;color:#716184;min-height:44px;transition:transform .3s cubic-bezier(.2,.8,.2,1),background .3s cubic-bezier(.2,.8,.2,1)}.planet-overview-copy button:hover{transform:translateY(-2px);background:#efe8f7}.planet-overview-copy>small{font-size:12px;color:#777184}
+.planet-progress{height:5px;border-radius:10px;background:#e7e2ee;overflow:hidden;margin:22px 0 12px}.planet-progress span{display:block;width:100%;height:100%;transform-origin:left;background:#a496b9;transition:transform .6s cubic-bezier(.2,.8,.2,1)}
+.planet-days{grid-column:1/-1;display:grid;grid-template-columns:repeat(10,minmax(0,1fr));gap:7px;padding-top:18px;border-top:1px solid #e6e1ed}.planet-days button{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;min-height:57px;padding:8px 3px;border:1px solid #e5deec;border-radius:12px;background:#fcfafc;color:#777084;font-variant-numeric:tabular-nums}.planet-days button small{font-size:10px}.planet-days button.is-recorded{color:#526d60;border-color:#c9ddd4;background:#eef6f1}.planet-days button:hover{border-color:#b7a5ce}.planet-notice{grid-column:1/-1;margin:0;min-height:20px;font-size:12px;color:#716184}
+@media(max-width:800px){.planet-overview{grid-template-columns:1fr;padding:20px 17px;gap:12px}.planet-orbit{max-width:420px;width:100%;margin:auto}.planet-overview-copy h2{font-size:18px}.planet-days{grid-template-columns:repeat(5,minmax(0,1fr));gap:6px}}
+
+
 </style>

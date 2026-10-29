@@ -4,6 +4,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { api } from './api'
 import { isLoggedIn, signOut, refreshSession, SAFETY_API_BASE } from './auth'
 import { WORKSPACES } from './workspaces'
+import { dreamNavigation } from './dream-navigation'
 import './workspace-themes.css'
 import { router as appRouter, tabs } from './router'
 import AiSheet from './components/AiSheet.vue'
@@ -11,6 +12,8 @@ import HealthSceneBackground from './components/HealthSceneBackground.vue'
 
 const route = useRoute()
 const router = useRouter()
+const dreamMenuOpen = ref(false)
+watch(() => route.path, () => { dreamMenuOpen.value = false })
 const headerElement = ref(null)
 const measuredHeaderHeight = ref(96)
 let headerObserver
@@ -91,10 +94,7 @@ healthNavigation.splice(5, 0,
   { label: '健康挑战赛', path: '/challenges', group: '生活打卡', icon: 'M8 3h8v6a4 4 0 0 1-8 0Z M8 5H4v3a4 4 0 0 0 4 4 M16 5h4v3a4 4 0 0 1-4 4 M12 13v6 M8 21h8' })
 const healthNavigationGroups = computed(() => {
   const makeItem = (label, path, icon) => ({ label, path, icon: icon || 'M4 4h16v16H4Z M8 9h8 M8 14h5' })
-  if (workspaceKey.value === 'dream') return [
-    { label: '梦境记录', items: [makeItem('梦境总览', '/dream'), makeItem('捕梦', '/capture', 'M12 3v18 M3 12h18'), makeItem('梦境档案', '/dreams')] },
-    { label: '夜晚与记忆', items: [makeItem('睡前线索', '/dream/cues'), makeItem('梦境对话', '/ask')] }
-  ]
+  if (workspaceKey.value === 'dream') return dreamNavigation
   if (workspaceKey.value === 'psychology') return [
     { label: '此刻的自己', items: [makeItem('心理总览', '/psychology'), makeItem('心情记录', '/psychology/journal')] },
     { label: '心绪活动', items: [makeItem('人格测试', '/psychology/personality'), makeItem('塔罗牌测试', '/psychology/tarot'), makeItem('三观测试', '/psychology/views-test'), makeItem('呼吸练习', '/psychology/breathe')] },
@@ -426,7 +426,7 @@ onBeforeUnmount(() => {
 
       <RouterView v-slot="{ Component }">
         <Transition :name="direction === 'forward' ? 'push-left' : 'push-right'" mode="out-in">
-          <div :key="route.path" class="route-surface"><component :is="Component" :go="go" /></div>
+          <div :key="route.path" class="route-surface"><section v-if="route.meta.dreamIntro && route.path !== '/dream'" class="dream-page-intro"><h1>{{ route.meta.label }}</h1><p>{{ route.meta.dreamIntro }}</p></section><component :is="Component" :go="go" /><p v-if="workspaceKey === 'dream'" style="margin:28px 0;text-align:center;color:#9298a6;font-size:11px;line-height:1.8">本工具仅用于个人感受观察，不具备医疗、心理诊疗、解梦占卜功能。</p></div>
         </Transition>
       </RouterView>
     </main>
@@ -472,7 +472,9 @@ onBeforeUnmount(() => {
         </g>
       </svg>
     </button>
+    <Teleport to="body"><div v-if="dreamMenuOpen && workspaceKey === 'dream'" class="dream-menu-backdrop" @click.self="dreamMenuOpen=false" @keydown.esc="dreamMenuOpen=false"><section class="dream-menu-sheet" role="dialog" aria-modal="true" aria-label="梦溯全部功能"><div class="dream-menu-head"><h2>梦溯 · 全部功能</h2><button autofocus @click="dreamMenuOpen=false">关闭</button></div><div v-for="group in dreamNavigation" :key="group.label" class="dream-menu-section"><h3>{{group.label}}</h3><div><button v-for="item in group.items" :key="item.path" :aria-current="route.path===item.path?'page':undefined" @click="openHealth(item.path);dreamMenuOpen=false"><svg viewBox="0 0 24 24" aria-hidden="true"><path :d="item.icon" /></svg>{{item.label}}</button></div></div><button class="dream-menu-space" @click="router.push('/dream/space');dreamMenuOpen=false">梦 · 我的空间</button></section></div></Teleport>
     <nav v-if="!chromeless" class="health-navigation" :aria-label="workspace.name + '导航'">
+      <div v-if="workspaceKey==='dream'" class="dream-mobile-primary"><button v-for="item in [dreamNavigation[0].items[0],dreamNavigation[0].items[1],dreamNavigation[0].items[2]]" :key="item.path" :class="{active:route.path===item.path}" @click="openHealth(item.path)"><svg viewBox="0 0 24 24" aria-hidden="true"><path :d="item.icon"/></svg>{{item.label.replace('✦ ','')}}</button><button :aria-expanded="dreamMenuOpen" @click="dreamMenuOpen=!dreamMenuOpen"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h6v6H4Z M14 5h6v6h-6Z M4 15h6v6H4Z M14 15h6v6h-6Z"/></svg>全部功能</button></div>
       <div class="health-nav-brand">
         <span class="health-nav-mark" aria-hidden="true"><svg viewBox="0 0 32 32" fill="none"><path d="M23 5a12 12 0 1 0 4 18A13 13 0 0 1 23 5Z" stroke="currentColor" stroke-width="1.1"/><path d="m12 11 1 3 3 1-3 1-1 3-1-3-3-1 3-1Z" fill="currentColor"/></svg></span>
         <span><strong>{{ workspace.name }}</strong><small>{{ workspace.subtitle }}</small></span>
@@ -490,8 +492,8 @@ onBeforeUnmount(() => {
           <span>{{ item.label }}</span>
         </button>
       </div>
-      <button class="health-nav-profile" :class="{ active: spaceOpen }" :aria-expanded="spaceOpen" @click="toggleSpaceMenu">
-        <span class="profile-seal">梦</span><span><strong>我的空间</strong></span><b aria-hidden="true">{{ spaceOpen ? '⌃' : '···' }}</b>
+      <button class="health-nav-profile" :class="{ active: spaceOpen }" :aria-expanded="spaceOpen" @click="workspaceKey === 'dream' ? router.push('/dream/space') : toggleSpaceMenu()">
+        <span class="profile-seal">梦</span><span><strong>我的空间</strong><small v-if="workspaceKey === 'dream'">账号设置、记录导出、个人偏好管理</small></span><b aria-hidden="true">{{ spaceOpen ? '⌃' : '···' }}</b>
       </button>
       <div v-if="spaceOpen" class="health-nav-space-menu">
         <button type="button" @click="logout"><span>退出账号</span><b aria-hidden="true">↗</b></button>
@@ -526,6 +528,19 @@ onBeforeUnmount(() => {
 .app .health-nav-space-menu button { width: 100%; min-height: 34px; justify-content: space-between; gap: 10px; padding: 7px 10px; border: 0; border-radius: 8px; color: #80637b; background: transparent; font-size: 12px; font-weight: 600; box-shadow: none; }
 .app .health-nav-space-menu button b { color: #b293a9; font-size: 13px; font-weight: 500; transition: transform 160ms ease; }
 .app .health-nav-space-menu button:hover { color: #6e4d68; background: rgba(255, 252, 255, .66); box-shadow: none; }
+.dream-mobile-primary { display: none; }
+.dream-menu-backdrop { position: fixed; inset: 0; z-index: 40; display: grid; align-items: end; background: rgba(57, 48, 75, .18); backdrop-filter: blur(5px); }
+.dream-menu-sheet { width: min(720px, 100%); max-height: min(82dvh, 760px); overflow: auto; padding: 22px 18px calc(28px + env(safe-area-inset-bottom)); border: 1px solid #e5deed; border-bottom: 0; border-radius: 26px 26px 0 0; background: #fcfaff; box-shadow: 0 -16px 44px rgba(77, 61, 101, .15); }
+.dream-menu-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
+.dream-menu-head h2 { margin: 0; color: #594b6d; font: 600 18px/1.4 var(--display, serif); }
+.dream-menu-head button { min-height: 36px; padding: 7px 12px; border: 1px solid #e3daeb; border-radius: 10px; color: #786989; background: #fff; font-size: 12px; }
+.dream-menu-section { padding: 14px 0 4px; border-top: 1px solid #ebe5f1; }
+.dream-menu-section h3 { margin: 0 0 8px 3px; color: #8c7e9e; font-size: 11px; font-weight: 700; letter-spacing: .04em; }
+.dream-menu-section > div { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; }
+.dream-menu-section button, .dream-menu-space { display: flex; align-items: center; gap: 8px; min-height: 42px; padding: 8px 10px; border: 1px solid #ebe5f1; border-radius: 12px; color: #6f617e; background: rgba(255,255,255,.72); font-size: 12px; text-align: left; }
+.dream-menu-section button svg { width: 17px; height: 17px; flex: 0 0 17px; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+.dream-menu-section button[aria-current="page"], .dream-menu-section button:hover { color: #5d4a73; border-color: #cfc0df; background: #eee7f5; }
+.dream-menu-space { width: 100%; margin-top: 16px; justify-content: center; color: #765f85; background: #f3edf8; }
 .app .health-nav-space-menu button:hover b { color: #9a7291; transform: translate3d(2px, -2px, 0); }
 .app .health-nav-group > p { display:flex;align-items:center;gap:9px;letter-spacing:0; }
 .app .health-nav-group > p > span { display:grid;place-items:center;width:30px;height:30px;border-radius:9px;background:#eeedf4;color:#858194;font-weight:600;font-size:11px; }
@@ -768,6 +783,16 @@ onBeforeUnmount(() => {
   .app .health-nav-group { display: contents; }
   .app .health-navigation button { flex: 1; flex-direction: column; justify-content: center; gap: 4px; min-height: 52px; padding: 5px 0; font-size: 10px; text-align: center; }
   .app .health-navigation button svg { width: 20px; height: 20px; }
+  .app[data-workspace="dream"] .health-navigation { display: flex; }
+  .app[data-workspace="dream"] .health-navigation > .health-nav-brand,
+  .app[data-workspace="dream"] .health-navigation > .health-nav-group,
+  .app[data-workspace="dream"] .health-navigation > .health-nav-profile { display: none; }
+  .app[data-workspace="dream"] .health-navigation > .dream-mobile-primary { display: flex; align-items: stretch; width: 100%; gap: 3px; }
+  .app[data-workspace="dream"] .dream-mobile-primary button { flex: 1; min-width: 0; min-height: 54px; border-radius: 12px; color: #776a84; background: transparent; }
+  .app[data-workspace="dream"] .dream-mobile-primary button.active { color: #5e4a73; background: #e9e0f2; box-shadow: none; }
+  .app[data-workspace="dream"] .dream-mobile-primary button:last-child { color: #6f6382; }
+  .app[data-workspace="dream"] .dream-mobile-primary button svg { width: 20px; height: 20px; }
+  .dream-menu-section > div { grid-template-columns: 1fr; }
   .home-expanded .app-main { width: 100%; margin-left: 0; padding: 142px 18px 120px; }
 }
 @media (min-width: 960px) and (max-width: 1199px) {
@@ -779,4 +804,8 @@ onBeforeUnmount(() => {
 .chromeless .route-surface { transform: none; }
 @media (prefers-reduced-motion: reduce) { .route-surface { transition: none !important; animation: none !important; } }
 @media (prefers-reduced-motion: reduce) { .app-head { transition: none !important; } }
+</style>
+
+<style>
+.dream-page-intro{padding:12px 4px 22px;color:var(--ink,#53677e)}.dream-page-intro h1{font:600 22px/1.5 var(--display,serif);margin:0 0 6px}.dream-page-intro p{font-size:14px;line-height:1.8;opacity:.78;margin:0}@media(min-width:960px){.app .health-navigation{overflow-y:auto}.app[data-workspace="dream"] .health-navigation button{min-height:40px}}
 </style>

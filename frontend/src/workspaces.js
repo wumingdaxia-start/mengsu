@@ -1,3 +1,4 @@
+import { dreamNavigation } from './dream-navigation'
 // The animated entrance selects a workspace; authentication never changes it.
 export const WORKSPACES = {
   safety: { name: '安康守护', subtitle: '花屿 · 健康安全管理', home: '/safety', scene: 0, greeting: '健康生活从今天开始吧！' },
@@ -9,7 +10,7 @@ export const ENTRY_PATHS = Object.values(WORKSPACES).map(space => space.home)
 export const LOGIN_DESTINATIONS = [...ENTRY_PATHS, '/home', '/profile', '/activity', '/nutrition', '/sleep', '/vision', '/challenges', '/smart-consult', '/mood', '/health-analysis', '/capture', '/dreams', '/ask', '/dream/cues', '/psychology/analysis', '/psychology/journal', '/psychology/breathe', '/psychology/history', '/psychology/personality', '/psychology/tarot', '/psychology/views-test']
 
 export function loginDestination(next) {
-  return typeof next === 'string' && LOGIN_DESTINATIONS.includes(next) ? next : '/safety'
+  return typeof next === 'string' && [...LOGIN_DESTINATIONS, ...dreamNavigation.flatMap(group => group.items.map(item => item.path))].includes(next) ? next : '/safety'
 }
 
 export function entryDestination(path, loggedIn) {
