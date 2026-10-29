@@ -1,10 +1,11 @@
 <script setup>
 import { computed, nextTick, onMounted, ref } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { api } from '../api'
+import { computed as accountComputed } from 'vue'
+import { readDream } from '../dream-account'
 import DreamExplorationScene from './DreamExplorationScene.vue'
 import { isLoggedIn } from '../auth'
-const router=useRouter(), route=useRoute(), personal=ref([]), active=ref(0), modal=ref(null), mode=ref(''), selected=ref(null), notice=ref(''), loading=ref(true)
+const router=useRouter(), route=useRoute(), personal=accountComputed(()=>readDream('snapshots',[])), active=ref(0), modal=ref(null), mode=ref(''), selected=ref(null), notice=ref(''), loading=ref(true)
 // Preview cards never enter the user's saved snapshot collection.
 const examples=[
  {id:'example-castle',title:'云顶之上',date:'2026-10-26',image:'/dream-overview/cloud-moon.jpg',place:'云顶之上',people:'我、神秘少女、父亲',signal:'我站在城堡的阳台上，他告诉我一个秘密，但风把声音吹散了。',feeling:'失重',motif:'城堡'},
@@ -27,9 +28,7 @@ function login(){router.push(isLoggedIn()?'/capture':'/login?next=/dream')}
 let touchX=0
 function swipe(e){const delta=e.changedTouches[0].clientX-touchX;if(Math.abs(delta)>45)move(delta<0?1:-1)}
 onMounted(async()=>{
- try{const saved=JSON.parse(localStorage.getItem('mengsu-signal-snapshots')||'[]');personal.value=Array.isArray(saved)?saved:[]}catch{notice.value='本机快照暂时无法读取。'}
- // API boundary: retain local snapshots if the account service is unavailable.
- try{const data=await api.home();const ids=new Set(personal.value.map(s=>String(s.id)));personal.value=[...personal.value,...(data.recent||[]).filter(s=>!ids.has(String(s.id)))]}catch{notice.value=personal.value.length?'远端暂未连接，仍可查看本机快照。':'以下为示例梦境，捕捉后将展示你的快照。'}finally{loading.value=false}
+ loading.value=false
  const found=cards.value.find(s=>String(s.id)===String(route.query.snapshot));if(found)open('detail',found)
 })
 </script>

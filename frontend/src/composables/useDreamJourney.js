@@ -1,22 +1,11 @@
-import { ref } from 'vue'
+import { computed } from 'vue'
+import { readDream, writeDream } from '../dream-account'
 
-// Shared with the existing capture screen and the protected core test.
-const keys = { snapshots: 'mengsu-signal-snapshots', journals: 'mengsu-journey-journals', plan: 'mengsu-journey-plan', rituals: 'mengsu-journey-rituals', holes: 'mengsu-journey-holes', posts: 'mengsu-journey-posts', creations: 'mengsu-journey-creations' }
-function read(key, fallback) { try { return JSON.parse(localStorage.getItem(keys[key])) ?? fallback } catch { return fallback } }
-const state = {
-  snapshots: ref(read('snapshots', [])), journals: ref(read('journals', [])),
-  plan: ref(read('plan', { bedtime: '22:30', wake: '07:00', started: '', completed: [] })),
-  rituals: ref(read('rituals', {})), holes: ref(read('holes', [])), posts: ref(read('posts', [])), creations: ref(read('creations', []))
-}
+const defaults={snapshots:[],journals:[],plan:{bedtime:'22:30',wake:'07:00',started:'',completed:[]},rituals:{},holes:[],posts:[],creations:[]}
+const state=Object.fromEntries(Object.entries(defaults).map(([key,fallback])=>[key,computed(()=>readDream(key,fallback))]))
 export const today = () => new Date().toLocaleDateString('sv-SE')
 export function useDreamJourney() {
-  function refresh() { Object.keys(state).forEach(k => { state[k].value = read(k, state[k].value) }) }
-  // Write first: quota errors must not show a successful but unsaved operation.
-  function commit(key, value) {
-    localStorage.setItem(keys[key], JSON.stringify(value))
-    state[key].value = value
-  }
-  return { ...state, commit, refresh }
+  return { ...state, commit: writeDream, refresh() {} }
 }
 export const demoDreams = [
   { id: 'library-fog', title: '雾中阶梯', signal: '沿着云雾中的阶梯慢慢向上，尽头有一扇亮着灯的门。', date: '2026-10-26', feeling: '失重', motif: '阶梯', image: '/dream-library/mist-stairs.jpg', demo: true },

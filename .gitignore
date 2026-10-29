@@ -35,3 +35,9 @@ frontend/src/data/*
 !frontend/src/data/sbti-wiki.json
 !frontend/src/data/bedtime-content.js
 !frontend/src/data/dream-cores.js
+
+!frontend/src/data/personality.js
+
+!frontend/src/data/personality-cards.js
+
+!frontend/src/data/values-explanations.js

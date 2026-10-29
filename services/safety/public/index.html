@@ -7,7 +7,7 @@
  <title>安康守护｜健康安全中心</title>
  <link rel="stylesheet" href="/styles.css?v=20261020-1">
  <link rel="stylesheet" href="/account-link.css?v=20261020-1">
- <link rel="stylesheet" href="/dashboard.css?v=20261020-3">
+ <link rel="stylesheet" href="/dashboard.css?v=20261029-illustrations-1">
  <link rel="stylesheet" href="/profile.css?v=20261020-1">
  <link rel="stylesheet" href="/plans.css?v=20261020-1">
  <link rel="stylesheet" href="/challenges.css?v=20261021-1">
@@ -20,9 +20,9 @@
 <body data-route="home">
 <div class="app-shell">
  <aside class="sidebar" aria-label="网站导航">
-  <a class="brand" href="#home" aria-label="安康守护首页">
-   <span class="logo"><svg viewBox="0 0 40 40" aria-hidden="true"><path d="M32 7C18 7 9 13 9 24c0 5 3 9 8 10 0-8 4-15 12-20-6 6-9 12-10 20 9 0 16-5 17-14 1-5-1-10-4-13Z"/></svg></span>
-   <span>安康守护<small>健康安全管理平台</small></span>
+  <a class="brand" href="#home" aria-label="安康首页">
+   <span class="logo"><svg viewBox="0 0 32 32" fill="none" aria-hidden="true"><path d="M16 28V14M16 20C7 20 4 14 5 7c8 0 12 5 11 13ZM16 17C16 9 22 5 28 6c0 8-5 13-12 11Z" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+   <span>安康<small>花屿 · 健康安全管理</small></span>
   </a>
 
   <nav aria-label="主导航">
@@ -45,21 +45,20 @@
    </section>
    <section class="nav-group">
     <p class="nav-label"><span class="nav-number">03</span>趋势洞察</p>
+    <div class="nav-branch">
     <a href="#analysis" data-route="analysis"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M4 19V9M10 19V5M16 19v-7M22 19H2"/></svg></span><span>安全健康分析</span></a>
     <a href="#consult" data-route="consult"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M4 5h16v11H9l-5 4V5Z"/><path d="M8 10h8m-8 3h5"/></svg></span><span>AI 健康问诊</span></a>
    <a href="#knowledge" data-route="knowledge"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M12 5c-2-1.5-5-2-9-1v15c4-1 7-.5 9 1 2-1.5 5-2 9-1V4c-4-1-7-.5-9 1Zm0 0v15"/></svg></span><span>健康知识检索</span></a>
+    </div>
    </section>
   </nav>
 
   <div class="sidebar-bottom">
-   <p class="nav-label account-label">账号空间</p>
-   <div class="account-menu" id="accountMenu" hidden><button id="logoutAccount" type="button">退出登录</button></div>
-   <button class="user-card" id="accountButton" type="button">
-    <span class="avatar" id="userAvatar">登</span>
-    <span class="user-copy"><b id="userName">登录账号</b><small id="userStatus">登录后同步健康档案</small></span>
-    <span class="more" aria-hidden="true">•••</span>
+   <button class="user-card" id="accountButton" data-route="space" type="button">
+    <span class="avatar" id="userAvatar" aria-hidden="true">安</span>
+    <span class="user-copy"><b id="userName">我的空间</b><small id="userStatus">健康档案与记录</small></span>
+    <span class="more" aria-hidden="true">›</span>
    </button>
-   <div class="privacy-card"><span>✓</span><div><b>健康数据保护</b><small id="privacyStatus">正在读取记录…</small></div></div>
   </div>
  </aside>
 
@@ -78,7 +77,6 @@
     </div>
    </section>
    <div class="top-actions">
-    <button class="icon-btn" id="noticeBtn" aria-label="健康记录待补充" title="健康记录待补充"><span id="noticeIcon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 2.5 20 5.4v6.1c0 5-3.1 8.2-8 10-4.9-1.8-8-5-8-10V5.4Z"/><path d="M12 7.4v8.2m-4.1-4.1h8.2"/></svg></span><i id="noticeDot"></i></button>
     <button class="top-account" id="topAccountButton" type="button"><span><b id="topUserName">登录账号</b><small id="topUserRole">游客模式</small></span><span class="avatar" id="topUserAvatar">登</span></button>
     <button class="top-logout" id="topLogout" type="button" hidden>退出</button>
    </div>
@@ -107,7 +105,7 @@
 <script src="/weather.js?v=20261022-1" defer></script>
 <script src="/consult.js?v=20261022-1" defer></script>
 <script src="/insight.js?v=20261025-1" defer></script>
-<script src="/knowledge.js?v=20261025-1" defer></script>
-<script src="/app.js?v=20261021-1" defer></script>
+<script src="/knowledge.js?v=20261029-clean" defer></script>
+<script src="/app.js?v=20261029-illustrations-1" defer></script>
 </body>
 </html>

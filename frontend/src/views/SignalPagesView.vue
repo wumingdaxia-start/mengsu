@@ -1,21 +1,22 @@
 <script setup>
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { readDream, writeDream, dreamOwner, hasLegacyDreamRecords, importLegacyDreamRecords } from '../dream-account'
 const route=useRoute(), router=useRouter()
 const page=computed(()=>route.path)
-// Local prototype storage only. Replace with authenticated snapshot/seed/safety APIs when connected.
-function read(key,fallback){try{return JSON.parse(localStorage.getItem('mengsu-signal-'+key))??fallback}catch{return fallback}}
+// Private records are loaded and saved through the shared authenticated account store.
+function read(key,fallback){return readDream(key,fallback)}
 const samples=[{id:'sample-sea',title:'海风穿过没有门的房间',motif:'海边',feeling:'温暖',signal:'房间里有海风',date:'2026-10-27',day:'身体舒展 · 情绪松弛',demo:true},{id:'sample-train',title:'停在岔路口的列车',motif:'列车',feeling:'压迫',signal:'一直在等一个决定',date:'2026-10-26',day:'肩颈紧绷 · 压力较高',demo:true},{id:'sample-house',title:'旧屋里的柔光',motif:'旧屋',feeling:'疏离',signal:'有人在叫我',date:'2026-10-25',day:'稍感疲惫 · 心绪平稳',demo:true}]
 const snapshots=ref(read('snapshots',[])), seeds=ref(read('seeds',[])), receipts=ref(read('receipts',[])), notes=ref(read('notes',{})), prefs=ref(read('prefs',{motion:true,sound:false,reminder:false}))
 const cards=computed(()=>[...snapshots.value,...samples]), toast=ref(''), selected=ref(null), mode=ref('漫游视图'), focus=ref('全部'), chosen=ref([]), clusterName=ref(''), clusters=ref(read('clusters',[]))
 let toastTimer, relaxationTimer
 function notify(s){toast.value=s;clearTimeout(toastTimer);toastTimer=setTimeout(()=>toast.value='',3200)}
-function persist(key,value){try{localStorage.setItem('mengsu-signal-'+key,JSON.stringify(value));return true}catch{notify('浏览器存储空间不足，请先导出快照。');return false}}
-function saveNote(key,value){notes.value[key]=value;persist('notes',notes.value);notify('你的观察已留在此设备')}
+async function persist(key,value){try{await writeDream(key,value);return true}catch(error){const fields={snapshots,seeds,receipts,notes,prefs,clusters,conversations};if(fields[key])fields[key].value=readDream(key,['notes','prefs','conversations'].includes(key)?{}:[]);notify(error.message||'账号记录未能保存');return false}}
+async function saveNote(key,value){notes.value[key]=value;if(!await persist('notes',notes.value))return;notify('你的观察已保存到当前账号')}
 const seedType=ref('放下'), seedText=ref(''), signal=ref(''), image=ref(''), feeling=ref({失重:30,压迫:20,温暖:60,疏离:15})
 const tonightSeed=computed(()=>seeds.value[0])
 const captureSeed=computed(()=>{const date=new Date();date.setDate(date.getDate()-1);return seeds.value.find(s=>s.day===date.toLocaleDateString('sv-SE'))})
-function saveSeed(){if(!seedText.value.trim())return notify('留下一句话，再把种子交给今夜。');seeds.value.unshift({id:Date.now(),day:new Date().toLocaleDateString('sv-SE'),type:seedType.value,text:seedText.value.trim(),date:new Date().toLocaleDateString()});persist('seeds',seeds.value);seedText.value='';notify('今夜的种子已安放在此设备')}
+async function saveSeed(){if(!seedText.value.trim())return notify('留下一句话，再把种子交给今夜。');seeds.value.unshift({id:Date.now(),day:new Date().toLocaleDateString('sv-SE'),type:seedType.value,text:seedText.value.trim(),date:new Date().toLocaleDateString()});if(!await persist('seeds',seeds.value))return;seedText.value='';notify('今夜的种子已保存到当前账号')}
 function upload(e){const file=e.target.files?.[0];if(!file)return;if(!file.type.startsWith('image/')||file.size>2*1024*1024)return notify('请选择 2MB 以内的图片');const reader=new FileReader();reader.onload=()=>{image.value=reader.result;imageSource.value='上传画面';imageError.value=''};reader.readAsDataURL(file)}
 // Generated images are compressed before local snapshot storage.
 const imagePrompt=ref(''), generating=ref(false), imageError=ref(''), imageSource=ref('')
@@ -34,7 +35,7 @@ async function generateImage(){
  }catch(error){imageError.value=error.message||'无法连接图像服务，请稍后重试。'}
  finally{generating.value=false}
 }
-function saveSnapshot(locked){if(!signal.value.trim()&&!image.value)return notify('留下一幅画面或一个信号，再收下快照。');const now=new Date();const night=new Date(now);night.setDate(night.getDate()-1);const item={id:Date.now(),nightDate:night.toLocaleDateString('sv-SE'),title:signal.value.trim()||representative.value||'一幅醒来的画面',signal:signal.value.trim(),feeling:Object.entries(feeling.value).sort((a,b)=>b[1]-a[1])[0][0],sensations:{...feeling.value},image:image.value,imagePrompt:imageSource.value==='AI 生成'?imagePrompt.value:'',imageSource:imageSource.value,seed:captureSeed.value?.text,date:now.toLocaleDateString('sv-SE'),locked,motif:representative.value||'意识碎片'};snapshots.value.unshift(item);if(persist('snapshots',snapshots.value)){signal.value='';notify(locked?'重要快照已锁定在此设备':'快照已保存在此设备')}}
+async function saveSnapshot(locked){if(!signal.value.trim()&&!image.value)return notify('留下一幅画面或一个信号，再收下快照。');const now=new Date();const night=new Date(now);night.setDate(night.getDate()-1);const item={id:Date.now(),nightDate:night.toLocaleDateString('sv-SE'),title:signal.value.trim()||representative.value||'一幅醒来的画面',signal:signal.value.trim(),feeling:Object.entries(feeling.value).sort((a,b)=>b[1]-a[1])[0][0],sensations:{...feeling.value},image:image.value,imagePrompt:imageSource.value==='AI 生成'?imagePrompt.value:'',imageSource:imageSource.value,seed:captureSeed.value?.text,date:now.toLocaleDateString('sv-SE'),locked,motif:representative.value||'意识碎片'};snapshots.value.unshift(item);if(await persist('snapshots',snapshots.value)){signal.value='';notify(locked?'重要快照已锁定在当前账号':'快照已保存在当前账号')}}
 const corridorCards=computed(()=>cards.value.filter(x=>focus.value==='全部'||x.motif===focus.value).slice().sort((a,b)=>mode.value==='时序视图'?b.date.localeCompare(a.date):a.motif.localeCompare(b.motif)))
 const activeSense=ref('')
 const senseKeys=['失重','压迫','温暖','疏离']
@@ -45,27 +46,37 @@ const senseCaption=computed(()=>{const sorted=Object.entries(feeling.value).sort
 function setSense(key,e){const box=e.currentTarget.parentElement.getBoundingClientRect();const x=Math.max(0,Math.min(1,(e.clientX-box.left)/box.width));feeling.value[key]=Math.round(x*100)}
 function randomSense(){senseKeys.forEach(k=>feeling.value[k]=Math.floor(18+Math.random()*78));notify('昨夜体感已随机生成')}
 const representative=ref(''), forgottenFeel=ref('安稳'), vague=ref('')
-function saveReceipt(){receipts.value.unshift({id:Date.now(),feeling:forgottenFeel.value,note:vague.value,date:new Date().toLocaleDateString()});persist('receipts',receipts.value);vague.value='';notify('空白回执已收好')}
+async function saveReceipt(){receipts.value.unshift({id:Date.now(),feeling:forgottenFeel.value,note:vague.value,date:new Date().toLocaleDateString()});if(!await persist('receipts',receipts.value))return;vague.value='';notify('空白回执已收好')}
 const echoes=computed(()=>receipts.value.filter(r=>snapshots.value.some(s=>s.feeling===r.feeling)))
-function makeCluster(){if(chosen.value.length<2||!clusterName.value.trim())return notify('选取至少两幅快照，并给梦簇起个名字');clusters.value.push({name:clusterName.value,ids:[...chosen.value]});persist('clusters',clusters.value);clusterName.value='';chosen.value=[];notify('梦簇已在此设备形成')}
+async function makeCluster(){if(chosen.value.length<2||!clusterName.value.trim())return notify('选取至少两幅快照，并给梦簇起个名字');clusters.value.push({name:clusterName.value,ids:[...chosen.value]});if(!await persist('clusters',clusters.value))return;clusterName.value='';chosen.value=[];notify('梦簇已在当前账号中形成')}
 const prompts=['这个体感让你想到白天什么状态？','对比睡前种子，昨夜快照有什么回应？','这个体感以前出现过吗？'], conversations=ref(read('conversations',{}))
-function ask(prompt){if(!selected.value)return notify('先选择一幅意识快照');const s=selected.value;const answer=prompt===prompts[0]?'你留下的体感是“'+s.feeling+'”。白日分身尚未连接，你愿意回想当天身体哪里最有感觉吗？':prompt===prompts[1]?(s.seed?'你曾留下“'+s.seed+'”，快照里的“'+s.signal+'”让你想到什么？两者是否有关，由你来判断。':'这幅快照没有配对的睡前种子，可以从下一晚开始留下一颗。'):'此设备中有 '+snapshots.value.filter(x=>x.feeling===s.feeling).length+' 幅快照留下相似体感。你觉得它们有什么相似或不同？';(conversations.value[s.id]??=[]).push({q:prompt,a:answer});persist('conversations',conversations.value);notify('示例伴读已回应，尚未连接 AI 服务')}
+async function ask(prompt){if(!selected.value)return notify('先选择一幅意识快照');const s=selected.value;const answer=prompt===prompts[0]?'你留下的体感是“'+s.feeling+'”。白日分身尚未连接，你愿意回想当天身体哪里最有感觉吗？':prompt===prompts[1]?(s.seed?'你曾留下“'+s.seed+'”，快照里的“'+s.signal+'”让你想到什么？两者是否有关，由你来判断。':'这幅快照没有配对的睡前种子，可以从下一晚开始留下一颗。'):'当前账号中有 '+snapshots.value.filter(x=>x.feeling===s.feeling).length+' 幅快照留下相似体感。你觉得它们有什么相似或不同？';(conversations.value[s.id]??=[]).push({q:prompt,a:answer});if(!await persist('conversations',conversations.value))return;notify('示例伴读已回应，尚未连接 AI 服务')}
 const dayIndex=ref(Number(route.query.day)||0), dayCard=computed(()=>cards.value[dayIndex.value%cards.value.length]), dayState=ref('疲惫'), duration=ref(3), remaining=ref(0)
 const script=computed(()=>dayState.value==='紧绷'?'把注意力带到肩膀。轻轻松开，再慢慢感受双手。':dayState.value==='思绪杂乱'?'让每一个念头像水面上的叶子，不必追赶，慢慢经过。':'找到舒服的姿势。无需用力，让身体被安稳地承托。')
 watch(()=>route.query.day,value=>{dayIndex.value=Number(value)||0})
 function stopRelax(){clearInterval(relaxationTimer);remaining.value=0;router.push('/dream/cues')}
 function relax(){clearInterval(relaxationTimer);remaining.value=duration.value*60;relaxationTimer=setInterval(()=>{remaining.value--;if(remaining.value<=0){clearInterval(relaxationTimer);notify('慢慢回到此刻，给今夜留下一颗种子');router.push('/dream/cues')}},1000)}
-function exportData(){const url=URL.createObjectURL(new Blob([JSON.stringify({snapshots:snapshots.value,seeds:seeds.value,receipts:receipts.value,notes:notes.value},null,2)],{type:'application/json'}));const a=document.createElement('a');a.href=url;a.download='梦溯-昼夜快照.json';a.click();URL.revokeObjectURL(url);notify('已导出此设备保存的内容')}
+function exportData(){const url=URL.createObjectURL(new Blob([JSON.stringify({snapshots:snapshots.value,seeds:seeds.value,receipts:receipts.value,notes:notes.value},null,2)],{type:'application/json'}));const a=document.createElement('a');a.href=url;a.download='梦溯-昼夜快照.json';a.click();URL.revokeObjectURL(url);notify('已导出当前账号保存的内容')}
 const removed=ref(null)
-function undoRemove(){if(!removed.value)return;snapshots.value.unshift(removed.value);removed.value=null;persist('snapshots',snapshots.value);notify('快照已放回')}
-function bulkLock(){snapshots.value.forEach(s=>s.locked=true);persist('snapshots',snapshots.value);notify('此设备快照已全部锁定')}
-function remove(s){if(s.locked)return notify('请先解除锁定再删除');removed.value=s;snapshots.value=snapshots.value.filter(x=>x.id!==s.id);persist('snapshots',snapshots.value);notify('已移除此快照')}
+async function undoRemove(){if(!removed.value)return;snapshots.value.unshift(removed.value);removed.value=null;if(!await persist('snapshots',snapshots.value))return;notify('快照已放回')}
+async function bulkLock(){snapshots.value.forEach(s=>s.locked=true);if(!await persist('snapshots',snapshots.value))return;notify('当前账号快照已全部锁定')}
+async function remove(s){if(s.locked)return notify('请先解除锁定再删除');removed.value=s;snapshots.value=snapshots.value.filter(x=>x.id!==s.id);if(!await persist('snapshots',snapshots.value))return;notify('已移除此快照')}
+const importing=ref(false)
+async function importOldRecords(){
+ if(importing.value)return
+ if(!confirm('这些浏览器旧记录尚未绑定账号。请确认它们属于你，是否导入当前登录账号？原始浏览器记录会保留。'))return
+ importing.value=true
+ try{await importLegacyDreamRecords();snapshots.value=readDream('snapshots',[]);notify('旧记录已导入当前账号，原始记录已保留')}
+ catch(error){notify(error.message||'导入未完成，请稍后重试')}
+ finally{importing.value=false}
+}
+async function toggleLock(s){const next=snapshots.value.map(x=>x.id===s.id?{...x,locked:!x.locked}:x);if(await persist('snapshots',next)){snapshots.value=next;notify(s.locked?'已解除锁定':'已锁定')}}
 onBeforeUnmount(()=>{clearTimeout(toastTimer);clearInterval(relaxationTimer)})
 </script>
 
 <template>
 <div class="signal-pages" :class="{'still':!prefs.motion}">
-<p class="prototype-note">本地体验 · 安康守护尚未连接；标有「示例」的素材仅供体验。你保存的内容仅留在此浏览器。</p>
+<p class="prototype-note">{{dreamOwner?'记录保存在当前账号中；标有「示例」的素材仅供体验。':'游客模式：登录后可保存和查看自己的记录。'}}</p>
 <template v-if="page==='/capture'">
  <p v-if="captureSeed && prefs.reminder" role="status" class="soft-card">昨夜的种子轻轻浮现：{{captureSeed.text}}</p>
  <section class="soft-card ai-image-card" :aria-busy="generating">
@@ -110,7 +121,7 @@ onBeforeUnmount(()=>{clearTimeout(toastTimer);clearInterval(relaxationTimer)})
  <section class="soft-card"><div class="blank-receipt" aria-hidden="true"></div><h2>空白回执</h2><p>不必追回情节，收下醒来的那一刻。</p><div class="row"><button v-for="f in ['心慌','安稳','沉闷','失重','怅然']" :key="f" :class="{active:forgottenFeel===f}" @click="forgottenFeel=f">{{f}}</button></div><input v-model="vague" maxlength="100" placeholder="一句模糊感受，也可以不写。"><button class="primary" @click="saveReceipt">收下空白回执</button></section><section class="soft-card"><h2>模糊记忆库</h2><p v-if="!receipts.length">梦不见了，醒来的感受仍有地方停留。</p><p v-if="echoes.length">这个感受，你曾经在一场遗忘的梦里出现过。</p><div v-for="r in receipts" :key="r.id" class="receipt"><small>{{r.date}}</small><strong>{{r.feeling}}</strong><p>{{r.note||'没有文字，只有一份感受。'}}</p></div></section>
 </template>
 <template v-else-if="page==='/dream/space'">
- <section class="soft-card"><h2>分身同步</h2><p>安康守护账号尚未绑定。真实同步接口接通后，白日信号才会进入梦溯。</p><button @click="notify('真实账号绑定尚未接通；当前不会同步任何健康数据')">了解绑定状态</button></section><section class="soft-card"><h2>快照管理</h2><button @click="bulkLock">锁定所有快照</button> <button v-if="removed" @click="undoRemove">撤回刚才的删除</button> <button @click="exportData">导出此设备快照</button><p v-if="!snapshots.length">还没有自己的快照，示例素材不会混入导出文件。</p><div v-for="s in snapshots" :key="s.id" class="row"><span>{{s.title}}</span><button @click="s.locked=!s.locked;persist('snapshots',snapshots);notify(s.locked?'已锁定':'已解除锁定')">{{s.locked?'解除锁定':'锁定'}}</button><button @click="remove(s)">删除</button></div></section><section class="soft-card"><h2>体验偏好</h2><label><input type="checkbox" v-model="prefs.motion" @change="persist('prefs',prefs)">柔和波纹动画</label><label><input type="checkbox" v-model="prefs.reminder" @change="persist('prefs',prefs)">进入记梦时浮现种子</label><p>提醒仅在页面内呈现，不发送后台通知。音效服务尚未接通。</p><h2>隐私说明</h2><p>你在此原型中留下的快照、种子与回执保存在当前浏览器，不会自动同步到账号。共用设备上请谨慎保留个人内容，清理浏览器前请先导出。</p></section>
+ <section class="soft-card"><h2>分身同步</h2><p>安康、梦溯与心灵共用一个账号。梦境记录独立保存，健康记录不会自动成为梦境快照。</p><button @click="notify(dreamOwner?'当前已使用共享账号，梦境记录保存在此账号中':'当前为游客模式，请先登录账号')">了解绑定状态</button></section><section class="soft-card"><h2>快照管理</h2><button v-if="dreamOwner && hasLegacyDreamRecords()" :disabled="importing" @click="importOldRecords">{{importing?'正在导入…':'导入此浏览器的旧记录'}}</button><button @click="bulkLock">锁定所有快照</button> <button v-if="removed" @click="undoRemove">撤回刚才的删除</button> <button @click="exportData">导出当前账号快照</button><p v-if="!snapshots.length">还没有自己的快照，示例素材不会混入导出文件。</p><div v-for="s in snapshots" :key="s.id" class="row"><span>{{s.title}}</span><button @click="toggleLock(s)">{{s.locked?'解除锁定':'锁定'}}</button><button @click="remove(s)">删除</button></div></section><section class="soft-card"><h2>体验偏好</h2><label><input type="checkbox" v-model="prefs.motion" @change="persist('prefs',prefs)">柔和波纹动画</label><label><input type="checkbox" v-model="prefs.reminder" @change="persist('prefs',prefs)">进入记梦时浮现种子</label><p>提醒仅在页面内呈现，不发送后台通知。音效服务尚未接通。</p><h2>隐私说明</h2><p>快照、种子与回执保存在当前登录账号中。退出后不显示个人记录，再次登录可继续查看。</p></section>
 </template>
 <div class="signal-toast" role="status" aria-live="polite">{{toast}}</div>
 </div>

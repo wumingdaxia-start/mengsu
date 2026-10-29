@@ -96,6 +96,7 @@
   .mengsu-header { top:max(24px,env(safe-area-inset-top)); left:4.6%; right:4.6%; text-align:left; display:flex; align-items:center; min-height:44px; }
   .mengsu-brand { display:inline-flex; align-items:center; gap:12px; color:inherit; text-decoration:none; pointer-events:auto; }
   .mengsu-brand svg { width:32px; height:32px; }
+  .mengsu-site-name { margin-left:auto; flex-shrink:0; color:inherit; font:500 clamp(22px,2vw,28px)/1.4 'Songti SC','STSong','SimSun',serif; letter-spacing:.08em; white-space:nowrap; }
   .mengsu-brand span { font:500 25px/1.4 'Songti SC','STSong','SimSun',serif; letter-spacing:.04em; }
   .mengsu-chapters { position:absolute; left:50%; transform:translateX(-50%); display:flex; align-items:center; gap:16px; pointer-events:auto; }
   .mengsu-chapters button { display:flex; align-items:center; gap:10px; min-height:44px; padding:0 10px; background:none; border:0; color:inherit; font:14px/1.7 'Karla','Microsoft YaHei',sans-serif; cursor:pointer; }
@@ -216,10 +217,11 @@
 </div>
 
 <header class="mengsu-header">
-  <a class="mengsu-brand" href="/entry" aria-label="梦溯入口"><svg viewBox="0 0 32 32" fill="none" aria-hidden="true"><path d="M23 5a12 12 0 1 0 4 18A13 13 0 0 1 23 5Z" stroke="currentColor" stroke-width="1.1"/><path d="m12 11 1 3 3 1-3 1-1 3-1-3-3-1 3-1Z" fill="currentColor"/></svg><span>梦溯</span></a>
+  <a class="mengsu-brand" href="/entry" aria-label="安康入口"><svg viewBox="0 0 32 32" fill="none" aria-hidden="true"><path d="M16 28V14M16 20C7 20 4 14 5 7c8 0 12 5 11 13ZM16 17C16 9 22 5 28 6c0 8-5 13-12 11Z" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg><span>安康</span></a>
   <nav class="mengsu-chapters" aria-label="选择梦境篇章"><button type="button" data-chapter="0" aria-pressed="true">花屿</button><button type="button" data-chapter="1" aria-pressed="false">鱼庭</button><button type="button" data-chapter="2" aria-pressed="false">星栈</button></nav>
+  <span class="mengsu-site-name">花屿星</span>
 </header>
-<main class="mengsu-copy" aria-live="polite" aria-atomic="true"><h1 id="dreamTitle">花映清波，<br>让日常慢慢舒展。</h1><p id="dreamDescription">在花影与日光之间，照顾身体，也安放心情。</p><a id="dreamLink" href="/safety" target="_top"><span>进入安康守护</span><span aria-hidden="true">→</span></a></main>
+<main class="mengsu-copy" aria-live="polite" aria-atomic="true"><h1 id="dreamTitle">花映清波，<br>让日常慢慢舒展。</h1><p id="dreamDescription">在花影与日光之间，照顾身体，也安放心情。</p><a id="dreamLink" href="/safety" target="_top"><span>进入安康</span><span aria-hidden="true">→</span></a></main>
 <aside class="mengsu-caption" id="dreamDetail">花屿 · 粉花映水，日光轻漾，把每一天过得从容。</aside>
 
 <div id="hint">轻触水面 · 拖动泛起涟漪</div>
@@ -803,16 +805,21 @@ stage.addEventListener('pointerleave', () => { cursorEl.style.opacity = 0; lastM
 
 const $ = (id) => document.getElementById(id);
 const chapters = [
-  { title:'花映清波，\n让日常慢慢舒展。', description:'在花影与日光之间，照顾身体，也安放心情。', link:'进入安康守护', path:'/safety', detail:'花屿 · 粉花映水，日光轻漾，把每一天过得从容。' },
-  { title:'梦的片段，\n总有回来的地方。', description:'记下醒来时的梦，回看记忆里的线索与故事。', link:'进入梦溯', path:'/dream', detail:'鱼庭 · 捕梦、梦境档案、睡前线索与梦境对话。' },
-  { title:'给心情，\n留一小片空间。', description:'写下此刻感受，放慢呼吸，按照自己的节奏前行。', link:'进入心理空间', path:'/psychology', detail:'星栈 · 心情记录、呼吸练习与情绪回顾。' }
+  { brand:'安康', title:'花映清波，\n让日常慢慢舒展。', description:'在花影与日光之间，照顾身体，也安放心情。', link:'进入安康', path:'/safety', detail:'花屿 · 粉花映水，日光轻漾，把每一天过得从容。' },
+  { brand:'梦溯', title:'梦的片段，\n总有回来的地方。', description:'记下醒来时的梦，回看记忆里的线索与故事。', link:'进入梦溯', path:'/dream', detail:'鱼庭 · 捕梦、梦境档案、睡前线索与梦境对话。' },
+  { brand:'心灵', title:'给心情，\n留一小片空间。', description:'写下此刻感受，放慢呼吸，按照自己的节奏前行。', link:'进入心灵', path:'/psychology', detail:'星栈 · 心情记录、呼吸练习与情绪回顾。' }
 ];
+const entryBrandIcons = ['<path d="M16 28V14M16 20C7 20 4 14 5 7c8 0 12 5 11 13ZM16 17C16 9 22 5 28 6c0 8-5 13-12 11Z" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>','<path d="M23 5a12 12 0 1 0 4 18A13 13 0 0 1 23 5Z" stroke="currentColor" stroke-width="1.1"/><path d="m12 11 1 3 3 1-3 1-1 3-1-3-3-1 3-1Z" fill="currentColor"/>','<path d="M16 25S5 18 5 11a6 6 0 0 1 11-3 6 6 0 0 1 11 3c0 7-11 14-11 14Z" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/><path d="M16 1v3M2 8l3 1m24-1-3 1M5 25l3-2m19 2-3-2" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/>'];
 let requestedChapter = 0;
 document.querySelectorAll('[data-chapter]').forEach(button => button.addEventListener('click', () => {
   const requested = Number(button.dataset.chapter);
   if (requested === requestedChapter) return;
   requestedChapter = requested;
   const chapter = chapters[Number(button.dataset.chapter)];
+  const brand = document.querySelector('.mengsu-brand');
+  brand.querySelector('span').textContent = chapter.brand;
+  brand.querySelector('svg').innerHTML = entryBrandIcons[requested];
+  brand.setAttribute('aria-label', chapter.brand + '入口');
   chooseEntryChapter(Number(button.dataset.chapter));
   document.querySelectorAll('[data-chapter]').forEach(item => item.setAttribute('aria-pressed', String(item === button)));
   $('dreamTitle').textContent = chapter.title;

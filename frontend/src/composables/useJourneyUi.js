@@ -5,9 +5,9 @@ export function useJourneyUi() {
   const toast = ref('')
   let timer
   function notify(text) { toast.value = text; clearTimeout(timer); timer = setTimeout(() => toast.value = '', 4000) }
-  function save(commit, key, value, message) {
-    try { commit(key, value); if (message) notify(message); return true }
-    catch { notify('此设备存储空间不足，内容还未保存。请先导出部分快照。'); return false }
+  async function save(commit, key, value, message) {
+    try { await commit(key, value); if (message) notify(message); return true }
+    catch (error) { notify(error.message || '账号记录未能保存，请保留内容后重试。'); return false }
   }
   async function copy(text) {
     try { await navigator.clipboard.writeText(text); notify('文字已复制') }

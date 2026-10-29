@@ -25,13 +25,14 @@ const persistence=mysql?createMysqlPersistence(mysql,{pool:options.mysqlPool}):n
 const store=persistence?.health||createStore(options.dataDir||path.join(__dirname,'../../data/safety/health'));
 const consultStore=persistence?.consult||createConsultStore(options.consultDir||path.join(__dirname,'../../data/safety/consult'));
 const testStore=require('./local-persistence').createTests(options.testsDir||path.join(__dirname,'../../data/safety/tests'));
+const dreamStore=persistence?.dream||require('./dream-store').createDreamStore(options.dreamDir||path.join(__dirname,'../../data/safety/dream'));
 const consultBusy=new Set();
 const insightBusy=new Set();
 const knowledgeBusy=new Set(),knowledgeQuota=new Map();
 const types={'.html':'text/html; charset=utf-8','.css':'text/css; charset=utf-8','.js':'text/javascript; charset=utf-8','.svg':'image/svg+xml'};
 function json(res,status,value,headers={}){res.writeHead(status,{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store',...headers});res.end(JSON.stringify(value))}
 async function readUsers(){return persistence?persistence.users.read():require('./local-persistence').readUsers(options.usersFile||usersFile)}
-function readBody(req){return new Promise((resolve,reject)=>{let raw='';req.on('data',c=>{raw+=c;if(raw.length>1048576)req.destroy()});req.on('end',()=>{try{resolve(JSON.parse(raw||'{}'))}catch{reject(new Error('请求格式错误'))}});req.on('error',reject)})}
+function readBody(req,maxBytes=1048576){return new Promise((resolve,reject)=>{let raw='';req.on('data',c=>{raw+=c;if(Buffer.byteLength(raw)>maxBytes)req.destroy()});req.on('end',()=>{try{resolve(JSON.parse(raw||'{}'))}catch{reject(new Error('请求格式错误'))}});req.on('error',reject)})}
 function cookies(req){return Object.fromEntries((req.headers.cookie||'').split(';').filter(Boolean).map(x=>{const i=x.indexOf('=');return[x.slice(0,i).trim(),decodeURIComponent(x.slice(i+1))]}))}
 function sign(id){return crypto.createHmac('sha256',secret).update(id).digest('base64url')}
 function getSession(req){let value;try{value=cookies(req).health_session}catch{return null}if(!value)return null;const i=value.lastIndexOf('.'),id=value.slice(0,i),sig=value.slice(i+1);if(!id||!sig)return null;const a=Buffer.from(sign(id)),b=Buffer.from(sig);if(a.length!==b.length||!crypto.timingSafeEqual(a,b))return null;const s=sessions.get(id);if(!s||s.expires<Date.now()){sessions.delete(id);return null}return{id,...s}}
@@ -138,6 +139,20 @@ async function handler(req,res){const url=new URL(req.url,'http://localhost');
  const qualityResponseCount=details.reduce((n,d)=>n+d.qualityResponseCount,0);
  const aggregate=(field,weight)=>{const total=details.reduce((n,d)=>n+d[weight],0);return total?Math.round(details.reduce((n,d)=>n+(d[field]||0)*d[weight],0)/total*10)/10:null};
  return json(res,200,{updated:today(),users:details,summary:{registeredUsers:users.length,usersWithData:details.filter(d=>d.exerciseCount+d.dietCount+d.sleepCount+d.visionCount>0).length,exerciseRecords:details.reduce((n,d)=>n+d.exerciseCount,0),dietRecords:details.reduce((n,d)=>n+d.dietCount,0),sleepRecords:details.reduce((n,d)=>n+d.sleepCount,0),visionRecords:details.reduce((n,d)=>n+d.visionCount,0),averageSleepHours:aggregate('averageSleepHours','sleepCount'),averageSleepQuality:aggregate('averageSleepQuality','qualityResponseCount'),qualityResponseCount,averageMealCalories:aggregate('averageMealCalories','dietCount'),averageMealProtein:aggregate('averageMealProtein','dietCount'),challengeParticipants:details.filter(d=>d.challengeScore>0).length}});
+ }
+ if(url.pathname==='/api/dream-data'){
+  const session=getSession(req),user=session&&(await readUsers()).find(x=>x.id===session.userId);
+  if(!user)return json(res,401,{message:'请先登录后保存或查看梦境记录'});
+  if(isAdmin(user))return json(res,403,{message:'请使用个人账号保存梦境记录'});
+  if(req.headers['x-health-user']!==String(user.id))return json(res,409,{message:'账号已切换，请刷新页面后重试'});
+  if(req.method==='GET')return json(res,200,await dreamStore.read(user.id));
+  if(req.method==='PUT'){
+   let input;try{input=require('./dream-store').validate(await readBody(req,16*1024*1024))}catch(e){return json(res,400,{message:e.message})}
+   const result=await dreamStore.write(user.id,input);
+   if(!result)return json(res,409,{message:'记录已在其他页面更新，请刷新后重试，当前填写内容尚未保存'});
+   return json(res,200,result);
+  }
+  return json(res,405,{message:'请求方式不支持'});
  }
  if(url.pathname==='/api/psychology-tests'){
   const session=getSession(req),user=session&&(await readUsers()).find(x=>x.id===session.userId);

@@ -61,7 +61,7 @@ function continueGuest() {
         <p class="login-destination">{{ selectedSpace.subtitle }}</p>
         <button class="login-return" type="button" @click="router.push('/entry')">← 返回水波首页</button>
         <div class="login-form-heading"><p>欢迎回来</p><h2>进入{{ selectedSpace.name }}</h2><span>登录后继续你的记录</span></div>
-        <label>账号<input v-model="email" type="text" autocomplete="username" placeholder="请输入安康守护账号、手机号或邮箱" :disabled="busy" /></label>
+        <label>账号<input v-model="email" type="text" autocomplete="username" placeholder="请输入花屿星账号、手机号或邮箱" :disabled="busy" /></label>
         <label>密码<input v-model="password" type="password" autocomplete="current-password" placeholder="输入你的密码" /></label>
         <div class="login-form-options"><label class="remember"><input v-model="remember" type="checkbox" /> <span>记住我</span></label><button type="button" class="forgot">忘记密码？</button></div>
         <p v-if="message" class="login-message" role="status">{{ message }}</p>

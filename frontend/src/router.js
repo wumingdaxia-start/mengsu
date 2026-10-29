@@ -26,6 +26,7 @@ const routes = [
   { path: '/dream', component: DreamWorkspaceView, meta: { workspace: 'dream', healthPage: true, label: '梦境总览' } },
   { path: '/dream/planet', redirect: '/dream', meta: { workspace: 'dream', healthPage: true, label: '梦境总览' } },
   { path: '/dream/cues', component: HomeView, props: { sleepOnly: true }, meta: { workspace: 'dream', healthPage: true, label: '睡前线索' } },
+  { path: '/psychology/space', component: PsychologyView, props: { section: 'space' }, meta: { workspace: 'psychology', healthPage: true, label: '我的空间' } },
   { path: '/psychology', component: PsychologyView, meta: { workspace: 'psychology', healthPage: true, label: '心理总览' } },
   { path: '/psychology/analysis', component: PsychologyView, props: { section: 'analysis' }, meta: { workspace: 'psychology', healthPage: true, label: '心理分析' } },
   { path: '/psychology/personality', component: () => import('./views/PersonalityView.vue'), meta: { workspace: 'psychology', healthPage: true, label: '人格测试' } },

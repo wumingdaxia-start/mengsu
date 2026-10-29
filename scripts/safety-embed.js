@@ -58,7 +58,7 @@
   function mount() {
     // Keep the original account menu, but open the shared login for guests.
     document.addEventListener('click', event => {
-      const account = event.target.closest('#accountButton, #topAccountButton, a[href^="/account/"]');
+      const account = event.target.closest('#topAccountButton, a[href^="/account/"]');
       if (!account || (lastIdentity && account.tagName !== 'A')) return;
       event.preventDefault();
       event.stopImmediatePropagation();
@@ -83,7 +83,7 @@
     menu?.addEventListener('click', event => { if (event.target.closest('a[data-route]')) document.querySelector('.sidebar')?.classList.remove('open'); });
     const page = document.querySelector('#page');
     if (page) {
-      const observer = new MutationObserver(() => { if (location.hash.slice(1) === 'home') window.setTimeout(rolePanel, 0); });
+      const observer = new MutationObserver(() => { if ((location.hash.slice(1) || 'home') === 'home') window.setTimeout(rolePanel, 0); });
       observer.observe(page, { childList: true, subtree: true });
       window.addEventListener('hashchange', refreshRolePanel);
       const retry = window.setInterval(() => { if (page.querySelector('.mengsu-role-panel')) window.clearInterval(retry); else rolePanel(); }, 300);

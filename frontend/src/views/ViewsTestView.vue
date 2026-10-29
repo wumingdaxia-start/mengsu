@@ -1,5 +1,7 @@
 <script setup>
 import TestResultSave from '../components/TestResultSave.vue'
+import DomainParticleScene from '../components/DomainParticleScene.vue'
+import { valuesExplanations } from '../data/values-explanations'
 import { computed, nextTick, ref } from 'vue'
 
 // Original reflection prompts; the existing personality and tarot pages inform UI only.
@@ -20,6 +22,21 @@ const domains = [
     { left: '共同协调', right: '真实表达', low: '你可能更在意相处中的协调与共同步调。温和地说出一个不同意见，也可以是照顾关系的方式。', high: '你可能更看重表达真实想法和个人立场。选择合适的时间与表达方式，可以帮助彼此理解差异。', prompts: ['与身边人意见不同时，只要表达尊重，我仍愿意说出自己的真实看法。', '对不涉及原则的事情，我通常愿意保留不同意见，以维持共同步调。'], reverse: [false, true] }
   ] }
 ]
+const exploredDomain = ref(null)
+const explanation = computed(() => exploredDomain.value === null ? null : valuesExplanations[exploredDomain.value])
+const explanationPanel = ref(null)
+async function exploreDomain(i) {
+  exploredDomain.value = exploredDomain.value === i ? null : i
+  if (exploredDomain.value !== null) {
+    await nextTick()
+    explanationPanel.value?.scrollIntoView({ block: 'nearest', behavior: 'auto' })
+  }
+}
+function closeExplanation() {
+  const previous = exploredDomain.value
+  exploredDomain.value = null
+  nextTick(() => document.getElementById(`domain-explore-${previous}`)?.focus({ preventScroll: true }))
+}
 const questions = domains.flatMap((domain, d) => domain.axes.flatMap((axis, a) => axis.prompts.map((text, p) => ({ id: `${d}-${a}-${p}`, text, domain: d, axis: a, reverse: axis.reverse?.[p] || false }))))
 const options = ['很不符合', '不太符合', '视情况而定', '比较符合', '非常符合']
 const answers = ref({}), index = ref(0), started = ref(false), finished = ref(false), heading = ref(null)
@@ -51,8 +68,19 @@ function review() { finished.value = false; index.value = 0; focusHeading() }
     <section v-if="!started" class="test-panel intro-panel">
       <h2>从生活中的选择，认识自己的三观</h2>
       <p>18 道题，约 3–5 分钟。按最近一段时间的实际感受作答，没有标准答案。</p>
-      <dl class="domain-intro"><div v-for="domain in domains" :key="domain.name"><dt>{{ domain.name }}</dt><dd>{{ domain.description }}</dd></div></dl>
-      <p class="note">这是本项目原创的自我探索问卷，参考现有测试的交互方式，并非经验证的心理量表，也不评价三观是否“正确”。</p>
+      <div class="domain-intro" role="group" aria-label="了解世界观、人生观与价值观">
+        <button v-for="(domain, d) in domains" :id="`domain-explore-${d}`" :key="domain.name" type="button" class="domain-explore-button" :class="{ 'is-explored': exploredDomain === d }" :aria-expanded="exploredDomain === d" aria-controls="domain-explainer" @click="exploreDomain(d)">
+          <span class="domain-explore-name">{{ domain.name }}</span><span class="domain-explore-description">{{ domain.description }}</span><span class="domain-explore-action">{{ exploredDomain === d ? '收起' : '深入了解' }} <svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="m6 8 4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+        </button>
+      </div>
+      <section v-if="explanation" id="domain-explainer" :key="exploredDomain" ref="explanationPanel" class="domain-explainer" aria-labelledby="domain-explainer-title">
+        <div class="domain-explainer-top"><p>{{ explanation.kicker }}</p><button type="button" class="domain-explainer-close" aria-label="收起详细解读" @click="closeExplanation">收起 <span aria-hidden="true">×</span></button></div>
+        <div class="domain-explainer-layout">
+          <DomainParticleScene :kind="exploredDomain" :title="domains[exploredDomain].name" />
+          <div class="domain-explainer-copy"><h3 id="domain-explainer-title">{{ explanation.title }}</h3><p>{{ explanation.intro }}</p><div class="domain-example"><h4>把它放进生活里</h4><p>{{ explanation.example }}</p></div><h4>本次测试会关注</h4><dl class="domain-explanation-angles"><div v-for="item in explanation.angles" :key="item.title"><dt>{{ item.title }}</dt><dd>{{ item.text }}</dd></div></dl></div>
+        </div>
+        <div class="domain-reflection"><span>留一个问题给自己</span><p>{{ explanation.question }}</p></div>
+      </section>
       <button class="primary start-button" @click="start">开始测试</button>
     </section>
     <section v-else-if="!finished" class="test-panel question-panel">
@@ -71,10 +99,24 @@ function review() { finished.value = false; index.value = 0; focusHeading() }
       </section>
       <details class="test-panel scoring-note"><summary>解读是怎么得出的？</summary><p>每个观察角度对应 2 道题。五档回答计为 1–5 分，反向表述按 6 减去原分数计算。合计 2–4 分靠近左侧，5–7 分为两侧兼顾，8–10 分靠近右侧。标记位置是题目合计的线性映射。</p><p>题量较少，回答也会受到情境影响；这份问卷适合引发思考，不能据此判定一个人的固定特质。</p></details>
     </template>
-    <footer>原创题目与规则解读，仅供自我探索。登录后完成测试会自动保存结果，可在心理总览回看。请确认保存成功后再离开；访客结果不会保存。</footer>
   </div>
 </template>
 
 <style scoped>
 .views-test-page{max-width:1000px;margin:0 auto;font-size:15px;line-height:1.7;color:hsl(var(--psych-hue, 145) 15% 40%)}.views-test-page header{margin:14px 0 26px}.eyebrow{font-size:12px;color:hsl(var(--psych-hue, 145) 15% 45%);margin:0 0 8px}.views-test-page h1{font:500 29px/1.4 var(--display);color:hsl(var(--psych-hue, 145) 15% 33%);margin:0 0 10px}.views-test-page h2{font:500 23px/1.65 var(--display);color:hsl(var(--psych-hue, 145) 16% 43%);margin:0 0 14px}.test-panel{padding:26px;margin-bottom:22px;min-width:0;border:1px solid hsl(var(--psych-hue, 145) 15% 90%);border-radius:13px;background:hsl(var(--psych-hue, 145) 30% 99% / .94)}.domain-intro{margin:24px 0}.domain-intro>div{display:grid;grid-template-columns:78px minmax(0,1fr);gap:16px;padding:14px 0;border-top:1px solid hsl(var(--psych-hue, 145) 15% 93%)}.domain-intro dt{color:hsl(var(--psych-hue, 145) 16% 36%)}.domain-intro dd{margin:0}.note,footer{font-size:13px;color:hsl(var(--psych-hue, 145) 15% 44%)}.views-test-page button{font:inherit;border-radius:7px;box-shadow:none;cursor:pointer;padding:10px 18px}.primary{background:hsl(var(--psych-hue, 145) 16% 44%);color:#fff;border:1px solid hsl(var(--psych-hue, 145) 16% 44%)}.secondary{background:hsl(var(--psych-hue, 145) 15% 98%);color:hsl(var(--psych-hue, 145) 15% 37%);border:1px solid hsl(var(--psych-hue, 145) 15% 90%)}.views-test-page button:disabled{opacity:.45;cursor:not-allowed}.views-test-page :focus-visible{outline:2px solid hsl(var(--psych-hue, 145) 16% 44%);outline-offset:4px}.question-panel{max-width:820px;margin-inline:auto}.question-meta{display:flex;justify-content:space-between;gap:12px;color:hsl(var(--psych-hue, 145) 15% 45%);font-size:13px}.question-panel progress{display:block;width:100%;height:5px;accent-color:hsl(var(--psych-hue, 145) 16% 50%);margin:14px 0 26px}.question-panel fieldset{min-width:0;margin:0;padding:0;border:0}.question-panel legend{padding:0;max-width:100%}.question-panel h2{font-size:20px;overflow-wrap:anywhere}.answer-options{display:grid;gap:10px;margin:16px 0 24px}.answer-options label{display:grid;grid-template-columns:16px minmax(0,1fr);align-items:center;gap:12px;min-width:0;padding:11px 14px;border:1px solid hsl(var(--psych-hue, 145) 17% 91%);border-radius:8px;cursor:pointer;background:#fff}.answer-options label.chosen{border-color:hsl(var(--psych-hue, 145) 16% 52%);background:hsl(var(--psych-hue, 145) 15% 95%)}.views-test-page .answer-options input[type=radio]{appearance:auto;box-sizing:border-box;display:block;width:16px;min-width:16px;max-width:16px;height:16px;min-height:16px;max-height:16px;margin:0;padding:0;border:0;resize:none;accent-color:hsl(var(--psych-hue, 145) 16% 44%)}.question-actions,.result-actions{display:flex;gap:12px;flex-wrap:wrap}.question-actions{justify-content:space-between;border-top:1px solid hsl(var(--psych-hue, 145) 15% 93%);padding-top:18px}.domain-heading{display:flex;align-items:center;gap:14px}.domain-heading>span{color:hsl(var(--psych-hue, 145) 16% 53%);font-size:13px}.domain-heading h2{margin:0}.axis-result{padding:20px 0;border-top:1px solid hsl(var(--psych-hue, 145) 15% 93%)}.axis-result h3{display:flex;align-items:center;justify-content:space-between;gap:12px;font-size:15px;font-weight:500;margin:0 0 20px}.axis-result h3>span{font-size:12px;font-weight:400;background:hsl(var(--psych-hue, 145) 15% 95%);border-radius:4px;color:hsl(var(--psych-hue, 145) 16% 39%);padding:3px 9px;white-space:nowrap}.axis-labels{display:flex;justify-content:space-between;gap:10px;font-size:12px;color:hsl(var(--psych-hue, 145) 15% 45%)}.axis-track{position:relative;height:6px;margin:12px 0 22px;background:hsl(var(--psych-hue, 145) 15% 91%);border-radius:3px}.axis-track:before{content:'';position:absolute;left:50%;height:14px;top:-4px;width:1px;background:hsl(var(--psych-hue, 145) 16% 63%)}.axis-track i{position:absolute;width:12px;height:12px;top:50%;transform:translate(-50%,-50%);border:2px solid #fff;box-sizing:content-box;border-radius:50%;background:hsl(var(--psych-hue, 145) 16% 44%)}.axis-result p{margin:0}.scoring-note{font-size:13px;color:hsl(var(--psych-hue, 145) 15% 44%)}.scoring-note summary{cursor:pointer;color:hsl(var(--psych-hue, 145) 16% 36%)}footer{font-size:11px;line-height:1.9;margin:24px 0}@media(max-width:600px){.test-panel{padding:18px}.views-test-page h1{font-size:25px}.views-test-page h2{font-size:21px}.question-panel h2{font-size:18px}.domain-intro>div{grid-template-columns:62px minmax(0,1fr);gap:8px}.axis-result h3{flex-wrap:wrap}.answer-options label{padding:10px 12px}}
+
+/* In-page exploration: particles explain depth while the text remains readable. */
+.domain-intro{display:grid;gap:0;border-bottom:1px solid hsl(var(--psych-hue,35) 15% 91%)}
+.views-test-page .domain-explore-button{display:grid;grid-template-columns:78px minmax(0,1fr) auto;gap:16px;align-items:center;width:100%;padding:17px 4px;text-align:left;color:inherit;background:transparent;border:0;border-top:1px solid hsl(var(--psych-hue,35) 15% 91%);border-radius:0}
+.domain-explore-name{color:hsl(var(--psych-hue,35) 18% 35%);font-weight:500}.domain-explore-description{font-size:14px}.domain-explore-action{display:flex;align-items:center;gap:7px;font-size:12px;color:hsl(var(--psych-hue,35) 21% 47%);white-space:nowrap}.domain-explore-action svg{width:17px;height:17px;transition:transform 220ms cubic-bezier(.22,1,.36,1)}
+.domain-explore-button.is-explored .domain-explore-action svg{transform:rotate(180deg)}.domain-explore-button:hover,.domain-explore-button.is-explored{background:hsl(var(--psych-hue,35) 23% 95% / .65)}
+.domain-explainer{margin:0 0 24px;padding:0 0 20px;border-bottom:1px solid #e8dfd3;scroll-margin-top:28px;animation:domain-explainer-enter 360ms cubic-bezier(.16,1,.3,1) both}
+.domain-explainer-top{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:18px}.domain-explainer-top>p{margin:0;font-size:12px;color:#9d8268}.views-test-page .domain-explainer-close{display:flex;align-items:center;gap:12px;padding:6px 0 6px 12px;border:0;background:transparent;color:#8d7761;font-size:12px}.domain-explainer-close>span{font-size:21px;font-weight:300;line-height:1}
+.domain-explainer-layout{display:grid;grid-template-columns:minmax(230px,.78fr) minmax(0,1.22fr);gap:26px;align-items:start}.domain-explainer-copy h3{font:500 21px/1.6 var(--display);margin:0 0 12px;color:#78634e}.domain-explainer-copy>p{font-size:14px;margin:0 0 18px;line-height:1.85}.domain-explainer-copy h4{font-size:12px;font-weight:500;color:#957a61;margin:0 0 7px}.domain-example{padding-left:13px;border-left:2px solid #dfcbb4;margin-bottom:20px}.domain-example p{font-size:13px;line-height:1.85;margin:0}
+.domain-explanation-angles{display:grid;gap:12px;margin:0}.domain-explanation-angles>div{display:grid;grid-template-columns:82px minmax(0,1fr);gap:12px}.domain-explanation-angles dt{font-size:12px;color:#8a725d}.domain-explanation-angles dd{margin:0;font-size:13px;line-height:1.8}
+.domain-reflection{margin:24px 0 0;padding:16px 0 0;border-top:1px solid #eae1d6}.domain-reflection>span{font-size:11px;color:#9c846c}.domain-reflection>p{margin:5px 0 0;font:500 16px/1.8 var(--display);color:#7d6853}
+@keyframes domain-explainer-enter{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+@media(max-width:760px){.domain-explainer-layout{grid-template-columns:1fr;gap:22px}.domain-explainer-copy h3{font-size:20px}.views-test-page .domain-explore-button{grid-template-columns:62px minmax(0,1fr) 20px;gap:10px;padding:16px 0}.domain-explore-description{font-size:13px}.domain-explore-action{font-size:0;gap:0}.domain-explore-action svg{width:18px;height:18px}.domain-explanation-angles>div{grid-template-columns:74px minmax(0,1fr);gap:10px}}
+@media(prefers-reduced-motion:reduce){.domain-explainer{animation:none}.domain-explore-action svg{transition:none}}
+
 </style>

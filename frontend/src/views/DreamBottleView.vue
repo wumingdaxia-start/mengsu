@@ -1,4 +1,5 @@
 <script setup>
+import { readDream, writeDream } from '../dream-account'
 import { computed, ref } from 'vue'
 import { useJourneyUi } from '../composables/useJourneyUi'
 const { toast, notify } = useJourneyUi()
@@ -16,7 +17,7 @@ const draft = ref('')
 const mood = ref('')
 const opened = ref(null)
 const starOpened = ref(null)
-const load = () => { try { return JSON.parse(localStorage.getItem('mengsu-drift-v1') || '{}') || {} } catch { return {} } }
+const load = () => readDream('drift', {})
 const stored = load()
 const bottles = ref(Array.isArray(stored.bottles) ? stored.bottles : [])
 const stars = ref(Array.isArray(stored.stars) ? stored.stars : [])
@@ -25,24 +26,24 @@ const shell = ref(stored.shell || null)
 const today = () => new Date().toLocaleDateString('sv-SE')
 const shellOpen = ref(false)
 const shellLines = ['不必把每一天都过得闪闪发光，安静地度过也很好。','把没有完成的事留给明天，今晚先照顾好自己。','你可以慢一点，海浪也不是一次就抵达岸边。','今天的小小快乐，值得被认真收下。','不急着找到答案，先让心靠一会儿岸。']
-function persist(next) {
- try { localStorage.setItem('mengsu-drift-v1', JSON.stringify({bottles:bottles.value, stars:stars.value, favorites:favorites.value, shell:shell.value, ...next})); return true }
- catch { notify('浏览器未能保存，请保留文字后再试。'); return false }
+async function persist(next) {
+ try { await writeDream('drift', {bottles:bottles.value, stars:stars.value, favorites:favorites.value, shell:shell.value, ...next}); return true }
+ catch(error) { notify(error.message||'账号记录未能保存，请保留文字后再试。'); return false }
 }
-function send() {
+async function send() {
  if (!draft.value.trim()) return notify('先写一句想交给海的话吧。')
  const next = [{ id:Date.now(), type:selected.value, text:draft.value.trim(), date:today() }, ...bottles.value]
- if (persist({bottles:next})) { bottles.value=next; draft.value=''; stage.value='sent'; notify('纸条已封好，保存在你的本机星海。') }
+ if (await persist({bottles:next})) { bottles.value=next; draft.value=''; stage.value='sent'; notify('纸条已封好，保存在你的账号星海。') }
 }
-function addStar() {
+async function addStar() {
  if (!mood.value.trim()) return notify('写下此刻的心情，再让它成为星星。')
  const next = [...stars.value, {id:Date.now(), text:mood.value.trim(), date:today()}]
- if(persist({stars:next})) { stars.value=next; mood.value=''; notify('今天的心情，成为了一颗星星。') }
+ if(await persist({stars:next})) { stars.value=next; mood.value=''; notify('今天的心情，成为了一颗星星。') }
 }
-function openShell() {
+async function openShell() {
  if (shell.value?.date!==today()) {
  const next={date:today(), text:shellLines[Math.floor(Math.random()*shellLines.length)]}
- if(!persist({shell:next})) return
+ if(!await persist({shell:next})) return
  shell.value=next
  }
  shellOpen.value=true
@@ -56,10 +57,10 @@ const samples = [
  {id:'demo6',type:5,text:'今天就到这里吧。愿你今晚睡得安稳，醒来有一点新的力气。'}
 ]
 const picked = computed(()=>[...bottles.value.slice(0,3),...samples])
-function favorite(item) {
+async function favorite(item) {
  if (favorites.value.some(x=>x.id===item.id)) return notify('这封信已经收藏在信箱里了。')
  const next=[item,...favorites.value]
- if(persist({favorites:next})) {favorites.value=next; notify('已收藏到我的信箱。')}
+ if(await persist({favorites:next})) {favorites.value=next; notify('已收藏到我的信箱。')}
 }
 const heading = computed(()=>({action:'把心事交给海',types:'选择漂流瓶',write:'写下心事',sent:'心事已启程',pick:'捞瓶子',sea:'情绪星海',shell:'治愈贝壳',mail:'我的信箱'}[stage.value] || '星屿漂流'))
 const tab = ref('sent')
@@ -108,7 +109,7 @@ const mail = computed(()=>tab.value==='sent'?bottles.value:favorites.value)
  <div class="button-row"><button :class="tab==='sent'?'primary':'quiet'" @click="tab='sent'">我投出的瓶子 {{bottles.length}}</button><button :class="tab==='saved'?'primary':'quiet'" @click="tab='saved'">珍藏来信 {{favorites.length}}</button></div><div v-if="!mail.length" class="mail-empty">{{tab==='sent'?'还没有投出的纸条。把第一句心事交给海吧。':'遇到喜欢的来信，可以将它收藏在这里。'}}<button class="primary" @click="stage=tab==='sent'?'types':'pick'">{{tab==='sent'?'写一张纸条':'去捞瓶子'}}</button></div><div v-else class="mail-list"><button v-for="item in mail" :key="item.id" @click="opened=item"><span :style="{color:types[item.type].color}">{{types[item.type].name}} · {{item.date || '示例来信'}}</span><p>{{item.text}}</p></button></div>
  </template>
  </div>
- <footer>本机星海体验 · 纸条仅保存在此浏览器，尚未向其他用户投递</footer>
+ <footer>账号星海体验 · 纸条仅保存在当前账号，尚未向其他用户投递</footer>
  <div v-if="opened" class="letter-overlay" @click.self="opened=null"><section class="opened-letter" role="dialog" aria-modal="true" aria-label="瓶中来信" @keydown.esc="opened=null"><button autofocus class="close-letter" @click="opened=null">关闭</button><p class="letter-title">{{types[opened.type].name}}</p><small>{{opened.date || '示例来信 · 非真实用户投递'}}</small><p class="message">{{opened.text}}</p><button class="primary" @click="favorite(opened)">收藏这封信</button></section></div>
  <div v-if="toast" class="drift-toast" role="status">{{toast}}</div>
 </section>

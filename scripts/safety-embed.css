@@ -32,3 +32,73 @@ html[data-mengsu-embed='true'] .mengsu-role-figure span{position:absolute;right:
 @media(max-width:760px){html[data-mengsu-embed='true'] .app-shell{display:block}html[data-mengsu-embed='true'] .main{padding:0 18px 70px}html[data-mengsu-embed='true'] .topbar{gap:10px}html[data-mengsu-embed='true'] .top-welcome{flex-basis:100%}html[data-mengsu-embed='true'] .top-actions{margin-left:0;flex-wrap:wrap;max-width:100%}html[data-mengsu-embed='true'] .sidebar{width:min(280px,90vw)}html[data-mengsu-embed='true'] .weather-main small{display:none}}
 @media(max-width:760px){html[data-mengsu-embed='true'] .mengsu-role-panel{grid-template-columns:1fr;gap:12px;padding:18px}.mengsu-role-figure{grid-row:1;min-height:125px!important;border-left:0!important;border-bottom:1px solid rgba(112,145,127,.15);padding-bottom:8px}.mengsu-role-figure img{height:125px!important}.mengsu-role-figure span{bottom:5px}}
 @media(prefers-reduced-motion:reduce){html[data-mengsu-embed='true'] .page{animation:none}html[data-mengsu-embed='true'] *{scroll-behavior:auto;transition:none!important}}
+
+/* Use the same greeting / centered weather / account hierarchy as the other workspaces. */
+html[data-mengsu-embed='true'] .main{--header-gutter:28px}
+html[data-mengsu-embed='true'] .topbar{
+ position:sticky;top:0;z-index:20;box-sizing:border-box;
+ width:calc(100% + var(--header-gutter) * 2);margin:0 calc(var(--header-gutter) * -1);
+ min-height:110px;padding:10px var(--header-gutter);gap:16px;
+ background:rgba(248,251,249,.96)!important;
+ border-bottom:1px solid #dfe9e1;box-shadow:none;
+}
+html[data-mengsu-embed='true'] .top-welcome b{font-size:14px;line-height:1.3;letter-spacing:0;color:#355b50}
+html[data-mengsu-embed='true'] .top-welcome p{margin:5px 0 0;font-size:12px;color:#869d92}
+html[data-mengsu-embed='true'] .weather-card{
+ min-height:90px;padding:9px 17px;gap:14px;border-radius:12px;
+ border-color:#dfe9e1;background:rgba(255,255,255,.75);box-shadow:none;transition:none;
+}
+html[data-mengsu-embed='true'] .weather-card:hover{transform:none;box-shadow:none}
+html[data-mengsu-embed='true'] .weather-art{width:46px;height:46px;flex-basis:46px;border-radius:14px;background:#e7f1e9;color:#608b78}
+html[data-mengsu-embed='true'] .weather-art svg{width:29px;height:29px}
+html[data-mengsu-embed='true'] .weather-head{gap:10px;font-weight:400;color:#869d92}
+html[data-mengsu-embed='true'] .weather-head label{font-weight:400}
+html[data-mengsu-embed='true'] .weather-head select{color:#355b50}
+html[data-mengsu-embed='true'] .weather-head button{margin-left:auto;min-height:24px;color:#608b78}
+html[data-mengsu-embed='true'] .weather-main{gap:9px;margin-top:1px}
+html[data-mengsu-embed='true'] .weather-main strong{font-size:25px;font-weight:600;letter-spacing:0;color:#355b50}
+html[data-mengsu-embed='true'] .weather-main span{color:#355b50}
+html[data-mengsu-embed='true'] .weather-main small{display:inline;color:#869d92}
+html[data-mengsu-embed='true'] .weather-detail p{color:#869d92;line-height:1.35}
+html[data-mengsu-embed='true'] .top-actions{position:relative;gap:10px;min-width:0}
+html[data-mengsu-embed='true'] .mengsu-return-entry{
+ min-height:44px;padding:8px 5px;border:0;border-radius:6px;
+ background:transparent;color:#608b78;font-size:12px;font-weight:400;
+}
+html[data-mengsu-embed='true'] .mengsu-return-entry:hover{background:#e7f1e9}
+html[data-mengsu-embed='true'] .top-account{min-height:45px;padding:4px 5px 4px 9px;gap:6px;text-align:left}
+html[data-mengsu-embed='true'] .top-account>span:first-child{display:block}
+html[data-mengsu-embed='true'] .top-account b{max-width:80px;font-size:14px;color:#355b50}
+html[data-mengsu-embed='true'] .top-account small{font-size:11px;color:#869d92}
+html[data-mengsu-embed='true'] .top-account .avatar{
+ width:39px;height:39px;flex-basis:39px;border:2px solid #dfe9e1;
+ background:#e7f1e9;color:#608b78;box-shadow:none;font-size:17px;
+}
+@media(min-width:1200px){
+ html[data-mengsu-embed='true'] .topbar{display:grid;grid-template-columns:minmax(0,1fr) minmax(280px,350px) minmax(0,1fr);align-items:center}
+ html[data-mengsu-embed='true'] .top-welcome{grid-column:1;min-width:0}
+ html[data-mengsu-embed='true'] .weather-card{grid-column:2;order:0;width:100%;min-width:0;max-width:350px;margin:0;justify-self:center}
+ html[data-mengsu-embed='true'] .top-actions{grid-column:3;justify-self:end;margin:0;flex-wrap:nowrap}
+}
+@media(max-width:1199px){
+ html[data-mengsu-embed='true'] .main{--header-gutter:22px}
+ html[data-mengsu-embed='true'] .topbar{display:flex;flex-wrap:wrap}
+ html[data-mengsu-embed='true'] .weather-card{order:3;flex:1 1 100%;width:100%;max-width:none}
+}
+@media(max-width:599px){
+ html[data-mengsu-embed='true'] .topbar{gap:10px}
+ html[data-mengsu-embed='true'] .top-welcome{flex-basis:100%}
+ html[data-mengsu-embed='true'] .top-actions{width:100%;justify-content:flex-end}
+ html[data-mengsu-embed='true'] .top-account>span:first-child{display:none}
+ html[data-mengsu-embed='true'] .weather-main small{display:none}
+}
+
+html[data-mengsu-embed='true'] #topLogout:not([hidden]){
+ display:block;position:absolute;right:0;top:calc(100% + 8px);z-index:30;
+ min-width:132px;padding:12px 16px;text-align:left;
+ border:1px solid #dfe9e1;border-radius:10px;
+ color:#6d5760;background:#fff;font-size:13px;
+ box-shadow:0 8px 24px rgba(53,91,80,.08);
+}
+html[data-mengsu-embed='true'] #topLogout:hover{background:#f4f7f3}
+@media(max-width:760px){html[data-mengsu-embed='true'] .main{--header-gutter:18px}}
