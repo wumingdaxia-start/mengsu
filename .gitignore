@@ -26,6 +26,7 @@ node_modules/
 !.env.example
 *.tsbuildinfo
 services/safety/storage/
+.workbuddy/
 
 # Bundled SBTI source assets (not runtime user data)
 !frontend/src/data/

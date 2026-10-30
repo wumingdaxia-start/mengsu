@@ -6,7 +6,7 @@
   // Shared camera geometry for dust, bright stars and the Canvas fallback.
   const CAMERA = { yaw:.56, pitch:.44, shiftX:.24, shiftY:.18, perspective:.30, response:6 };
   function project(x,y,z,tilt) {
-    const yaw=tilt.x*CAMERA.yaw,pitch=-tilt.y*CAMERA.pitch;
+    const yaw=tilt.x*CAMERA.yaw,pitch=.78-tilt.y*CAMERA.pitch*.45;
     const xx=x*Math.cos(yaw)+z*Math.sin(yaw),zz=-x*Math.sin(yaw)+z*Math.cos(yaw);
     const yy=y*Math.cos(pitch)-zz*Math.sin(pitch),depth=y*Math.sin(pitch)+zz*Math.cos(pitch);
     const scale=1/(1-depth*CAMERA.perspective);
@@ -16,20 +16,21 @@
   function particles() {
     const rand=random(271828), out=[];
     const normal=()=>Math.sqrt(-2*Math.log(Math.max(.00001,rand())))*Math.cos(TAU*rand());
-    for(let i=0;i<12500;i++) {
+    const count=matchMedia('(max-width: 720px)').matches?28000:80000;
+    for(let i=0;i<count;i++) {
       let radius,angle,z,size,alpha;
-      if(i<3500) {
-        radius=.13+Math.pow(rand(),.8)*.23;
+      if(i<count*.07) {
+        radius=.07+Math.sqrt(rand())*.31;
         angle=rand()*TAU;
         radius+=normal()*.014;
-        z=normal()*.025;size=.48+rand()*.64;alpha=.25+rand()*.50;
-      } else if(i<11200) {
+        z=normal()*.04;size=.3+rand()*.45;alpha=.12+rand()*.22;
+      } else if(i<count*.75) {
         radius=.28+Math.pow(rand(),.8)*.92;
-        angle=(i%3)*TAU/3+radius*5.6+normal()*(.075+radius*.07);
+        angle=(i%3)*TAU/3+radius*5.6+normal()*(.035+radius*.025);
         radius+=normal()*.018;
-        z=normal()*.045;size=.42+rand()*.75;alpha=.13+rand()*.48;
+        z=normal()*(.025+radius*.055);size=.28+rand()*.56;alpha=.18+rand()*.32;
       } else {
-        radius=Math.sqrt(rand())*1.8;angle=rand()*TAU;z=normal()*.15;
+        radius=.65+Math.sqrt(rand())*1.3;angle=rand()*TAU;z=normal()*.15;
         size=.42+rand()*.85;alpha=.12+rand()*.3;
       }
       out.push(radius,angle,z,size,alpha,rand()*TAU);
@@ -45,18 +46,18 @@
     varying float vAlpha;
     void main(){
       float r=aOrbit.x;
-      float angle=aOrbit.y+uTime*(.012+.008/(r+.3));
-      vec3 p=vec3(cos(angle)*r,sin(angle)*r*.94,aOrbit.z);
-      float yaw=uTilt.x*${CAMERA.yaw},pitch=-uTilt.y*${CAMERA.pitch};
+      float angle=aOrbit.y+uTime*(.145+.022/(r+.3));
+      vec3 p=vec3(cos(angle)*r,sin(angle)*r*.94,aOrbit.z+.012*sin(angle*3.+uTime*.18));
+      float yaw=uTilt.x*${CAMERA.yaw},pitch=.78-uTilt.y*${CAMERA.pitch}*.45;
       p.xz=mat2(cos(yaw),-sin(yaw),sin(yaw),cos(yaw))*p.xz;
       p.yz=mat2(cos(pitch),sin(pitch),-sin(pitch),cos(pitch))*p.yz;
       float perspective=1./(1.-p.z*${CAMERA.perspective});
       vec2 pixel=uCenter+(p.xy*perspective+uTilt*vec2(${CAMERA.shiftX},${CAMERA.shiftY}))*uRadius;
       gl_Position=vec4(pixel.x/uViewport.x*2.-1.,1.-pixel.y/uViewport.y*2.,0.,1.);
-      gl_PointSize=max(1.,aOrbit.w*uDpr*(uRadius/420.+.35)*1.4);
+      gl_PointSize=max(1.,aOrbit.w*uDpr*(uRadius/420.+.35)*1.45*perspective);
       float pulse=.84+.16*sin(aLight.y+uTime*.65);
       float top=smoothstep(70.,140.,pixel.y);
-      vAlpha=aLight.x*pulse*top;
+      vAlpha=aLight.x*pulse*top*.78;
     }`;
   const FRAG=`
     precision mediump float;
@@ -64,10 +65,10 @@
     void main(){
       float d=length(gl_PointCoord-.5)*2.;
       float alpha=(1.-smoothstep(.12,1.,d))*vAlpha;
-      gl_FragColor=vec4(.89,.91,1.,alpha);
+      gl_FragColor=vec4(.94,.96,1.,alpha);
     }`;
   function gpu(canvas,points) {
-    const gl=canvas.getContext('webgl',{antialias:false,alpha:false,powerPreference:'low-power'});
+    const gl=canvas.getContext('webgl',{antialias:false,alpha:true,premultipliedAlpha:false,powerPreference:'low-power'});
     if(!gl) return null;
     const shaders=[],buffers=[];let program,lost=false;
     try {
@@ -84,7 +85,7 @@
     } catch(error) { buffers.forEach(b=>gl.deleteBuffer(b));if(program)gl.deleteProgram(program);throw error; }
     finally {shaders.forEach(s=>gl.deleteShader(s));}
     const uniforms={};['uViewport','uCenter','uTilt','uRadius','uTime','uDpr'].forEach(n=>uniforms[n]=gl.getUniformLocation(program,n));
-    gl.clearColor(3/255,3/255,8/255,1);gl.enable(gl.BLEND);gl.blendFunc(gl.SRC_ALPHA,gl.ONE);
+    gl.clearColor(0,0,0,0);gl.enable(gl.BLEND);gl.blendFunc(gl.SRC_ALPHA,gl.ONE);
     const onLost=e=>{e.preventDefault();lost=true;};canvas.addEventListener('webglcontextlost',onLost);
     return {
       get lost(){return lost;},
@@ -103,9 +104,9 @@
     return {
       resize(w,h,dpr){canvas.width=Math.round(w*dpr);canvas.height=Math.round(h*dpr);ctx.setTransform(dpr,0,0,dpr,0,0);},
       draw(w,h,cx,cy,r,t,tilt){
-        ctx.globalAlpha=1;ctx.fillStyle='#030308';ctx.fillRect(0,0,w,h);ctx.fillStyle='#e3e8ff';
+        ctx.clearRect(0,0,w,h);ctx.fillStyle='#c9d9ff';
         for(let i=0;i<points.length;i+=12) {
-          const radius=points[i],a=points[i+1]+t*(.012+.008/(radius+.3)),z=points[i+2];
+          const radius=points[i],a=points[i+1]+t*(.145+.022/(radius+.3)),z=points[i+2];
           const p=project(Math.cos(a)*radius,Math.sin(a)*radius*.94,z,tilt);
           const x=cx+p.x*r,y=cy+p.y*r;
           ctx.globalAlpha=points[i+4]*(.84+.16*Math.sin(points[i+5]+t*.65))*clamp((y-70)/70,0,1);
@@ -122,13 +123,38 @@
     let w=1,h=1,dpr=1,active=false,disposed=false,clock=0;
     const tilt={x:0,y:0},target={x:0,y:0},rand=random(142857),lights=[];
     const trail=[],sparks=[],cursor={x:0,y:0,active:false,lastMove:-10};
+    // Independent depth planes: distant pinpoints, middle dust and soft foreground bokeh.
+    const depthDust=Array.from({length:matchMedia('(max-width:720px)').matches?600:2600},()=>({
+      x:rand(),y:rand(),depth:rand(),phase:rand()*TAU,speed:.01+rand()*.021
+    }));
+    // Short tangential glints make the spiral's direction legible without long meteor trails.
+    const streams=Array.from({length:matchMedia('(max-width:720px)').matches?130:460},(_,i)=>{
+      const r=.3+rand()*.98;
+      return {r,a:(i%3)*TAU/3+r*5.6+(rand()-.5)*.14,z:(rand()-.5)*.08,phase:rand()*TAU};
+    });
+    const grain=document.createElement('canvas');grain.width=grain.height=192;
+    const grainCtx=grain.getContext('2d'),grainData=grainCtx.createImageData(192,192);
+    for(let i=0;i<grainData.data.length;i+=4){const v=100+rand()*155;grainData.data[i]=grainData.data[i+1]=grainData.data[i+2]=v;grainData.data[i+3]=rand()*13;}
+    grainCtx.putImageData(grainData,0,0);
+    // Prepaint volumetric spiral dust once; the live frame only composites this texture.
+    const nebula=document.createElement('canvas');nebula.width=1200;nebula.height=1200;
+    const nc=nebula.getContext('2d'),cloudRand=random(9031);
+    nc.globalCompositeOperation='lighter';
+    for(let i=0;i<440;i++){
+      const radius=.08+cloudRand()*1.08,angle=(i%3)*TAU/3+radius*5.6+(cloudRand()-.5)*.25;
+      const x=600+Math.cos(angle)*radius*470,y=600+Math.sin(angle)*radius*470;
+      const size=20+cloudRand()*62,g=nc.createRadialGradient(x,y,0,x,y,size);
+      const color=i%3===0?'157,144,193':i%3===1?'118,155,191':'158,168,201';
+      g.addColorStop(0,`rgba(${color},.045)`);g.addColorStop(.4,`rgba(${color},.023)`);g.addColorStop(1,`rgba(${color},0)`);
+      nc.fillStyle=g;nc.fillRect(x-size,y-size,size*2,size*2);
+    }
     const TRAIL_LIFE=1.35,TRAIL_LENGTH=560;
     function resetPointer(){trail.length=0;sparks.length=0;cursor.active=false;target.x=target.y=0;}
     for(let i=0;i<55;i++)lights.push({r:.37+rand()*.96,a:rand()*TAU,s:.7+rand()*1.4,p:rand()*TAU});
-    function resize(width,height){w=width;h=height;resetPointer();dpr=Math.min(canvas.ownerDocument.defaultView.devicePixelRatio||1,2);painter.resize(w,h,dpr);overlay.width=Math.round(w*dpr);overlay.height=Math.round(h*dpr);ctx.setTransform(dpr,0,0,dpr,0,0);}
+    function resize(width,height){w=width;h=height;resetPointer();const mobile=w<721;dpr=Math.min(Math.max(canvas.ownerDocument.defaultView.devicePixelRatio||1,mobile?1:1.75),mobile?2:2.5,Math.max(1,Math.sqrt(12000000/(w*h))));painter.resize(w,h,dpr);overlay.width=Math.round(w*dpr);overlay.height=Math.round(h*dpr);ctx.setTransform(dpr,0,0,dpr,0,0);}
     function glow(x,y,r,color,alpha=1){
       ctx.globalAlpha=alpha;const g=ctx.createRadialGradient(x,y,0,x,y,r*5);
-      g.addColorStop(0,'#ffffff');g.addColorStop(.09,color);g.addColorStop(.23,color+'bd');g.addColorStop(.5,color+'20');g.addColorStop(1,color+'00');
+      g.addColorStop(0,color);g.addColorStop(.09,color+'cf');g.addColorStop(.23,color+'75');g.addColorStop(.5,color+'18');g.addColorStop(1,color+'00');
       ctx.fillStyle=g;ctx.beginPath();ctx.arc(x,y,r*5,0,TAU);ctx.fill();
     }
     function move(x,y,showTrail=true){
@@ -177,8 +203,16 @@
       if(dt===0)resetPointer();
       if(painter.lost){fallback();painter.resize(w,h,dpr);}
       const smoothing=dt>0?1-Math.exp(-dt*CAMERA.response):0;tilt.x+=(target.x-tilt.x)*smoothing;tilt.y+=(target.y-tilt.y)*smoothing;
-      const r=Math.min(w*.49,h*.41),cx=w*.5,cy=h*.54;
+      const r=Math.min(w*.64,h*.78),cx=w*.5,cy=h*.59;
       painter.draw(w,h,cx,cy,r,t,tilt,dpr);ctx.clearRect(0,0,w,h);ctx.globalCompositeOperation='lighter';
+      ctx.save();ctx.translate(cx+tilt.x*r*.24,cy+tilt.y*r*.18);
+      ctx.rotate(-.24+tilt.x*.07);ctx.scale(1,.65+tilt.y*.07);ctx.rotate(t*.012);
+      ctx.globalAlpha=.9;ctx.drawImage(nebula,-r*1.28,-r*1.28,r*2.56,r*2.56);ctx.restore();
+      // Broad luminous nucleus and a smaller warm heart establish depth and scale.
+      const core=project(0,0,0,tilt);
+      glow(cx+core.x*r,cy+core.y*r,r*.105,'#a5a4ce',.25);
+      glow(cx+core.x*r,cy+core.y*r,r*.036,'#eee5d6',.72);
+      glow(cx+core.x*r,cy+core.y*r,r*.009,'#fff7e9',.9);
       for(const f of lights){
         const a=f.a+t*.014,p=project(Math.cos(a)*f.r,Math.sin(a)*f.r*.94,Math.sin(f.p)*.08,tilt),x=cx+p.x*r,y=cy+p.y*r;
         const alpha=(.38+.28*Math.sin(t*.6+f.p)**2)*clamp((y-100)/60,0,1);
@@ -186,11 +220,11 @@
       }
       // A blue-white and a warm gold star orbit a shared, empty centre.
       const orbit=.205*r,a=2.90+t*.19;
-      for(const [offset,color] of [[0,'#89caff'],[Math.PI,'#fff36f']]){
+      for(const [offset,color] of [[0,'#a8cde3'],[Math.PI,'#e5d3a3']]){
         const angle=a+offset;
         const p=project(Math.cos(angle)*orbit/r,Math.sin(angle)*orbit/r*.68,0,tilt),x=cx+p.x*r,y=cy+p.y*r;
-        glow(x,y,Math.max(3,r*.018),color);
-        ctx.globalAlpha=1;ctx.fillStyle=color;ctx.beginPath();ctx.arc(x,y,Math.max(2,r*.012),0,TAU);ctx.fill();
+        glow(x,y,Math.max(2,r*.013),color,.65);
+        ctx.globalAlpha=.8;ctx.fillStyle=color;ctx.beginPath();ctx.arc(x,y,Math.max(1.5,r*.006),0,TAU);ctx.fill();
       }
       // Sparse orbiting streaks; tapered trails remain part of the distant scene.
       for(let i=0;i<4;i++){
@@ -204,7 +238,26 @@
         ctx.beginPath();ctx.moveTo(x-dx*length,y-dy*length);ctx.quadraticCurveTo(x-dx*length*.4-8,y-dy*length*.4,x,y);ctx.stroke();
         glow(x,y,Math.max(1.1,r*.005),'#e5eaff',alpha);
       }
+      for(const dust of depthDust){
+        const depth=dust.depth,x=((dust.x+t*dust.speed*(.2+depth))%1)*w+tilt.x*depth*30;
+        const y=((dust.y+Math.sin(t*.055+dust.phase)*.018+1)%1)*h+tilt.y*depth*22;
+        const size=.25+depth*depth*1.7;
+        if(depth>.97)glow(x,y,size,'#e7edf5',.14);
+        else{ctx.globalAlpha=.28+depth*.36;ctx.fillStyle='#f6f8ff';ctx.beginPath();ctx.arc(x,y,size,0,TAU);ctx.fill();}
+      }
+      ctx.lineCap='round';
+      for(const star of streams){
+        const angle=star.a+t*(.145+.022/(star.r+.3));
+        const p=project(Math.cos(angle)*star.r,Math.sin(angle)*star.r*.94,star.z,tilt);
+        const back=angle-.009;
+        const q=project(Math.cos(back)*star.r,Math.sin(back)*star.r*.94,star.z,tilt);
+        ctx.globalAlpha=(.25+.3*Math.sin(t*.5+star.phase)**2)*clamp((cy+p.y*r-100)/80,0,1);
+        ctx.strokeStyle='#eff5ff';ctx.lineWidth=Math.max(.65,p.scale*.85);
+        ctx.beginPath();ctx.moveTo(cx+q.x*r,cy+q.y*r);ctx.lineTo(cx+p.x*r,cy+p.y*r);ctx.stroke();
+      }
       drawComet(dt);ctx.globalAlpha=1;ctx.globalCompositeOperation='source-over';
+      // Static, very low contrast film texture avoids flickering noise on every frame.
+      ctx.globalAlpha=.24;ctx.fillStyle=ctx.createPattern(grain,'repeat');ctx.fillRect(0,0,w,h);ctx.globalAlpha=1;
     }
     resize(canvas.ownerDocument.defaultView.innerWidth,canvas.ownerDocument.defaultView.innerHeight);
     return {resize,render,resetPointer,setActive(value){active=value;if(!value)resetPointer();},move,leave(){target.x=target.y=0;cursor.active=false;},dispose(){disposed=true;resetPointer();painter.dispose();}};
