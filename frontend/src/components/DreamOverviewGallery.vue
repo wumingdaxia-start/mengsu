@@ -29,6 +29,7 @@ let touchX=0
 function swipe(e){const delta=e.changedTouches[0].clientX-touchX;if(Math.abs(delta)>45)move(delta<0?1:-1)}
 onMounted(async()=>{
  loading.value=false
+ if(['map','network'].includes(route.query.scene))await open(route.query.scene)
  const found=cards.value.find(s=>String(s.id)===String(route.query.snapshot));if(found)open('detail',found)
 })
 </script>
