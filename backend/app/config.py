@@ -32,6 +32,7 @@ class Settings:
     api_key: str
     base_url: str
     chat_model: str
+    tts_model: str
     timezone: str
     xinchao_base_url: str
     xinchao_token: str
@@ -57,6 +58,7 @@ def load_settings() -> Settings:
         api_key=(os.environ.get("QWEN_API_KEY", "") or os.environ.get("DASHSCOPE_API_KEY", "")).strip(),
         base_url=(os.environ.get("QWEN_BASE_URL", "").strip() or "https://dashscope.aliyuncs.com/compatible-mode/v1").rstrip("/"),
         chat_model=os.environ.get("QWEN_MODEL", "").strip() or "qwen-plus",
+        tts_model=os.environ.get("QWEN_TTS_MODEL", "").strip() or "qwen3-tts-flash",
         timezone=os.environ.get("APP_TIMEZONE", "Asia/Shanghai").strip(),
         xinchao_base_url=os.environ.get("XINCHAO_BASE_URL", "http://127.0.0.1:18110").rstrip("/"),
         xinchao_token=os.environ.get("XINCHAO_SERVICE_TOKEN", "").strip() or _read_xinchao_token(),
