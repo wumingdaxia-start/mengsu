@@ -42,3 +42,6 @@ frontend/src/data/*
 !frontend/src/data/personality-cards.js
 
 !frontend/src/data/values-explanations.js
+
+# Local presentation scripts
+**/*演讲稿*.txt
