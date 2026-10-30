@@ -31,7 +31,7 @@ onBeforeUnmount(() => { clearTimeout(loadingTimer); window.removeEventListener('
 
 <template>
   <section class="ripple-entry" aria-label="梦溯梦境入口">
-    <iframe ref="frame" src="/entry-ripples/index.html?v=huayuxing-20261029-1" title="梦溯互动：花屿安康守护、鱼庭梦溯与星栈心灵"
+    <iframe ref="frame" src="/entry-ripples/index.html?v=crisp-star-flow-20261030-6" title="梦溯互动：花屿安康守护、鱼庭梦溯与星栈心灵"
       sandbox="allow-scripts allow-same-origin allow-downloads allow-popups allow-popups-to-escape-sandbox"
       referrerpolicy="no-referrer" @error="failed = true" />
     <div v-if="failed" class="ripple-entry-fallback" role="status">

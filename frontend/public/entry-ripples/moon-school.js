@@ -8,14 +8,15 @@ function create(canvas){
  const random=()=>{seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/4294967296;};
  const fish=Array.from({length:matchMedia('(max-width:720px)').matches?56:104},()=>({angle:random()*Math.PI*2,radius:.53+random()*.79,depth:random(),phase:random()*6.28,speed:.025+random()*.045,size:.65+random()*.8,ox:0,oy:0})).sort((a,b)=>a.depth-b.depth);
  const dust=Array.from({length:50},()=>({x:random(),y:random(),r:.4+random()*1.4,phase:random()*6.28}));
- const pointer={x:0,y:0,active:false};
+ const pointer={x:0,y:0,active:false,heading:0};
+ const companion={x:0,y:0,vx:0,vy:0,heading:0,phase:0,alpha:0,ready:false};
  function resize(width,height){w=width;h=height;dpr=Math.min(devicePixelRatio||1,1.5);canvas.width=Math.round(w*dpr);canvas.height=Math.round(h*dpr);}
- function drawFish(x,y,length,heading,phase,opacity){
+ function drawFish(x,y,length,heading,phase,opacity,flex=.048){
   if(!sprite.complete||!sprite.naturalWidth)return;
   ctx.save();ctx.translate(x,y);ctx.rotate(heading);ctx.globalAlpha=opacity;
   const sw=sprite.naturalWidth,sh=sprite.naturalHeight,scale=length/sw;
   // Travelling body bend increases toward the forked tail; strip overlap avoids seams.
-  for(let k=0;k<22;k++){const u=k/22,part=sw/22,bend=Math.sin(phase-u*4.2)*(1-u)**2*length*.048;
+  for(let k=0;k<22;k++){const u=k/22,part=sw/22,bend=Math.sin(phase-u*4.2)*(1-u)**2*length*flex;
    ctx.drawImage(sprite,u*sw,0,part+.7,sh,(u-.5)*length,-sh*scale*.54+bend,part*scale+.6,sh*scale);
   }ctx.restore();
  }
@@ -45,9 +46,38 @@ function create(canvas){
   const shade=ctx.createRadialGradient(w*.5,h*.5,0,w*.5,h*.5,Math.max(w,h)*.68);
   shade.addColorStop(0,'rgba(3,38,67,.12)');shade.addColorStop(.55,'rgba(2,31,58,0)');shade.addColorStop(1,'rgba(1,25,49,.44)');
   ctx.fillStyle=shade;ctx.fillRect(0,0,w,h);
+  // Critically damped swimming: frame-rate independent pursuit, with no overshoot.
+  // Position, heading and tail cadence evolve in the render loop, never per mouse event.
+  const step=Math.min(.05,Math.max(0,dt)),omega=14,decay=Math.exp(-omega*step);
+  companion.alpha+=((pointer.active?1:0)-companion.alpha)*(1-Math.exp(-step*9));
+  if(companion.ready&&companion.alpha>.005){
+   for(const [axis,velocity] of [['x','vx'],['y','vy']]){
+    const offset=companion[axis]-pointer[axis],j=companion[velocity]+omega*offset;
+    companion[axis]=pointer[axis]+(offset+j*step)*decay;
+    companion[velocity]=(companion[velocity]-omega*j*step)*decay;
+   }
+   const speed=Math.hypot(companion.vx,companion.vy);
+   let turn=0;
+   if(speed>8){
+    const desired=Math.atan2(companion.vy,companion.vx);
+    turn=Math.atan2(Math.sin(desired-companion.heading),Math.cos(desired-companion.heading));
+    companion.heading+=turn*(1-Math.exp(-step*7));
+   }
+   const effort=Math.min(1,speed/500);
+   companion.phase+=step*(3.2+effort*7);
+   const sway=Math.sin(companion.phase*.6)*(1-effort)*1.2;
+   drawFish(companion.x-Math.sin(companion.heading)*sway,companion.y+Math.cos(companion.heading)*sway,
+    Math.max(48,Math.min(76,Math.min(w,h)*.085)),companion.heading,companion.phase,companion.alpha,
+    .045+effort*.035+Math.min(.025,Math.abs(turn)*.018));
+  }
  }
  resize(innerWidth,innerHeight);
- return {resize,render,move(x,y){pointer.x=x;pointer.y=y;pointer.active=true;},leave(){pointer.active=false;},setActive(v){active=v;},dispose(){disposed=true;sprite.src='';}};
+ return {resize,render,move(x,y){
+  if(!companion.ready||(!pointer.active&&companion.alpha<.05)){
+   companion.x=x-15;companion.y=y;companion.vx=companion.vy=0;companion.ready=true;
+  }
+  pointer.x=x;pointer.y=y;pointer.active=true;
+ },leave(){pointer.active=false;},setActive(v){active=v;if(!v)pointer.active=false;},dispose(){disposed=true;sprite.src='';}};
 }
 window.MengsuMoonSchool=Object.freeze({create});
 })();
