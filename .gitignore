@@ -45,3 +45,4 @@ frontend/src/data/*
 
 # Local presentation scripts
 **/*演讲稿*.txt
+!frontend/src/data/tarot-mock.js
