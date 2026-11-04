@@ -53,13 +53,13 @@ onMounted(load)
       <button class="ghost" @click="toggleSharing">{{ sharing ? '科研共享已开' : '科研共享已关' }}</button>
     </div>
     <p class="muted small" style="margin-top: 8px">
-      记录只保存在这台电脑。密钥写在 private\.env，不进代码、不进日志、不下发到前端。
+      记录保存在当前网站服务中，个人 AI 密钥不会写入导出文件。
     </p>
     <p v-if="message" class="muted small">{{ message }}</p>
   </section>
 
   <section class="card profile-services rise" style="--i: 2">
-    <p class="card-title">服务状态</p>
+    <p class="card-title">服务状态</p><RouterLink to="/settings/ai">AI 服务设置 · 配置与测试连接</RouterLink>
     <dl class="service-list">
       <div><dt>模型</dt><dd>{{ !health ? '连接中' : health.llm_ready ? '已连接' : '未配置' }}</dd></div>
       <div><dt>心潮</dt><dd>{{ !health ? '连接中' : health.xinchao_ready ? '在线' : '离线' }}</dd></div>

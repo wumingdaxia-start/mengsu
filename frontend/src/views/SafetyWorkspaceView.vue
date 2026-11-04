@@ -8,8 +8,7 @@ const frame = ref(null)
 const loaded = ref(false)
 const timedOut = ref(false)
 const address = new URL(location.origin)
-address.port = '3001'
-address.pathname = '/'
+address.pathname = '/account-service/'
 address.search = '?mengsu=1'
 const source = address.href
 let timer

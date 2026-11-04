@@ -24,24 +24,19 @@ export const dreamNavigation = [
     entry('漂流瓶', '/dreams', '把心事交给星海，让温柔在此靠岸。', 'bottle', 'bottle'),
   ] },
   { label: '梦境创作', items: [
-    entry('创作工坊', '/dream/studio', '把梦里的碎片，绘成画面，整理成故事，留成一张海报。', 'art', 'studio'),
-    entry('梦境社区', '/dream/community', '分享愿意分享的片段，也尊重每一个不想说的夜晚。', 'people', 'community'),
+    entry('梦境创作社区', '/dream/studio', '创作梦境画面、故事与海报，留下愿意分享的片段。', 'art', 'studio'),
     {
-      label: '意识内核测试',
+      label: '梦境内核测试',
       path: '/dream/forgotten',
       intro: '潜入你的潜意识，找到专属于你的梦境内核。',
       view: 'capture',
       icon: 'M4 4h16v16H4Z M8 9h8 M8 14h5'
     },
   ] },
-  { label: '睡眠旅程', items: [
+  { label: '夜的陪伴', items: [
     entry('睡眠日记', '/dream/sleep-diary', '不为夜晚打分，只轻轻留下身体真实的感受。', 'calendar', 'sleep'),
     entry('睡眠改善计划', '/dream/sleep-plan', '从一个小习惯开始，慢慢找到适合自己的节律。', 'path', 'sleep'),
     entry('睡前流程', '/dream/wind-down', '把睡前的时间留给自己，一步一步安静下来。', 'clock', 'sleep'),
-  ] },
-  { label: '夜间陪伴', items: [
-    entry('睡前放松', '/dream/relax', '把白天的疲惫，慢慢卸在入睡前。', 'wave'),
-    entry('睡前故事', '/dream/bedtime-stories', '选一个温柔的声音，把今天交给夜晚。', 'book', 'companion'),
-    entry('情绪树洞', '/dream/tree-hole', '不用把话说完整，这里接住你此刻的感受。', 'cloud', 'companion'),
+    entry('星夜叙语', '/dream/night-talk', '听一段故事，或留下一句心事，让夜晚多一点陪伴。', 'book', 'companion'),
   ] },
 ]

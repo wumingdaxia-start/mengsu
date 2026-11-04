@@ -1,4 +1,5 @@
 import { requireLogin, SAFETY_API_BASE } from './auth'
+import { needsSetup, openAiSetup } from './ai-status'
 
 const jsonHeaders = { 'Content-Type': 'application/json' }
 const REQUEST_TIMEOUT_MS = 8000
@@ -20,7 +21,15 @@ async function call(path, options = {}) {
   }
   if (!response.ok) {
     const text = await response.text()
-    throw new Error(`${response.status} ${text.slice(0, 200)}`)
+    let detail = ''
+    try {
+      const data = JSON.parse(text)
+      detail = typeof data?.detail === 'string' ? data.detail : Array.isArray(data?.detail) ? data.detail[0]?.msg || '' : ''
+    } catch {}
+    const message = detail || `${response.status} ${text.slice(0, 200)}`
+    // 还没连接 AI 服务时，直接把用户带到设置页，而不是让人对着报错发呆。
+    if (needsSetup(message)) void openAiSetup()
+    throw new Error(message)
   }
   return response.json()
 }

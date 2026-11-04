@@ -5,7 +5,7 @@
   try {
     parentOrigin = new URL(document.referrer).origin;
     const allowedParents = ['http://127.0.0.1:8000', 'http://localhost:8000'];
-    if (!allowedParents.includes(parentOrigin)) return;
+    if (parentOrigin !== location.origin && !allowedParents.includes(parentOrigin)) return;
   } catch { return; }
   document.documentElement.dataset.mengsuEmbed = 'true';
   const send = type => parent.postMessage({ type }, parentOrigin);

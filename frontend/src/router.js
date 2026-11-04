@@ -1,4 +1,5 @@
 import { dreamNavigation } from './dream-navigation'
+import { redirectToSetupIfNeeded } from './ai-status'
 import { createRouter, createWebHistory } from 'vue-router'
 import HomeView from './views/HomeView.vue'
 import CaptureView from './views/CaptureView.vue'
@@ -22,6 +23,7 @@ export const tabs = [
 ]
 
 const routes = [
+  { path: '/settings/ai', component: () => import('./views/AiSettingsView.vue'), meta: { label: 'AI 服务设置', workspace: 'dream', healthPage: true } },
   { path: '/safety', component: () => import('./views/SafetyWorkspaceView.vue'), meta: { workspace: 'safety', chrome: false, label: '安康守护' } },
   { path: '/dream', component: DreamWorkspaceView, meta: { workspace: 'dream', healthPage: true, label: '梦境总览' } },
   { path: '/dream/planet', redirect: '/dream', meta: { workspace: 'dream', healthPage: true, label: '梦境总览' } },
@@ -75,7 +77,7 @@ for (const item of dreamNavigation.flatMap(group => group.items)) {
     const surfaces = {
       bottle: () => import('./views/DreamBottleView.vue'),
       library: () => import('./views/DreamLibraryView.vue'),
-      studio: () => import('./views/DreamStudioView.vue'),
+      studio: () => import('./views/DreamCreativeCommunityView.vue'),
       sleep: () => import('./views/DreamSleepJourneyView.vue'),
       companion: () => import('./views/DreamCompanionView.vue'),
       community: () => import('./views/DreamCommunityView.vue')
@@ -90,11 +92,20 @@ for (const item of dreamNavigation.flatMap(group => group.items)) {
 routes.unshift({path:'/dream/calm',redirect:'/dream/tree-hole#calm-tools'})
 routes.unshift({path:'/dream/space',component:()=>import('./views/SignalPagesView.vue'),meta:{workspace:'dream',healthPage:true,label:'我的空间',dreamIntro:'管理你的昼夜分身数据。'}})
 
+routes.unshift({path:'/dream/community',redirect:to=>({path:'/dream/studio',query:{...to.query,section:'community'},hash:to.hash})})
+
+routes.unshift({path:'/dream/relax',redirect:to=>({path:'/dream/sleep-plan',query:to.query,hash:'#bedtime-relax'})})
+
+routes.unshift({path:'/dream/bedtime-stories',redirect:to=>({path:'/dream/night-talk',query:{...to.query,section:'stories'},hash:to.hash})},{path:'/dream/tree-hole',redirect:to=>({path:'/dream/night-talk',query:{...to.query,section:'tree-hole'},hash:to.hash})})
+
 export const router = createRouter({
   history: createWebHistory(),
   routes,
   scrollBehavior: (to) => to.hash ? { el: to.hash, top: 100 } : { top: 0 }
 })
+
+// 没连接 AI 服务时，进入应用先落到「AI 服务设置」，避免各处功能各自报错。
+router.beforeEach((to) => redirectToSetupIfNeeded(to))
 
 export function enterApp() {
   sessionStorage.setItem('mengsu-entered', '1')

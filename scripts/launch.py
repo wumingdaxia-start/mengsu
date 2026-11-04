@@ -113,6 +113,7 @@ def wait_ready(url, child, expected):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--port', type=int, default=8000)
+    parser.add_argument('--host', default='127.0.0.1', help='Use 0.0.0.0 for LAN access; use HTTPS reverse proxy for public hosting')
     parser.add_argument('--no-browser', action='store_true')
     parser.add_argument('--setup-only', action='store_true')
     parser.add_argument('--create-account', action='store_true')
@@ -139,7 +140,7 @@ def main():
         safety = subprocess.Popen([node, str(ROOT / 'scripts/safety-workspace.cjs')], cwd=ROOT, env=env)
         children.append(safety)
         wait_ready('http://127.0.0.1:3001/api/me', safety, 401)
-        backend = subprocess.Popen([sys.executable, '-m', 'uvicorn', 'app.main:app', '--host', '127.0.0.1', '--port', str(args.port)], cwd=ROOT / 'backend')
+        backend = subprocess.Popen([sys.executable, '-m', 'uvicorn', 'app.main:app', '--host', args.host, '--port', str(args.port)], cwd=ROOT / 'backend')
         children.append(backend)
         wait_ready(f'http://127.0.0.1:{args.port}/api/health', backend, 200)
         url = f'http://127.0.0.1:{args.port}/entry'

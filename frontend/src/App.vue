@@ -106,7 +106,9 @@ const psychologyNavIcons = {
 }
 const healthNavigationGroups = computed(() => {
   const makeItem = (label, path, icon) => ({ label, path, icon: icon || psychologyNavIcons[path] || 'M4 4h16v16H4Z M8 9h8 M8 14h5' })
-  if (workspaceKey.value === 'dream') return dreamNavigation
+  if (workspaceKey.value === 'dream') return dreamNavigation.map(group => ({
+    ...group, items: group.items.filter(item => item.path !== '/capture')
+  }))
   if (workspaceKey.value === 'psychology') return [
     { label: '此刻的自己', items: [makeItem('心理总览', '/psychology'), makeItem('心情记录', '/psychology/journal')] },
     { label: '心绪活动', items: [makeItem('人格测试', '/psychology/personality'), makeItem('塔罗牌测试', '/psychology/tarot'), makeItem('三观测试', '/psychology/views-test'), makeItem('呼吸练习', '/psychology/breathe')] },
@@ -206,7 +208,7 @@ function closeHeaderAccount(event) {
 }
 
 function onSafetyAuthMessage(event) {
-  if (event.origin !== SAFETY_API_BASE || event.source !== document.querySelector('.safety-original')?.contentWindow) return
+  if (event.origin !== location.origin || event.source !== document.querySelector('.safety-original')?.contentWindow) return
   if (['mengsu:safety-auth', 'mengsu:safety-logout'].includes(event.data?.type)) void refreshSession()
 }
 
@@ -445,7 +447,7 @@ onBeforeUnmount(() => {
         </div>
       </header>
 
-      <section v-if="workspaceKey === 'dream' && !dreamReady" class="dream-account-loading" role="status" style="padding:32px">
+      <section v-if="workspaceKey === 'dream' && !dreamReady && route.path !== '/settings/ai'" class="dream-account-loading" role="status" style="padding:32px">
         <p>{{ dreamError || '正在读取你的梦境记录…' }}</p><button v-if="dreamError" @click="retryDreamAccount">重新加载</button>
       </section>
       <RouterView v-else :key="workspaceKey === 'dream' ? dreamOwner : workspaceKey" v-slot="{ Component }">
@@ -520,6 +522,7 @@ onBeforeUnmount(() => {
         <span class="profile-seal">{{ workspaceKey === 'psychology' ? '心' : '梦' }}</span><span><strong>我的空间</strong><small v-if="workspaceKey === 'dream'">账号设置、记录导出、个人偏好管理</small></span><b aria-hidden="true">{{ workspaceKey === 'psychology' ? '›' : spaceOpen ? '⌃' : '···' }}</b>
       </button>
       <div v-if="spaceOpen && workspaceKey !== 'psychology'" class="health-nav-space-menu">
+        <button type="button" @click="router.push('/settings/ai');spaceOpen=false"><span>AI 服务设置</span><b aria-hidden="true">↗</b></button>
         <button type="button" @click="logout"><span>退出账号</span><b aria-hidden="true">↗</b></button>
       </div>
     </nav>

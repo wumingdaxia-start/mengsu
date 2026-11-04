@@ -39,6 +39,11 @@ function getSession(req){let value;try{value=cookies(req).health_session}catch{r
 function validPassword(password,user){const result=crypto.scryptSync(password,user.salt,64),saved=Buffer.from(user.passwordHash,'hex');return result.length===saved.length&&crypto.timingSafeEqual(result,saved)}
 function serve(res,root,relative){let file=path.resolve(root,relative),base=path.resolve(root);if(!file.startsWith(base+path.sep)&&file!==path.join(base,'index.html'))return json(res,403,{message:'禁止访问'});fs.stat(file,(error,stat)=>{if(error||!stat.isFile())file=path.join(root,'index.html');fs.readFile(file,(readError,data)=>{if(readError)return json(res,404,{message:'页面不存在'});res.writeHead(200,{'Content-Type':types[path.extname(file)]||'application/octet-stream','Cache-Control':'no-store, max-age=0','Pragma':'no-cache','X-Content-Type-Options':'nosniff','Content-Security-Policy':"default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self'; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'"});res.end(data)})})}
 async function handler(req,res){const url=new URL(req.url,'http://localhost');
+ const personalKey=req.headers['x-huayuxing-ai-key'];
+ const personalRegion=req.headers['x-huayuxing-ai-region'];
+ const personalModel=req.headers['x-huayuxing-ai-model'];
+ const personalValid=typeof personalKey==='string'&&/^[!-~]{1,512}$/.test(personalKey)&&['cn','intl'].includes(personalRegion)&&/^[a-zA-Z0-9_.-]{1,100}$/.test(personalModel||'');
+ const requestAiEnv=personalValid?{HEALTH_AI_API_KEY:personalKey,HEALTH_AI_MODEL:personalModel,HEALTH_AI_BASE_URL:(personalRegion==='intl'?'https://dashscope-intl.aliyuncs.com':'https://dashscope.aliyuncs.com')+'/compatible-mode/v1'}:(options.aiEnv||process.env);
  if(['POST','PUT','DELETE'].includes(req.method)&&req.headers.origin&&!['http://'+req.headers.host,'https://'+req.headers.host].includes(req.headers.origin))return json(res,403,{message:'请求来源无效'});
  if(req.method==='GET'&&url.pathname==='/api/weather'){
  const lat=Number(url.searchParams.get('latitude')),lon=Number(url.searchParams.get('longitude'));
@@ -81,12 +86,12 @@ async function handler(req,res){const url=new URL(req.url,'http://localhost');
   const next=quota&&now-quota.start<600000?quota:{start:now,count:0};next.count++;knowledgeQuota.set(user.id,next);
   knowledgeBusy.add(user.id);
   try{
-   const result=await healthKnowledge.answer(question,healthKnowledge.retrieve(question),{env:options.aiEnv||process.env,request:options.aiFetch||fetch});
+   const result=await healthKnowledge.answer(question,healthKnowledge.retrieve(question),{env:requestAiEnv,request:options.aiFetch||fetch});
    if(result.error)return json(res,result.status||503,{message:result.error});
    return json(res,200,result);
   }finally{knowledgeBusy.delete(user.id)}
  }
- if(url.pathname==='/api/consult/status'&&req.method==='GET')return json(res,200,{available:!!consultService.config(options.aiEnv||process.env)});
+ if(url.pathname==='/api/consult/status'&&req.method==='GET')return json(res,200,{available:!!consultService.config(requestAiEnv)});
  if(url.pathname==='/api/health-insight'){
   if(req.method!=='POST')return json(res,405,{message:'请求方式不支持'});
   const session=getSession(req),user=session&&(await readUsers()).find(x=>x.id===session.userId);
@@ -100,7 +105,7 @@ async function handler(req,res){const url=new URL(req.url,'http://localhost');
   try{
    const {snapshot,hasRecords}=healthInsight.summarize((await store.read(user.id)).data,today());
    if(!hasRecords)return json(res,422,{message:'近 7 天还没有带日期的记录，请先填写运动、饮食或睡眠记录'});
-   const result=await healthInsight.generate(snapshot,{env:options.aiEnv||process.env,request:options.aiFetch||fetch});
+   const result=await healthInsight.generate(snapshot,{env:requestAiEnv,request:options.aiFetch||fetch});
    if(result.error)return json(res,result.status||503,{message:result.error});
    return json(res,200,{period:snapshot.period,evidence:healthInsight.evidence(snapshot),references:result.references,report:result.report,notice:'基于自填且可能不完整的记录和公开健康资料，仅供生活习惯参考，不能替代医生诊断。结果未自动保存。'});
   }finally{insightBusy.delete(user.id)}
@@ -119,7 +124,7 @@ async function handler(req,res){const url=new URL(req.url,'http://localhost');
    consultBusy.add(user.id);
    try{
     const previous=await consultStore.read(user.id),resultMessages=[...previous,{role:'user',content:message,createdAt:new Date().toISOString()}];
-    const result=await consultService.reply(resultMessages,{env:options.aiEnv||process.env,request:options.aiFetch||fetch});
+    const result=await consultService.reply(resultMessages,{env:requestAiEnv,request:options.aiFetch||fetch});
     if(result.error)return json(res,result.status||503,{message:result.error});
     resultMessages.push({role:'assistant',content:result.answer,createdAt:new Date().toISOString(),urgent:!!result.urgent});
     await consultStore.write(user.id,resultMessages);

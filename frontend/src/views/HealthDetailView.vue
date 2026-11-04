@@ -337,6 +337,7 @@ onBeforeUnmount(() => clearTimeout(moodToastTimer))
 </template>
 
 <style scoped>
+.nutrition-tag-scroller{flex-wrap:wrap;align-items:center}
 .health-detail { --mood-surface: #faf8fc; --mood-surface-muted: #f5f1f8; --mood-border: #e7dfed; --mood-border-strong: #d8cce3; --mood-ink: #62566f; --mood-muted: #8b7d97; --mood-accent: #8f7ba6; color: var(--mood-ink); min-height: 70dvh; }
 .mood-simulated-time { margin: -10px 0 28px; color: var(--mood-muted); font-size: 14px; }
 .mood-dashboard { display: grid; grid-template-columns: minmax(0, 1.12fr) minmax(340px, .95fr); align-items: start; gap: 24px; color: var(--mood-ink); }

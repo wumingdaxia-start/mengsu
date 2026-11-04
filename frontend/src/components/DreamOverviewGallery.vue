@@ -2,9 +2,10 @@
 import { computed, nextTick, onMounted, ref } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { computed as accountComputed } from 'vue'
-import { readDream } from '../dream-account'
+import { readDream, writeDream } from '../dream-account'
 import DreamExplorationScene from './DreamExplorationScene.vue'
 import { isLoggedIn } from '../auth'
+import { dreamSceneCopy } from '../data/dream-scene-copy'
 const router=useRouter(), route=useRoute(), personal=accountComputed(()=>readDream('snapshots',[])), active=ref(0), modal=ref(null), mode=ref(''), selected=ref(null), notice=ref(''), loading=ref(true)
 // Preview cards never enter the user's saved snapshot collection.
 const examples=[
@@ -18,13 +19,30 @@ const cards=computed(()=>personal.value.length?personal.value:examples)
 const visible=computed(()=>[-1,0,1].map(offset=>({offset,card:cards.value[(active.value+offset+cards.value.length)%cards.value.length]})))
 const places=computed(()=>{const groups=new Map();cards.value.forEach(c=>{const name=c.place||c.location;if(name){const key=String(name);if(groups.has(key))groups.get(key).count++;else groups.set(key,{name:key,count:1,card:c})}});return [...groups.values()]})
 const links=computed(()=>{const pairs=[];cards.value.forEach((a,i)=>cards.value.slice(i+1).forEach(b=>{const signals=[a.feeling||a.emotion,a.motif].filter(Boolean).filter(x=>[b.feeling||b.emotion,b.motif].includes(x));if(signals.length)pairs.push({a,b,signal:signals.join(' / ')})}));return pairs})
-const text=c=>c.signal||c.text||c.summary||c.title||'醒来时留下的一束意识碎片。'
+const sceneCopy=computed(()=>dreamSceneCopy[selected.value?.id]||{tags:['梦里的一幕','留下的声音','此刻的感受'],placeholder:'写下你愿意留下的画面、声音或感受……',pauseTitle:'给此刻留一点空间',pauseText:'不必立刻弄懂这个梦。你可以只写下一点记得的东西，也可以先停在这里。',caption:'这段记忆，由你决定怎样留下。'})
+const text=c=>dreamSceneCopy[c.id]?.description||c.signal||c.text||c.summary||c.title||'醒来时留下的一束意识碎片。'
 const people=c=>Array.isArray(c.people)?c.people.join('、'):c.people||'尚未留下人物线索'
 const place=c=>Array.isArray(c.place||c.location)?(c.place||c.location).join(' / '):c.place||c.location||'尚未标记'
 function move(n){active.value=(active.value+n+cards.value.length)%cards.value.length}
 function fallback(e){e.target.onerror=null;e.target.src='/dream-overview/cloud-moon.jpg'}
 async function open(type,card){mode.value=type;selected.value=card;await nextTick();if(!modal.value.open)modal.value.showModal()}
 function login(){router.push(isLoggedIn()?'/capture':'/login?next=/dream')}
+const sceneOrigin=ref('network'), sceneNote=ref(''), saving=ref(false), saved=ref(false), saveMessage=ref('')
+const sceneNotes=new Map()
+async function openSceneDetail(card){
+ sceneOrigin.value=mode.value;sceneNote.value=sceneNotes.get(card.id)||'';saved.value=false;saveMessage.value=''
+ await open('scene-detail',card)
+}
+function returnToScene(){sceneNotes.set(selected.value.id,sceneNote.value);mode.value=sceneOrigin.value}
+async function saveSceneNote(){
+ if(saving.value||saved.value)return
+ if(!sceneNote.value.trim()){saveMessage.value='写下一点此刻的感受就好，不想写也可以先返回。';return}
+ if(!isLoggedIn()){saveMessage.value='登录后才能保存到账号。你写的内容会暂留在这里，可以继续浏览。';return}
+ saving.value=true
+ try{await writeDream('snapshots',[{id:crypto.randomUUID(),title:selected.value.title,image:selected.value.image,signal:sceneNote.value.trim(),date:new Date().toISOString().slice(0,10),feeling:selected.value.feeling||'平静'},...readDream('snapshots',[])]);saved.value=true;saveMessage.value='已记在你的梦境快照里。'}
+ catch(error){saveMessage.value=error.message||'暂时没能保存，文字仍在这里，请稍后重试。'}
+ finally{saving.value=false}
+}
 let touchX=0
 function swipe(e){const delta=e.changedTouches[0].clientX-touchX;if(Math.abs(delta)>45)move(delta<0?1:-1)}
 onMounted(async()=>{
@@ -54,9 +72,26 @@ onMounted(async()=>{
    <button class="gallery-feature network-feature" @click="open('network')"><h2>丝线网络</h2><p>发现梦境之间的联系</p><img class="feature-art" src="/dream-overview/signal-map.jpg" alt="以梦境意象和感受连接的地图"></button>
   </section>
   <div class="gallery-login"><p>{{isLoggedIn()?'把醒来时的片段，轻轻留下':'登录 / 注册，留存你的梦境'}}</p><button @click="login">{{isLoggedIn()?'捕捉昨夜快照':'登录 / 注册'}}</button></div>
-  <dialog ref="modal" :class="['gallery-dialog', {'scene-dialog':mode==='map'||mode==='network'}]" aria-label="梦境探索详情" @click="($event.target===modal)&&modal.close()"><div class="gallery-dialog-body"><button v-if="mode!=='map'&&mode!=='network'" class="dialog-close" aria-label="关闭" @click="modal.close()">×</button>
+  <dialog ref="modal" :class="['gallery-dialog', {'scene-dialog':mode==='map'||mode==='network', 'reflection-dialog':mode==='scene-detail'}]" aria-label="梦境探索详情" @click="($event.target===modal)&&modal.close()"><div class="gallery-dialog-body"><button v-if="mode!=='map'&&mode!=='network'&&mode!=='scene-detail'" class="dialog-close icon-close" aria-label="关闭" @click="modal.close()"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg></button>
    <template v-if="mode==='detail'&&selected"><small>{{personal.length?'我的意识快照':'示例梦境'}} · {{selected.feeling||selected.emotion||'醒来时的感受'}}</small><h2>{{selected.title||'意识快照'}}</h2><img class="detail-image" :src="selected.image||'/dream-overview/cloud-moon.jpg'" alt="梦境画面" @error="fallback"><p>{{text(selected)}}</p><template v-if="selected.coreReport"><h3>梦境内核测试报告</h3><p>{{selected.coreReport.primary}} × {{selected.coreReport.secondary}}</p><p>{{selected.coreReport.inner}}</p><p>{{selected.coreReport.gravity}}</p></template></template>
-   <DreamExplorationScene v-else-if="mode==='map'||mode==='network'" :kind="mode" :cards="cards" :personal="!!personal.length" @select="card=>open('detail',card)" @back="modal.close()" />
+   <section v-else-if="mode==='scene-detail'&&selected" class="reflection-page">
+    <nav class="reflection-nav"><button @click="returnToScene">‹ {{sceneOrigin==='network'?'丝线网络':'梦境地图'}}</button><span>{{selected.title}}</span></nav>
+    <article class="reflection-card">
+     <header><h2>{{selected.title}}</h2><button class="reflection-close icon-close" aria-label="返回探索" @click="returnToScene"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg></button></header>
+     <div class="reflection-columns">
+      <div class="reflection-copy"><h3>梦境描述</h3><p>{{text(selected)}}</p>
+       <textarea v-model="sceneNote" aria-label="梦境感受" :placeholder="sceneCopy.placeholder" maxlength="5000" @input="saved=false;saveMessage=''" />
+       <div class="reflection-tags"><span v-for="tag in sceneCopy.tags" :key="tag">{{tag}}</span></div>
+       <section class="reflection-pause"><h3>{{sceneCopy.pauseTitle}}</h3><p>{{sceneCopy.pauseText}}</p>
+        <div class="reflection-actions"><button :disabled="saving||saved" @click="saveSceneNote">{{saving?'正在记下…':saved?'已经记下了':'我把它记下来'}}</button><button @click="returnToScene">回到{{sceneOrigin==='network'?'丝线网络':'梦境地图'}}</button></div>
+        <p v-if="saveMessage" class="reflection-status" role="status">{{saveMessage}}</p>
+       </section>
+      </div>
+      <figure><img :src="selected.image||'/dream-overview/cloud-moon.jpg'" :alt="selected.title+'的梦境画面'" @error="fallback"><figcaption>{{sceneCopy.caption}}</figcaption></figure>
+     </div>
+    </article><footer>这个页面只用来陪你停驻，不给结论，也不做评判。</footer>
+   </section>
+   <DreamExplorationScene v-else-if="mode==='map'||mode==='network'" :kind="mode" :cards="cards" :personal="!!personal.length" @select="openSceneDetail" @back="modal.close()" />
   </div></dialog>
  </section>
 </template>
@@ -92,4 +127,11 @@ onMounted(async()=>{
 <style scoped>
 .gallery-dialog.scene-dialog{width:min(1200px,calc(100vw - 32px));max-width:1200px;max-height:94dvh;border-radius:25px;background:#f3eef6}.scene-dialog .gallery-dialog-body{padding:0}
 @media(max-width:600px){.gallery-dialog.scene-dialog{width:calc(100vw - 12px);max-height:96dvh;border-radius:19px}}
+</style>
+
+<style scoped>
+.gallery-dialog.reflection-dialog{width:min(1260px,calc(100vw - 32px));max-width:1260px;max-height:94dvh;background:radial-gradient(ellipse at 90% 90%,#e7dff8,transparent 65%),linear-gradient(120deg,#faf8f3,#eee9f8);border:1px solid #eee7f5;box-shadow:0 24px 90px #49366025}
+.reflection-dialog .gallery-dialog-body{padding:24px 36px}.reflection-nav{display:flex;align-items:center;gap:24px;color:#7c6d95;margin-bottom:20px}.reflection-nav button{border:0;background:none;color:inherit;font-family:SimSun,serif;font-size:22px}.reflection-nav>span{margin:auto;padding-right:120px;font-family:SimSun,serif;font-size:25px}.reflection-card{background:#fffdfef2;border:1px solid white;border-radius:30px;box-shadow:0 8px 28px #80729c15;overflow:hidden}.reflection-card>header{display:flex;align-items:center;justify-content:space-between;padding:24px 32px;border-bottom:1px solid #f3eff6}.reflection-card>header h2{margin:0;font-family:SimSun,serif;font-size:28px;font-weight:400}.reflection-close{width:38px;height:38px;border:0;border-radius:50%;background:#f1edf9;color:#8b7b9c;font-size:28px}.reflection-columns{display:grid;grid-template-columns:1fr 1.1fr;gap:32px;padding:30px 32px}.reflection-copy{min-width:0}.reflection-copy h3{font-family:SimSun,serif;font-size:19px;font-weight:400;margin:0 0 16px;padding-bottom:14px;border-bottom:1px solid #eeeaf2}.reflection-copy p{font-size:15px;line-height:1.9}.reflection-copy textarea{display:block;box-sizing:border-box;width:100%;min-height:130px;resize:vertical;border:1px solid #e3dce8;border-radius:14px;padding:14px;background:#fff;color:#625969;font:inherit;font-size:15px;line-height:1.7}.reflection-copy textarea:focus-visible{outline:2px solid #b7a3cf;outline-offset:3px}.reflection-tags{display:flex;flex-wrap:wrap;gap:14px;margin:20px 0 24px}.reflection-tags span{padding:6px 16px;border:1px solid #ece0d4;border-radius:30px;background:#fcf2e6;font-size:14px}.reflection-tags span:nth-child(2){background:#e9f1fc;border-color:#d7e0ed}.reflection-tags span:nth-child(3){background:#eee9fc;border-color:#e0d9ee}.reflection-pause{padding:22px;border-radius:24px;background:linear-gradient(130deg,#f8f5fc,#f3effa)}.reflection-actions{display:flex;flex-wrap:wrap;gap:14px;padding-top:18px;border-top:1px dashed #e7e0ed}.reflection-actions button{flex:1;min-width:140px;border:1px solid #dfd4df;border-radius:24px;padding:10px 12px;background:#fbf8f2;color:#70617d}.reflection-actions button+button{background:#ddd5ed;border-color:#cbc0df}.reflection-actions button:disabled{opacity:.65;cursor:default}.reflection-columns figure{margin:0;min-width:0}.reflection-columns figure img{width:100%;height:460px;display:block;object-fit:cover;border-radius:22px}.reflection-columns figcaption{text-align:center;font-size:13px;color:#857b89;margin:22px 0}.reflection-page footer{text-align:center;font-size:13px;color:#81768c;margin-top:22px}.reflection-copy .reflection-status{font-size:13px;margin-bottom:0}.reflection-page button{transition:transform 180ms cubic-bezier(.2,.8,.2,1)}.reflection-page button:hover:not(:disabled){transform:translateY(-1px)}
+@media(max-width:700px){.reflection-dialog .gallery-dialog-body{padding:16px 12px}.reflection-nav>span{display:none}.reflection-card>header{padding:20px}.reflection-columns{grid-template-columns:1fr;padding:20px;gap:24px}.reflection-columns figure img{height:300px}.reflection-tags{gap:8px}.reflection-tags span{padding:6px 10px}.reflection-pause{padding:16px}.reflection-actions button{min-width:120px}.reflection-page footer{line-height:1.7}.gallery-dialog.reflection-dialog{width:calc(100vw - 16px)}}
+@media(prefers-reduced-motion:reduce){.reflection-page button{transition:none}}
 </style>

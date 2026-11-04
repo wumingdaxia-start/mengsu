@@ -68,7 +68,7 @@ onMounted(loadModels)
           <p class="sheet-title">梦境AI</p>
           <p class="sheet-sub">AI 助手 · 基于你的记录回答</p>
         </div>
-        <button class="sheet-close" @click="emit('close')">×</button>
+        <button class="sheet-close icon-close" aria-label="关闭对话" @click="emit('close')"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg></button>
       </div>
 
       <div class="model-row">

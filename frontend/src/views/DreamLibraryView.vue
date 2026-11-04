@@ -5,16 +5,16 @@ import { demoDreams, downloadText, today, useDreamJourney } from '../composables
 import { useJourneyUi } from '../composables/useJourneyUi'
 import { dreamReady, dreamError, retryDreamAccount } from '../dream-account'
 const router = useRouter(), { snapshots, refresh, commit } = useDreamJourney(), { toast, notify, save } = useJourneyUi()
-const query = ref(''), day = ref(''), kind = ref('全部'), demos = ref(false), selected = ref(null), pendingDelete = ref(null)
-const month = ref(today().slice(0, 7)), modes = ['全部', '手动梦快照', '内核报告']
+const query = ref(''), day = ref(''), kind = ref('全部'), demos = ref(true), selected = ref(null), pendingDelete = ref(null)
+const month = ref(demoDreams[0]?.date.slice(0, 7) || today().slice(0, 7)), modes = ['全部', '手动梦快照', '内核报告']
 const source = computed(() => demos.value ? demoDreams : snapshots.value)
 // Category is shared by the results and calendar; search/date narrow only the results.
 const category = computed(() => source.value.filter(s => kind.value === '全部' || (kind.value === '内核报告' ? s.kind === 'core-report' : s.kind !== 'core-report')))
 const countFor = mode => source.value.filter(s => mode === '全部' || (mode === '内核报告' ? s.kind === 'core-report' : s.kind !== 'core-report')).length
 const view = computed(() => ({
- '全部': {title:'所有夜晚的回响', intro:'手动留下的梦快照与保存的内核报告，在这里相遇。', empty:'梦库还在等待第一束微光', help:'记下一场梦，或完成意识内核测试并保存报告，它们就会留在这里。'},
+ '全部': {title:'所有夜晚的回响', intro:'手动留下的梦快照与保存的内核报告，在这里相遇。', empty:'梦库还在等待第一束微光', help:'记下一场梦，或完成梦境内核测试并保存报告，它们就会留在这里。'},
  '手动梦快照': {title:'你亲手留下的梦', intro:'回看梦里的画面、醒来体感，以及创作中留下的片段。', empty:'还没有留下梦快照', help:'趁醒来时的感受还清晰，留下一个画面或一句残留信号。'},
- '内核报告': {title:'你的梦境内核回响', intro:'这里收起意识内核测试中由你保存的报告，和梦快照分开展示。', empty:'还没有保存内核报告', help:'完成意识内核测试后，点击“保存为本场意识快照”，报告就会出现在这里。'}
+ '内核报告': {title:'你的梦境内核回响', intro:'这里收起梦境内核测试中由你保存的报告，和梦快照分开展示。', empty:'还没有保存内核报告', help:'完成梦境内核测试后，点击“保存为本场意识快照”，报告就会出现在这里。'}
 }[kind.value]))
 const filtered = computed(() => category.value.filter(s => (!query.value.trim() || `${s.title || ''} ${s.signal || ''} ${s.coreReport?.inner || ''}`.toLowerCase().includes(query.value.trim().toLowerCase())) && (!day.value || s.date?.slice(0, 10) === day.value)).slice().sort((a,b) => String(b.date).localeCompare(String(a.date))))
 function selectKind(mode){kind.value=mode;day.value='';selected.value=null}
@@ -29,7 +29,7 @@ onMounted(refresh)
 </script>
 <template>
 <div class="journey" @keydown.esc="selected=null;pendingDelete=null">
- <p class="j-notice"><span class="j-dot"></span>你的梦库保存在当前账号，和记梦、意识内核测试互通。</p>
+ <p class="j-notice"><span class="j-dot"></span>你的梦库保存在当前账号，和记梦、梦境内核测试互通。</p>
  <div class="j-between j-section-gap" style="margin-bottom:24px"><div class="j-tabs" style="margin:0" role="group" aria-label="梦库内容类别"><button v-for="m in modes" :key="m" :class="{'j-selected':kind===m}" :aria-pressed="kind===m" @click="selectKind(m)">{{m}} <small>{{countFor(m)}}</small></button></div><div class="j-row"><button @click="toggleDemos">{{demos?'回到我的梦库':'浏览示例梦库'}}</button><button @click="exportLibrary">导出梦库</button><button class="j-primary" @click="router.push('/capture')">记一场梦 ↗</button></div></div>
  <section class="library-category-heading" aria-live="polite"><h2>{{view.title}}</h2><p>{{view.intro}}</p></section>
  <div class="j-wide-grid">
@@ -40,12 +40,12 @@ onMounted(refresh)
    <div v-else-if="!filtered.length" class="j-empty library-empty" role="status">
     <h3>{{query.trim()||day?'没有找到对应的'+(kind==='内核报告'?'报告':'回响'):view.empty}}</h3>
     <p>{{query.trim()||day?'试着换个词，或清除日期与搜索条件。':demos?'示例梦库只提供梦快照，内核报告由你完成测试后保存。':view.help}}</p>
-    <div class="j-row"><button v-if="query.trim()||day" @click="query='';day=''">清除筛选</button><template v-else><button v-if="kind!=='内核报告'" class="j-primary" @click="router.push('/capture')">记一场梦</button><button v-if="kind!=='手动梦快照'" :class="{'j-primary':kind==='内核报告'}" @click="router.push('/dream/forgotten')">进入意识内核测试</button></template></div>
+    <div class="j-row"><button v-if="query.trim()||day" @click="query='';day=''">清除筛选</button><template v-else><button v-if="kind!=='内核报告'" class="j-primary" @click="router.push('/capture')">记一场梦</button><button v-if="kind!=='手动梦快照'" :class="{'j-primary':kind==='内核报告'}" @click="router.push('/dream/forgotten')">进入梦境内核测试</button></template></div>
    </div>
    <article v-for="s in filtered" :key="s.id" class="j-panel library-card"><button class="library-cover" :aria-label="'打开'+s.title" @click="open(s)"><img :src="s.image||'/dream-rooms/pages.png'" :alt="s.image?'梦境画面':'纸页插画'"></button><div class="library-card-text"><div class="j-row"><small>{{s.date}}</small><span class="j-tag" :class="{'blue':s.kind==='core-report'}">{{s.kind==='core-report'?'梦境内核测试报告':s.feeling||'意识快照'}}</span><span v-if="s.locked" class="j-tag warm">已锁定</span></div><h3><button class="library-title" @click="open(s)">{{s.title}}</button></h3><p>{{s.signal||s.coreReport?.inner||'这幅快照以画面留下了回响。'}}</p><div class="j-row"><button class="j-small-action" @click="open(s)">展开快照</button><button v-if="!s.demo" class="j-small-action" @click="lock(s)">{{s.locked?'解除锁定':'锁定'}}</button><button v-if="!s.demo" class="j-small-action" @click="pendingDelete=s">删除</button></div></div></article>
   </section>
  </div>
- <Teleport to="body"><div v-if="selected" class="journey j-modal-mask" @click.self="selected=null" @keydown.esc="selected=null"><section class="j-modal" role="dialog" aria-modal="true" aria-label="快照详情" tabindex="-1"><div class="j-between"><h2>{{selected.title}}</h2><button autofocus @click="selected=null">关闭</button></div><small>{{selected.date}} · {{selected.demo?'示例素材':selected.kind==='core-report'?'内核报告':'手动梦快照'}}</small><img v-if="selected.image" class="j-art j-section-gap" :src="selected.image" alt="梦境画面"><p>{{selected.signal}}</p><template v-if="selected.coreReport"><h3>{{selected.coreReport.primary}} × {{selected.coreReport.secondary}}</h3><p>{{selected.coreReport.inner}}</p><p>{{selected.coreReport.gravity}}</p></template><div class="j-row"><button @click="router.push({path:'/dream/studio',query:{snapshot:String(selected.id)}})">带到创作工坊</button><button v-if="selected.kind==='core-report'" @click="router.push('/dream/forgotten')">进入意识内核测试</button></div></section></div><div v-if="pendingDelete" class="journey j-modal-mask" @click.self="pendingDelete=null"><section class="j-modal" role="alertdialog" aria-modal="true" aria-label="确认删除快照"><h2>要把这幅快照移出梦库吗？</h2><p>{{pendingDelete.locked?'这幅快照已锁定，请先解除锁定。':'此操作会删除当前账号中的快照。你可以先导出梦库。'}}</p><div class="j-row"><button @click="pendingDelete=null">保留快照</button><button v-if="!pendingDelete.locked" @click="remove">确认删除</button></div></section></div></Teleport>
+ <Teleport to="body"><div v-if="selected" class="journey j-modal-mask" @click.self="selected=null" @keydown.esc="selected=null"><section class="j-modal" role="dialog" aria-modal="true" aria-label="快照详情" tabindex="-1"><div class="j-between"><h2>{{selected.title}}</h2><button autofocus @click="selected=null">关闭</button></div><small>{{selected.date}} · {{selected.demo?'示例素材':selected.kind==='core-report'?'内核报告':'手动梦快照'}}</small><img v-if="selected.image" class="j-art j-section-gap" :src="selected.image" alt="梦境画面"><p>{{selected.signal}}</p><template v-if="selected.coreReport"><h3>{{selected.coreReport.primary}} × {{selected.coreReport.secondary}}</h3><p>{{selected.coreReport.inner}}</p><p>{{selected.coreReport.gravity}}</p></template><div class="j-row"><button @click="router.push({path:'/dream/studio',query:{snapshot:String(selected.id)}})">带到创作工坊</button><button v-if="selected.kind==='core-report'" @click="router.push('/dream/forgotten')">进入梦境内核测试</button></div></section></div><div v-if="pendingDelete" class="journey j-modal-mask" @click.self="pendingDelete=null"><section class="j-modal" role="alertdialog" aria-modal="true" aria-label="确认删除快照"><h2>要把这幅快照移出梦库吗？</h2><p>{{pendingDelete.locked?'这幅快照已锁定，请先解除锁定。':'此操作会删除当前账号中的快照。你可以先导出梦库。'}}</p><div class="j-row"><button @click="pendingDelete=null">保留快照</button><button v-if="!pendingDelete.locked" @click="remove">确认删除</button></div></section></div></Teleport>
  <div v-if="toast" class="j-toast" role="status">{{toast}}</div>
 </div>
 </template>

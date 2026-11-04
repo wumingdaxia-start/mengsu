@@ -1,5 +1,5 @@
 // All spaces use the safety server's HttpOnly cookie. Storage is a UI cache only.
-export const SAFETY_API_BASE = `${location.protocol}//${location.hostname}:3001`
+export const SAFETY_API_BASE = '/account-service'
 const AUTH_KEY = 'mengsu-auth'
 const CHANGE_KEY = 'mengsu-auth-change'
 let revision = 0
@@ -42,6 +42,7 @@ export async function signOut() {
   ++revision
   refreshing = null
   await safetyRequest('/api/logout', { method: 'POST' })
+  await fetch('/api/ai-settings', { method: 'DELETE' }).catch(() => {})
   updateUser(null, false, true)
 }
 

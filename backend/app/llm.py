@@ -23,7 +23,7 @@ async def chat(
     timeout: float = 60.0,
 ) -> str:
     if not settings.llm_ready:
-        raise LLMError("千问密钥未配置，请在服务端填写 QWEN_API_KEY 或 DASHSCOPE_API_KEY")
+        raise LLMError("文字模型尚未连接，请打开「AI 服务设置」配置并测试。")
 
     payload: dict[str, Any] = {
         "model": settings.chat_model,
@@ -46,7 +46,7 @@ async def chat(
             json=payload,
         )
     if response.status_code >= 400:
-        raise LLMError(f"模型返回 {response.status_code}: {response.text[:200]}")
+        raise LLMError(f"模型连接失败（{response.status_code}），请检查 AI 服务设置中的密钥、模型权限和余额。")
     data = response.json()
     return data["choices"][0]["message"]["content"]
 

@@ -1,21 +1,30 @@
 <script setup>
 import { computed, ref } from 'vue'
+import DreamMapScene from './DreamMapScene.vue'
+import { dreamSceneCopy } from '../data/dream-scene-copy'
 const props=defineProps({kind:String,cards:{type:Array,default:()=>[]},personal:Boolean})
 const emit=defineEmits(['select','back'])
 const focused=ref(false)
 const layouts=[[14,54],[32,27],[50,50],[67,25],[85,35],[87,67],[68,79],[32,84]]
-const names=['桂花池','月光水岸','海底鱼群','星月之间','星空回廊','旧教室','星空回廊','夜里的回响']
+const names=['桂花池','月光水岸','海底鱼群','星月之间','爱的交响曲','旧教室','星空回廊','夜里的回响']
 const art=Array.from({length:8},(_,i)=>`thread-scene-${i}.webp`)
+art[3]='star-moon-water.jpg'
+art[4]='love-symphony.jpg'
+art[1]='moonlit-shore.png'
+art[0]='osmanthus-pool.png'
+art[5]='quiet-classroom.png'
+art[7]='night-echoes.png'
 art[2]='underwater-school.webp'
-const nodes=computed(()=>layouts.map(([x,y],i)=>{const card=props.personal?props.cards[i]:null;return {x,y,name:card?.title||names[i],image:card?.image||'/dream-overview/'+art[i],card:card||{id:'scene-example-'+i,title:names[i],image:'/dream-overview/'+art[i],signal:'月光、水面与熟悉的画面，留在这一场夜里的快照中。',feeling:'安稳'},example:!card}}))
+const nodes=computed(()=>layouts.map(([x,y],i)=>{const card=props.personal?props.cards[i]:null;return {x,y,name:card?.title||names[i],image:card?.image||'/dream-overview/'+art[i],card:card||{id:'scene-example-'+i,title:names[i],image:'/dream-overview/'+art[i],signal:dreamSceneCopy['scene-example-'+i].description,feeling:'安稳'},example:!card}}))
 const edges=[[0,1],[0,2],[0,7],[1,2],[1,3],[2,3],[2,4],[2,5],[2,6],[2,7],[3,4],[4,5],[4,6],[5,6],[6,7]]
 function path([a,b]){const p=nodes.value[a],q=nodes.value[b];return `M ${p.x*10} ${p.y*6} Q ${(p.x+q.x)*5} ${(p.y+q.y)*3+55} ${q.x*10} ${q.y*6}`}
 const mapNodes=[{i:0,x:20,y:35},{i:2,x:80,y:23},{i:3,x:49,y:54},{i:7,x:28,y:76},{i:5,x:82,y:80}]
 </script>
 
 <template>
- <section class="exploration" :class="[kind,{'is-focused':focused}]">
-  <header><button class="back" @click="emit('back')" aria-label="返回梦境总览">‹</button><h2>{{kind==='map'?'梦境地图':'丝线网络'}}</h2><span class="scene-name">{{kind==='map'?'梦境地图':'丝线网络'}}</span><button v-if="kind==='network'" class="locate" @click="focused=!focused">✧ {{focused?'查看全景':'坐标定位'}}</button></header>
+ <DreamMapScene v-if="kind==='map'" :nodes="nodes" @select="card=>emit('select',card)" @back="emit('back')" />
+ <section v-else class="exploration" :class="[kind,{'is-focused':focused}]">
+  <header><button class="back icon-control" @click="emit('back')" aria-label="返回梦境总览"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m14 5-7 7 7 7"/></svg></button><h2>{{kind==='map'?'梦境地图':'丝线网络'}}</h2><span class="scene-name">{{kind==='map'?'梦境地图':'丝线网络'}}</span><button v-if="kind==='network'" class="locate" @click="focused=!focused">✧ {{focused?'查看全景':'坐标定位'}}</button></header>
   <div class="scene-stage">
    <div class="moon" aria-hidden="true"></div>
    <svg v-if="kind==='map'" class="island" viewBox="0 0 1000 600" aria-hidden="true">

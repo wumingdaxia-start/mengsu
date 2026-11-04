@@ -1,8 +1,14 @@
 from __future__ import annotations
 
 import uuid
+import hashlib
 
-from fastapi import FastAPI, File, HTTPException, Query, UploadFile
+from fastapi import FastAPI, File, HTTPException, Query, UploadFile, Request
+from fastapi.responses import JSONResponse
+from fastapi.exceptions import RequestValidationError
+from fastapi.exception_handlers import request_validation_exception_handler
+from .ai_settings import router as ai_settings_router, current, request_config
+from .account_proxy import router as account_router
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
@@ -24,6 +30,42 @@ app.include_router(tarot_router)
 app.include_router(image_router)
 app.include_router(studio_router)
 app.include_router(tts_router)
+app.include_router(ai_settings_router)
+app.include_router(account_router)
+_ai_active = {}
+
+
+@app.middleware('http')
+async def personal_ai_settings(request: Request, call_next):
+    config = current(request)
+    token = request_config.set(config)
+    guarded = request.method == 'POST' and (request.url.path.startswith('/api/dream-studio/') or
+        request.url.path in ('/api/ai-settings/test', '/api/images/generate', '/api/input', '/api/narrative',
+                            '/api/dreams/ask', '/account-service/api/consult',
+                            '/account-service/api/health-insight', '/account-service/api/health-knowledge/answer'))
+    identity = hashlib.sha256(config['key'].encode()).hexdigest() if config else 'default'
+    admitted = False
+    try:
+        if guarded:
+            if _ai_active.get(identity, 0) >= 2 or sum(_ai_active.values()) >= 12:
+                return JSONResponse({'detail':'正在处理较多 AI 请求，请稍后重试。','message':'正在处理较多 AI 请求，请稍后重试。'},
+                                    status_code=429, headers={'Retry-After':'3'})
+            _ai_active[identity] = _ai_active.get(identity, 0) + 1
+            admitted = True
+        return await call_next(request)
+    finally:
+        if admitted:
+            _ai_active[identity] -= 1
+            if not _ai_active[identity]:
+                del _ai_active[identity]
+        request_config.reset(token)
+
+
+@app.exception_handler(RequestValidationError)
+async def safe_validation(request, exc):
+    if request.url.path.startswith('/api/ai-settings'):
+        return JSONResponse({'detail': '请检查密钥、地域和模型名称是否填写完整。'}, status_code=422)
+    return await request_validation_exception_handler(request, exc)
 
 
 class InputBody(BaseModel):
@@ -409,7 +451,9 @@ if FRONTEND_DIST.exists():
     @app.get("/{full_path:path}")
     def serve_spa(full_path: str) -> FileResponse:
         """前端用的是多页路由，刷新 /dreams 这类地址时也要能拿到 index.html。"""
-        candidate = FRONTEND_DIST / full_path
+        candidate = (FRONTEND_DIST / full_path).resolve()
+        if not candidate.is_relative_to(FRONTEND_DIST.resolve()):
+            raise HTTPException(status_code=404, detail="找不到这个文件")
         if full_path and candidate.is_file():
             return FileResponse(candidate)
         if "." in full_path.rsplit("/", 1)[-1]:

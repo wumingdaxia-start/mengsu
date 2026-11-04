@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import os
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parents[2]
@@ -54,7 +54,7 @@ class Settings:
 
 def load_settings() -> Settings:
     _read_env_file()
-    return Settings(
+    settings = Settings(
         api_key=(os.environ.get("QWEN_API_KEY", "") or os.environ.get("DASHSCOPE_API_KEY", "")).strip(),
         base_url=(os.environ.get("QWEN_BASE_URL", "").strip() or "https://dashscope.aliyuncs.com/compatible-mode/v1").rstrip("/"),
         chat_model=os.environ.get("QWEN_MODEL", "").strip() or "qwen-plus",
@@ -65,6 +65,13 @@ def load_settings() -> Settings:
         memory_base_url=os.environ.get("MEMORY_BASE_URL", "http://127.0.0.1:18001").rstrip("/"),
         memory_token=os.environ.get("OMBRE_MCP_SERVICE_TOKEN", "").strip() or _read_memory_token(),
     )
+    from .ai_settings import request_config, REGIONS
+    personal = request_config.get()
+    if personal:
+        settings = replace(settings, api_key=personal['key'],
+                           base_url=REGIONS[personal['region']]+'/compatible-mode/v1',
+                           chat_model=personal['chat_model'], tts_model=personal['tts_model'])
+    return settings
 
 
 def _read_xinchao_token() -> str:

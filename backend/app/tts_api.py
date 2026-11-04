@@ -91,7 +91,7 @@ def _normalize_wav(path: Path) -> None:
         pos += 8 + size + (size % 2)
     if not fmt or pcm is None or len(fmt) < 16:
         return
-    channels, _, rate, _, _, bits = struct.unpack("<HHIIHH", fmt[:16])
+    _, channels, rate, _, _, bits = struct.unpack("<HHIIHH", fmt[:16])
     tmp = path.with_name(path.name + ".fix")
     with wave.open(str(tmp), "wb") as output:
         output.setnchannels(channels)
@@ -116,9 +116,14 @@ async def _synthesize_chunk(settings, text: str, voice: str, client: httpx.Async
         "input": {"text": text, "voice": voice, "language_type": "Chinese"},
     }
     headers = {"Authorization": f"Bearer {settings.api_key}"}
-    response = await client.post(TTS_ENDPOINT, json=payload, headers=headers, timeout=120)
+    from .ai_settings import request_config, REGIONS
+    personal = request_config.get()
+    endpoint = REGIONS[personal['region']] + '/api/v1/services/aigc/multimodal-generation/generation' if personal else TTS_ENDPOINT
+    response = await client.post(endpoint, json=payload, headers=headers, timeout=120)
     if response.status_code == 401:
-        raise HTTPException(503, "云端音色密钥无效，请在服务端 private/.env 检查 QWEN_API_KEY。")
+        raise HTTPException(503, "云端音色密钥无效，请打开「AI 服务设置」检查密钥和地域。")
+    if response.status_code == 429:
+        raise HTTPException(429, '音色服务繁忙或额度不足，请稍后重试，或在 AI 服务设置中切换自己的密钥。')
     if response.status_code != 200:
         raise HTTPException(502, "云端音色暂时没有回应，请稍后再试，也可以先安静地读一遍故事。")
     data = response.json()
@@ -140,7 +145,7 @@ async def synthesize(body: TtsBody):
     if not settings.llm_ready:
         raise HTTPException(
             503,
-            "云端音色还未配置，请在服务端 private/.env 填写 QWEN_API_KEY。你也可以先安静地阅读故事。",
+            "云端音色尚未连接，请打开「AI 服务设置」配置并测试。内置故事和背景音乐仍可使用。",
         )
 
     ensure_dirs()
