@@ -1,15 +1,14 @@
 <script setup>
 import { onMounted, onBeforeUnmount, ref } from 'vue'
 import { useRouter } from 'vue-router'
+import { SAFETY_API_BASE } from '../auth'
 import HealthSceneBackground from '../components/HealthSceneBackground.vue'
 
 const router = useRouter()
 const frame = ref(null)
 const loaded = ref(false)
 const timedOut = ref(false)
-const address = new URL(location.origin)
-address.pathname = '/account-service/'
-address.search = '?mengsu=1'
+const address = new URL(`${SAFETY_API_BASE}/?mengsu=1`, location.origin)
 const source = address.href
 let timer
 function receive(event) {
@@ -32,10 +31,10 @@ onBeforeUnmount(() => { window.removeEventListener('message', receive); clearTim
 <template>
   <section class="safety-workspace" aria-label="花屿安全健康空间">
     <HealthSceneBackground :scene="0" />
-    <iframe ref="frame" class="safety-original" :src="source" title="安康守护：安全文件夹原版健康管理网站" allow="geolocation" />
+    <iframe ref="frame" class="safety-original" :src="source" title="安康守护：安全文件夹原版健康管理网站" allow="geolocation; camera" />
     <div v-if="timedOut" class="safety-connection" role="status">
       <h1>安全健康服务尚未连接</h1>
-      <p>请通过花屿星启动脚本启动本地服务，再重试连接。</p>
+      <p>安康服务暂时未能连接，请稍后重试；如果持续出现，请联系网站管理员。</p>
       <div><button type="button" @click="retry">重试连接</button><button type="button" @click="router.push('/entry')">返回主页面</button></div>
     </div>
   </section>

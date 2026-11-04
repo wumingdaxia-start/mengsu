@@ -5,9 +5,11 @@ function planSection(kind){
  const heading='<div class="section-head"><div><h2>制定'+planTitle(kind)+'计划</h2><p>'+(kind==='exercise'?'按目标、基础和器械安排未来一周训练':'根据身体信息估算营养目标，安排一日三餐与加餐')+'</p></div><button type="button" class="primary" data-plan-new="'+kind+'">'+(plan?'重新制定':'＋ 制定计划')+'</button></div>';
  if(!plan)return heading+'<article class="card plan-empty"><span class="plan-symbol">'+(kind==='exercise'?'↗':'♧')+'</span><div><h3>暂无'+planTitle(kind)+'计划</h3><p>填写需求后生成可修改的计划，登录后保存到自己的账号。</p></div></article>';
  const s=plan.settings,totals=kind==='diet'?plan.items.reduce((n,x)=>({calories:n.calories+x.calories,protein:n.protein+x.protein}),{calories:0,protein:0}):null;
- return heading+'<article class="card saved-plan"><div class="plan-top"><div><span class="plan-eyebrow">MY '+(kind==='exercise'?'WORKOUT WEEK':'DAILY MEALS')+'</span><h3>'+escapeHtml(s.goal)+' · '+(kind==='exercise'?s.days+' 天 / 周':escapeHtml(s.preference))+'</h3><p>'+escapeHtml(plan.createdDate)+' 制定 · 当前账号已保存</p></div><div class="plan-buttons"><button type="button" class="plan-secondary" data-plan-edit="'+kind+'">修改计划</button><button type="button" class="delete-record" data-plan-remove="'+kind+'">删除计划</button></div></div>'+
+ const newRestrictions=kind==='diet'?DietTools.restrictions(data.profile?.allergies).filter(x=>!s.exclusions.includes(x)):[];
+ return heading+'<article class="card saved-plan">'+(newRestrictions.length?'<p class="diet-profile-note">档案忌口已更新：'+escapeHtml(newRestrictions.join('、'))+'。此旧计划尚未同步，请重新制定并核对食材。</p>':'')+'<div class="plan-top"><div><span class="plan-eyebrow">MY '+(kind==='exercise'?'WORKOUT WEEK':'DAILY MEALS')+'</span><h3>'+escapeHtml(s.goal)+' · '+(kind==='exercise'?s.days+' 天 / 周':escapeHtml(s.preference))+'</h3><p>'+escapeHtml(plan.createdDate)+' 制定 · 当前账号已保存</p></div><div class="plan-buttons"><button type="button" class="plan-secondary" data-plan-edit="'+kind+'">修改计划</button><button type="button" class="delete-record" data-plan-remove="'+kind+'">删除计划</button></div></div>'+
  (totals?'<div class="plan-targets"><span>每日热量目标 <b>'+plan.targets.calories+' kcal</b></span><span>蛋白质目标 <b>'+plan.targets.protein+' g</b></span><span>食谱估算合计 <b>'+Math.round(totals.calories)+' kcal / '+Math.round(totals.protein)+' g 蛋白质</b></span></div>':'')+
  '<div class="plan-rows">'+plan.items.map(row=>'<div class="plan-row"><b>'+escapeHtml(row.label)+'</b><p>'+escapeHtml(row.content)+'</p><small>'+(kind==='exercise'?(row.minutes?row.minutes+' 分钟':'恢复日'):row.calories+' kcal · 蛋白质 '+row.protein+' g')+'</small></div>').join('')+'</div>'+
+ (kind==='exercise'&&s.notes?'<p class="plan-note">动作备忘：'+escapeHtml(s.notes)+'</p>':'')+
  (kind==='diet'?'<p class="plan-note">已排除：'+escapeHtml(s.exclusions.join('、')||'无指定类别')+'。'+(s.notes?'其他忌口备忘：'+escapeHtml(s.notes)+'。请自行核对食材。':'')+'</p>':'')+
  '<p class="plan-note">计划不计入已完成记录；实际完成后，请在上方记录。'+(kind==='diet'?'食谱营养为估算值，可调整食材和分量。':'每次按身体感受调整，避免勉强训练。')+'</p></article>';
 }
@@ -21,19 +23,23 @@ function planField(label,name,options,value){return '<label class="field"><span>
 function openPlan(kind){
  if(!ready||saving||!['exercise','diet'].includes(kind))return;
  planDraft=null;const old=data[kind+'Plan']?.settings||{},p=user?data.profile||{}:{};
+ const profileExclusions=kind==='diet'?DietTools.restrictions(p.allergies):[];
+ const feedback=kind==='exercise'?exerciseFeedback():null;
+ const suggestedMinutes=feedback?.reduce?Math.max(10,Math.round((old.minutes||20)*0.75)):old.minutes;
+ const defaultLevel=p.activityLevel==='久坐为主'?'初学':undefined;
  modalBody.innerHTML='<div class="plan-dialog"><span class="plan-eyebrow">PERSONAL PLAN</span><h2>制定'+planTitle(kind)+'计划</h2><p>按填写的信息生成参考方案，生成后可逐项修改。</p><form id="planSetup" class="plan-form">'+
  planField('目标','goal',['减脂','增肌','保持健康'],old.goal||({'控制体重':'减脂','保持状态':'保持健康'}[p.healthGoal]))+
  (kind==='exercise'?
- planField('训练基础','level',['初学','有基础'],old.level)+planField('可用器械','equipment',['徒手','哑铃'],old.equipment)+planField('每周训练天数','days','type="number" min="1" max="5" step="1"',old.days)+planField('每次时长（分钟）','minutes','type="number" min="20" max="90" step="1"',old.minutes)+planField('开始日期','startDate','type="date"',old.startDate):
+ planField('训练基础','level',['初学','有基础'],old.level||defaultLevel)+planField('可用器械','equipment',['徒手','哑铃'],old.equipment)+planField('每周训练天数','days','type="number" min="1" max="5" step="1"',old.days)+planField('每次时长（分钟）','minutes','type="number" min="10" max="90" step="1"',suggestedMinutes)+planField('开始日期','startDate','type="date"',old.startDate||todayKey())+'<label class="field span-2"><span>身体限制与动作备忘（请自行核对动作）</span><textarea name="exerciseNotes" maxlength="800" rows="2">'+escapeHtml(old.notes||p.medicalNotes||'')+'</textarea></label><p class="plan-note span-2">'+escapeHtml(feedback.message)+'</p>':
  planField('代谢公式性别参数','sex',['男','女'],old.sex||p.gender)+planField('年龄（18–75 岁）','age','type="number" min="18" max="75" step="1"',old.age??profileAge(p.birthDate))+planField('身高（厘米）','height','type="number" min="140" max="210" step="0.1"',old.height??p.heightCm)+planField('体重（千克）','weight','type="number" min="40" max="200" step="0.1"',old.weight??p.weightKg)+planField('日常活动水平','activity',['久坐为主','轻度活动','中等活动','高强度活动'],old.activity||p.activityLevel)+planField('饮食方式','preference',['均衡饮食','蛋奶素'],old.preference)+
- '<fieldset class="plan-exclusions"><legend>需要排除的食材类别</legend>'+HealthPlans.exclusions.map(x=>'<label><input name="exclusions" type="checkbox" value="'+x+'"'+(old.exclusions?.includes(x)?' checked':'')+'>'+x+'</label>').join('')+'</fieldset><label class="field span-2"><span>其他忌口备忘（需自行核对食材）</span><textarea name="notes" maxlength="300" rows="2">'+escapeHtml(old.notes??p.allergies??'')+'</textarea></label>')+
- '<p class="plan-note span-2">'+(kind==='diet'?'采用基础代谢与活动系数估算，仅适用于一般健康成年人。孕哺期、疾病或特殊营养需求请咨询专业人员；请核对过敏原与食品标签。':'计划包含热身、训练和恢复日；如有伤病，请先确认适合的动作。')+'</p><button class="primary span-2" type="submit">生成参考计划</button></form></div>';
+ '<fieldset class="plan-exclusions"><legend>需要排除的食材类别（已同步档案）</legend>'+HealthPlans.exclusions.map(x=>'<label><input name="exclusions" type="checkbox" value="'+x+'"'+((old.exclusions?.includes(x)||profileExclusions.includes(x))?' checked':'')+(profileExclusions.includes(x)?' disabled':'')+'>'+x+(profileExclusions.includes(x)?'（来自档案）':'')+'</label>').join('')+'</fieldset><label class="field span-2"><span>其他忌口备忘（需自行核对食材）</span><textarea name="notes" maxlength="300" rows="2">'+escapeHtml([p.allergies,old.notes].filter(Boolean).filter((v,i,a)=>a.indexOf(v)===i).join('；').slice(0,300))+'</textarea></label>')+
+ '<p class="plan-note span-2">'+(kind==='diet'?'采用基础代谢与活动系数估算，仅适用于一般健康成年人。孕哺期、疾病或特殊营养需求请咨询专业人员；档案识别出的类别已锁定排除，其他文字忌口仍需逐项核对食材和食品标签。':'计划包含热身、训练和恢复日；如有伤病，请先确认适合的动作。')+'</p><button class="primary span-2" type="submit">生成参考计划</button></form></div>';
  modal.hidden=false;const form=q('#planSetup'),epoch=generation;
  form.onsubmit=event=>{
   event.preventDefault();if(!ready||saving||epoch!==generation)return;
   const f=new FormData(form),s={goal:f.get('goal')};
-  if(kind==='exercise')Object.assign(s,{level:f.get('level'),equipment:f.get('equipment'),days:Number(f.get('days')),minutes:Number(f.get('minutes')),startDate:f.get('startDate')});
-  else Object.assign(s,{sex:f.get('sex'),age:Number(f.get('age')),height:Number(f.get('height')),weight:Number(f.get('weight')),activity:f.get('activity'),preference:f.get('preference'),exclusions:f.getAll('exclusions'),notes:String(f.get('notes')||'')});
+  if(kind==='exercise')Object.assign(s,{level:f.get('level'),equipment:f.get('equipment'),days:Number(f.get('days')),minutes:Number(f.get('minutes')),startDate:f.get('startDate'),notes:String(f.get('exerciseNotes')||'')});
+  else Object.assign(s,{sex:f.get('sex'),age:Number(f.get('age')),height:Number(f.get('height')),weight:Number(f.get('weight')),activity:f.get('activity'),preference:f.get('preference'),exclusions:[...new Set([...f.getAll('exclusions'),...profileExclusions])],notes:String(f.get('notes')||'')});
   try{planDraft=HealthPlans[kind](s,todayKey());showPlanEditor(kind)}catch(error){notify(error.message)}
  };
 }

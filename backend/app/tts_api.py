@@ -178,3 +178,13 @@ async def synthesize(body: TtsBody):
                 path.unlink(missing_ok=True)
 
     return {"url": f"/audio/{target.name}", "voice": body.voice, "chunks": len(contents)}
+
+
+class TarotSpeechBody(BaseModel):
+    text: str = Field(min_length=1, max_length=6000)
+
+
+@router.post("/tarot-tts")
+async def tarot_speech(body: TarotSpeechBody):
+    """Use Qwen's natural voice for both tarot previews and readings."""
+    return await synthesize(TtsBody(text=body.text, voice="Serena"))

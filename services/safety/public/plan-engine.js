@@ -9,8 +9,9 @@
  function settings(kind,s){
   requireValue(s&&typeof s==='object'&&!Array.isArray(s)&&goals.includes(s.goal));
   if(kind==='exercise'){
-   requireValue(levels.includes(s.level)&&equipment.includes(s.equipment)&&Number.isInteger(s.days)&&number(s.days,1,5)&&number(s.minutes,20,90)&&Number.isInteger(s.minutes)&&date(s.startDate));
-   return {goal:s.goal,level:s.level,equipment:s.equipment,days:s.days,minutes:s.minutes,startDate:s.startDate};
+   requireValue(levels.includes(s.level)&&equipment.includes(s.equipment)&&Number.isInteger(s.days)&&number(s.days,1,5)&&number(s.minutes,10,90)&&Number.isInteger(s.minutes)&&date(s.startDate));
+   requireValue(s.notes===undefined||(typeof s.notes==='string'&&s.notes.length<=800));
+   return {goal:s.goal,level:s.level,equipment:s.equipment,days:s.days,minutes:s.minutes,startDate:s.startDate,...(s.notes?{notes:s.notes.trim()}:{})};
   }
   requireValue(['男','女'].includes(s.sex)&&Number.isInteger(s.age)&&number(s.age,18,75)&&number(s.height,140,210)&&number(s.weight,40,200)&&Object.hasOwn(activities,s.activity)&&['均衡饮食','蛋奶素'].includes(s.preference));
   requireValue(Array.isArray(s.exclusions)&&s.exclusions.length<=6&&s.exclusions.every(x=>exclusions.includes(x)));
@@ -34,6 +35,7 @@
    const day=new Date(s.startDate+'T12:00:00');day.setDate(day.getDate()+i);
    const label=[day.getFullYear(),String(day.getMonth()+1).padStart(2,'0'),String(day.getDate()).padStart(2,'0')].join('-');
    if(!training.has(i))return {label,content:'恢复日：日常轻松活动，按身体感受舒缓拉伸，不安排正式训练。',minutes:0};
+   if(s.minutes<20)return {label,minutes:s.minutes,content:'轻松活动 '+s.minutes+' 分钟：热身 2 分钟；快走或原地低冲击踏步 '+(s.minutes-4)+' 分钟；舒缓拉伸 2 分钟。可以正常交谈为宜，按身体感受暂停。'};
    const moves=strength[session++%2],rounds=s.level==='初学'?'1–2':'2–3';
    const cardio=s.goal==='减脂'?'快走或低冲击踏步':'轻松快走';
    return {label,minutes:s.minutes,content:'热身 5 分钟；'+moves+'，每个动作 '+rounds+' 组 × 8–12 次，组间休息 60–90 秒；'+cardio+'约 '+Math.max(3,s.minutes-20)+' 分钟；舒缓 5 分钟。按总时长减少组数，不必勉强完成。'};

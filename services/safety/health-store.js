@@ -40,14 +40,24 @@ function validateData(input) {
     for (const key of ['heightCm','weightKg']) if (value[key] !== undefined) result[key] = value[key];
     return Object.keys(result).length ? result : null;
   };
+  const checkins=input.exerciseCheckins||[];
+  if(!Array.isArray(checkins)||checkins.length>1000||new Set(checkins.map(x=>x?.date)).size!==checkins.length)fail();
+  for(const x of checkins)if(!x||!string(x.date,10)||!date(x)||!['completed','partial','rest'].includes(x.status))fail();
   return {
+    exerciseCheckins:checkins.map(x=>({date:x.date,status:x.status})),
     exercise: input.exercise.map(x => {
       if (!x || !string(x.name, 80) || !number(x.minutes, 1, 1440) || !number(x.calories, 0, 20000) || !date(x)) fail();
-      return {name:x.name.trim(), minutes:x.minutes, calories:x.calories, ...(x.date ? {date:x.date} : {})};
+      if(x.intensity!==undefined&&!['轻松','适中','较高'].includes(x.intensity))fail();
+      if(x.feeling!==undefined&&!['轻松','适中','太累','有不适'].includes(x.feeling))fail();
+      if(!optionalText(x.note,300))fail();
+      for(const [key,max] of [['sets',100],['reps',1000]])if(x[key]!==undefined&&(!Number.isInteger(x[key])||!number(x[key],1,max)))fail();
+      if(x.planDate!==undefined&&(!date({date:x.planDate})||x.planDate!==x.date))fail();
+      return {name:x.name.trim(), minutes:x.minutes, calories:x.calories, ...(x.date ? {date:x.date} : {}),...Object.fromEntries(['intensity','feeling','note','sets','reps','planDate'].filter(k=>x[k]!==undefined).map(k=>[k,x[k]]))};
     }),
     diet: input.diet.map(x => {
       if (!x || !['早餐','午餐','晚餐','加餐'].includes(x.meal) || !string(x.food, 200) || !number(x.calories, 0, 20000) || !number(x.protein, 0, 2000) || !date(x)) fail();
-      return {meal:x.meal, food:x.food.trim(), calories:x.calories, protein:x.protein, ...(x.date ? {date:x.date} : {})};
+      if (x.foodGroup !== undefined && !['grain','wholegrain','vegetable','fruit','protein'].includes(x.foodGroup)) fail();
+      return {meal:x.meal, food:x.food.trim(), calories:x.calories, protein:x.protein, ...(x.date ? {date:x.date} : {}), ...(x.foodGroup ? {foodGroup:x.foodGroup} : {})};
     }),
     sleep: input.sleep.map(x => {
       if (typeof x === 'number') { if (!number(x, 0, 24)) fail(); return x; }

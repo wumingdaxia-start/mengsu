@@ -1,0 +1,7 @@
+(function(root){
+ const foods=[['rice','米饭（熟）',150,'g',174,3.9,'grain',[]],['oats','燕麦片（干）',40,'g',152,5.2,'wholegrain',[]],['bread','全麦面包',50,'g',125,4.5,'wholegrain',['小麦']],['egg','鸡蛋（去壳）',50,'g',72,6.5,'protein',['蛋类']],['milk','纯牛奶',250,'ml',150,8,'protein',['奶类']],['chicken','鸡胸肉（熟）',100,'g',165,31,'protein',[]],['tofu','豆腐',100,'g',80,8,'protein',['大豆']],['lentil','熟扁豆',100,'g',116,9,'protein',[]],['apple','苹果（可食部）',150,'g',78,.4,'fruit',[]],['banana','香蕉（可食部）',100,'g',89,1.1,'fruit',[]],['greens','蔬菜（清蒸或水煮）',100,'g',30,1.6,'vegetable',[]]].map(([id,name,amount,unit,calories,protein,group,tags])=>({id,name,amount,unit,calories,protein,group,tags}));
+ const labels={vegetable:'蔬菜',fruit:'水果',wholegrain:'全谷物',protein:'蛋白质来源',grain:'主食'};
+ function estimate(id,amount){const f=foods.find(x=>x.id===id);if(!f||!Number.isFinite(amount)||amount<=0||amount>5000)return null;return {...f,amount,calories:Math.round(f.calories*amount/f.amount*10)/10,protein:Math.round(f.protein*amount/f.amount*10)/10}}
+ function restrictions(text){if(!text||/^(无|没有|无过敏|无忌口|无过敏或忌口)[。.!！\s]*$/.test(text.trim()))return [];const aliases={'蛋类':/鸡蛋|蛋类|蛋白过敏/,'奶类':/牛奶|乳制品|奶类|乳糖/,'大豆':/大豆|豆腐|豆浆/,'坚果':/坚果|花生|核桃|杏仁/,'鱼虾':/鱼虾|海鲜|虾|螃蟹/,'小麦':/小麦|麸质|面筋/};return Object.keys(aliases).filter(k=>aliases[k].test(text))}
+ const api={foods,labels,estimate,restrictions};if(typeof module!=='undefined')module.exports=api;root.DietTools=api;
+})(typeof window!=='undefined'?window:globalThis);

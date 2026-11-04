@@ -19,9 +19,9 @@ export function syncDreamAccount() {
   dreamValues.value = {}; versions = {}; dreamError.value = ''; dreamReady.value = !owner
   pending = null
   if (!owner) return Promise.resolve()
-  const request = safetyRequest('/api/dream-data', { headers: { 'X-Health-User': owner } }).then(result => {
+  const request = Promise.all([safetyRequest('/api/dream-data', { headers: { 'X-Health-User': owner } }), safetyRequest('/api/health-data', { headers: { 'X-Health-User': owner } })]).then(([result, health]) => {
     if (ticket !== epoch || account() !== owner) return
-    dreamValues.value = result.values; versions = result.revisions; dreamReady.value = true
+    dreamValues.value = { ...result.values, healthSleep: health.data.sleep }; versions = result.revisions; dreamReady.value = true
   }).catch(error => { if (ticket === epoch) dreamError.value = error.message }).finally(() => { if (pending === request) pending = null })
   pending = request
   return request
@@ -66,4 +66,9 @@ export async function importLegacyDreamRecords(){
     }else if(current){merged={...value,...current}}
     await writeDream(key,merged)
   }
+}
+
+export async function refreshHealthSleep(){
+ const owner=dreamOwner.value,ticket=epoch;if(!owner)return
+ try{const health=await safetyRequest('/api/health-data',{headers:{'X-Health-User':owner}});if(ticket===epoch&&account()===owner)dreamValues.value={...dreamValues.value,healthSleep:health.data.sleep}}catch{}
 }

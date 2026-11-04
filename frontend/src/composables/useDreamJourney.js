@@ -1,11 +1,20 @@
 import { computed } from 'vue'
-import { readDream, writeDream } from '../dream-account'
+import { readDream, writeDream, refreshHealthSleep } from '../dream-account'
 
 const defaults={snapshots:[],journals:[],plan:{bedtime:'22:30',wake:'07:00',started:'',completed:[]},rituals:{},holes:[],posts:[],creations:[]}
 const state=Object.fromEntries(Object.entries(defaults).map(([key,fallback])=>[key,computed(()=>readDream(key,fallback))]))
+state.journals=computed(()=>{
+ const diaries=readDream('journals',[]), merged=new Map(diaries.map(j=>[j.date,j]))
+ for(const r of readDream('healthSleep',[])){
+  if(!r||typeof r!=='object'||!r.date||!Number.isFinite(Number(r.hours)))continue
+  const existing=merged.get(r.date)
+  merged.set(r.date,{...(existing||{id:'health-'+r.date,date:r.date,body:[],emotion:[],note:'',awakenings:0,awakeMinutes:0}),reportedHours:Number(r.hours),fromHealth:true,summaryOnly:!existing,quality:existing?.quality||(['','很差','不太好','一般','还不错','很好'][r.quality]||'未填写感受')})
+ }
+ return [...merged.values()].sort((a,b)=>b.date.localeCompare(a.date))
+})
 export const today = () => new Date().toLocaleDateString('sv-SE')
 export function useDreamJourney() {
-  return { ...state, commit: writeDream, refresh() {} }
+  return { ...state, commit: writeDream, refresh: refreshHealthSleep }
 }
 export const demoDreams = [
   { id: 'library-fog', title: '雾中阶梯', signal: '沿着云雾中的阶梯慢慢向上，尽头有一扇亮着灯的门。', date: '2026-10-26', feeling: '失重', motif: '阶梯', image: '/dream-library/mist-stairs.jpg', demo: true },
@@ -27,12 +36,13 @@ export const winddown = [
   { before: 10, title: '不必努力，慢慢入睡', items: ['找到舒服的姿势，让身体被承托', '自然呼吸，不憋气，不追求固定频率', '想起今天三件值得感谢的小事', '放下计时，不催促自己必须睡着'] }
 ]
 export function sleepMetrics(entry) {
+  if(entry.summaryOnly)return {sleep:Math.round(entry.reportedHours*60),inBed:null,latency:null,linger:null,efficiency:null}
   const minutes = t => { const [h, m] = t.split(':').map(Number); return h * 60 + m }
   const elapsed = (a, b) => (minutes(b) - minutes(a) + 1440) % 1440
   const inBed = elapsed(entry.bed, entry.up)
   const latency = entry.noSleep ? 0 : elapsed(entry.bed, entry.asleep)
   const linger = elapsed(entry.wake, entry.up)
-  const sleep = entry.noSleep ? 0 : Math.max(0, elapsed(entry.asleep, entry.wake) - Number(entry.awakeMinutes))
+  const sleep = Number.isFinite(entry.reportedHours) ? Math.round(entry.reportedHours*60) : entry.noSleep ? 0 : Math.max(0, elapsed(entry.asleep, entry.wake) - Number(entry.awakeMinutes))
   return { inBed, latency, linger, sleep, efficiency: inBed ? Math.round(sleep / inBed * 100) : 0 }
 }
 export function downloadText(name, text, type = 'text/plain;charset=utf-8') {

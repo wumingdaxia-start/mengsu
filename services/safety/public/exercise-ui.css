@@ -1,0 +1,10 @@
+.exercise-today,.exercise-overview{margin:20px 0;box-shadow:none;border:1px solid var(--line);background:var(--card)}
+.exercise-today h2,.exercise-overview h2{font-family:"Noto Serif SC","SimSun",serif;font-size:20px;margin:10px 0}
+.exercise-today p,.exercise-overview p{font-size:15px;line-height:1.7;color:var(--muted)}
+.exercise-checkin,.exercise-summary{display:flex;align-items:center;flex-wrap:wrap;gap:12px}.exercise-checkin>span{margin-right:auto;color:var(--deep);font-weight:600}.exercise-summary{padding-top:12px;border-top:1px solid var(--line)}.exercise-summary a{margin-left:auto;color:var(--deep);text-decoration:none}.exercise-summary b{color:var(--deep)}
+#exerciseRecordForm .field{display:grid;gap:7px}#exerciseRecordForm textarea{width:100%;padding:12px;border:1px solid var(--line);border-radius:10px;font:inherit;resize:vertical}#exerciseRecordForm span{font-size:13px;color:var(--muted)}
+.modal-card:has(#exerciseRecordForm){width:min(620px,100%);max-height:calc(100dvh - 40px);overflow-y:auto;overscroll-behavior:contain}.exercise-checkin .plan-secondary{background:var(--mint);color:var(--deep);border:1px solid var(--line)}
+@media(max-width:760px){.exercise-summary a{width:100%;margin:0}.exercise-checkin>span{width:100%}.exercise-today,.exercise-overview{padding:20px}}
+
+@media(max-width:760px){.exercise-records .list-item{flex-wrap:wrap;min-width:0}.exercise-records .list-item>div:not(.value){flex:1;min-width:0;overflow-wrap:anywhere}.exercise-records .list-item .value{margin-left:56px}.exercise-records .delete-record{margin-left:auto;flex:0 0 auto}.exercise-records .list-item .list-icon{flex:0 0 42px}}
+@media(max-width:760px){.saved-plan .plan-top{flex-wrap:wrap;gap:12px}.saved-plan .plan-top>div{min-width:0;max-width:100%}.saved-plan .plan-buttons{display:flex;flex-wrap:wrap;max-width:100%}.saved-plan .plan-buttons button{max-width:100%;margin:0}.saved-plan .plan-row{min-width:0;overflow-wrap:anywhere}}

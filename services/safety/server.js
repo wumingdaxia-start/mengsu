@@ -13,6 +13,7 @@ const {createConsultStore}=require('./consult-store');
 const consultService=require('./consult-service');
 const healthInsight=require('./health-insight');
 const healthKnowledge=require('./health-knowledge');
+const foodRecognition=require('./food-recognition');
 const {loadMysqlConfig,createMysqlPersistence}=require('./mysql-store');
 const adminRoot=path.join(__dirname,'admin');
 const isAdmin=user=>user?.role==='健康安全管理员';
@@ -26,6 +27,7 @@ const store=persistence?.health||createStore(options.dataDir||path.join(__dirnam
 const consultStore=persistence?.consult||createConsultStore(options.consultDir||path.join(__dirname,'../../data/safety/consult'));
 const testStore=require('./local-persistence').createTests(options.testsDir||path.join(__dirname,'../../data/safety/tests'));
 const dreamStore=persistence?.dream||require('./dream-store').createDreamStore(options.dreamDir||path.join(__dirname,'../../data/safety/dream'));
+const foodBusy=new Set(),foodQuota=new Map();
 const consultBusy=new Set();
 const insightBusy=new Set();
 const knowledgeBusy=new Set(),knowledgeQuota=new Map();
@@ -37,7 +39,7 @@ function cookies(req){return Object.fromEntries((req.headers.cookie||'').split('
 function sign(id){return crypto.createHmac('sha256',secret).update(id).digest('base64url')}
 function getSession(req){let value;try{value=cookies(req).health_session}catch{return null}if(!value)return null;const i=value.lastIndexOf('.'),id=value.slice(0,i),sig=value.slice(i+1);if(!id||!sig)return null;const a=Buffer.from(sign(id)),b=Buffer.from(sig);if(a.length!==b.length||!crypto.timingSafeEqual(a,b))return null;const s=sessions.get(id);if(!s||s.expires<Date.now()){sessions.delete(id);return null}return{id,...s}}
 function validPassword(password,user){const result=crypto.scryptSync(password,user.salt,64),saved=Buffer.from(user.passwordHash,'hex');return result.length===saved.length&&crypto.timingSafeEqual(result,saved)}
-function serve(res,root,relative){let file=path.resolve(root,relative),base=path.resolve(root);if(!file.startsWith(base+path.sep)&&file!==path.join(base,'index.html'))return json(res,403,{message:'禁止访问'});fs.stat(file,(error,stat)=>{if(error||!stat.isFile())file=path.join(root,'index.html');fs.readFile(file,(readError,data)=>{if(readError)return json(res,404,{message:'页面不存在'});res.writeHead(200,{'Content-Type':types[path.extname(file)]||'application/octet-stream','Cache-Control':'no-store, max-age=0','Pragma':'no-cache','X-Content-Type-Options':'nosniff','Content-Security-Policy':"default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self'; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'"});res.end(data)})})}
+function serve(res,root,relative){let file=path.resolve(root,relative),base=path.resolve(root);if(!file.startsWith(base+path.sep)&&file!==path.join(base,'index.html'))return json(res,403,{message:'禁止访问'});fs.stat(file,(error,stat)=>{if(error||!stat.isFile())file=path.join(root,'index.html');fs.readFile(file,(readError,data)=>{if(readError)return json(res,404,{message:'页面不存在'});res.writeHead(200,{'Content-Type':types[path.extname(file)]||'application/octet-stream','Cache-Control':'no-store, max-age=0','Pragma':'no-cache','X-Content-Type-Options':'nosniff','Content-Security-Policy':"default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self'; img-src 'self' data:; connect-src 'self'; media-src 'self' blob:; frame-src https://player.bilibili.com; frame-ancestors 'none'"});res.end(data)})})}
 async function handler(req,res){const url=new URL(req.url,'http://localhost');
  const personalKey=req.headers['x-huayuxing-ai-key'];
  const personalRegion=req.headers['x-huayuxing-ai-region'];
@@ -90,6 +92,34 @@ async function handler(req,res){const url=new URL(req.url,'http://localhost');
    if(result.error)return json(res,result.status||503,{message:result.error});
    return json(res,200,result);
   }finally{knowledgeBusy.delete(user.id)}
+ }
+ if(url.pathname==='/api/sleep-photo'){
+  if(req.method!=='POST')return json(res,405,{message:'请求方式不支持'});
+  const session=getSession(req),user=session&&(await readUsers()).find(x=>x.id===session.userId);
+  if(!user)return json(res,401,{message:'请先登录后观察晨起照片'});
+  if(isAdmin(user))return json(res,403,{message:'请使用个人账号'});
+  if(req.headers['x-health-user']!==String(user.id))return json(res,409,{message:'账号已切换，请刷新页面'});
+  const photoService=require('./sleep-photo');let input,record;
+  try{input=await readBody(req,3*1024*1024);record=photoService.validate(input)}catch(e){return json(res,400,{message:e.message||'照片或记录无效'})}
+  if(foodBusy.has(user.id))return json(res,409,{message:'上一张照片正在观察，请稍候'});
+  const now=Date.now(),old=foodQuota.get(user.id),quota=old&&now-old.start<600000?old:{start:now,count:0};
+  if(quota.count>=10)return json(res,429,{message:'照片请求过于频繁，请 10 分钟后再试'});
+  quota.count++;foodQuota.set(user.id,quota);foodBusy.add(user.id);
+  try{const result=await photoService.observe(input.image,{env:requestAiEnv,request:options.aiFetch||fetch});if(result.error)return json(res,result.status||502,{message:result.error});return json(res,200,{...result,record,feedback:photoService.feedback(record)})}finally{foodBusy.delete(user.id)}
+ }
+ if(url.pathname==='/api/food-recognition'){
+  if(req.method!=='POST')return json(res,405,{message:'请求方式不支持'});
+  const session=getSession(req),user=session&&(await readUsers()).find(x=>x.id===session.userId);
+  if(!user)return json(res,401,{message:'请先登录后识别食物'});
+  if(isAdmin(user))return json(res,403,{message:'请使用普通用户账号'});
+  if(req.headers['x-health-user']!==String(user.id))return json(res,409,{message:'账号已切换，请刷新页面'});
+  let input;try{input=await readBody(req,3*1024*1024);foodRecognition.validateImage(input.image)}catch{return json(res,400,{message:'图片无效，请重新选择不超过 2MB 的 JPEG 或 PNG 图片'})}
+  if(input.consent!==true)return json(res,400,{message:'请先同意发送照片进行识别'});
+  if(foodBusy.has(user.id))return json(res,409,{message:'上一张照片正在识别，请稍候'});
+  const now=Date.now(),old=foodQuota.get(user.id),quota=old&&now-old.start<600000?old:{start:now,count:0};
+  if(quota.count>=10)return json(res,429,{message:'识别过于频繁，请 10 分钟后再试'});
+  quota.count++;foodQuota.set(user.id,quota);foodBusy.add(user.id);
+  try{const result=await foodRecognition.recognize(input.image,{env:requestAiEnv,request:options.aiFetch||fetch});if(result.error)return json(res,result.status||502,{message:result.error});return json(res,200,result)}finally{foodBusy.delete(user.id)}
  }
  if(url.pathname==='/api/consult/status'&&req.method==='GET')return json(res,200,{available:!!consultService.config(requestAiEnv)});
  if(url.pathname==='/api/health-insight'){
