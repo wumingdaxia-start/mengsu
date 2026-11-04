@@ -54,7 +54,7 @@ defineProps({card:{type:Object,required:true}})
       </g>
     </svg>
     <div class="card-caption"><h3>{{ card.title }}</h3><p>{{ card.subtitle }}</p></div>
-    <div class="card-bottom"><span>梦溯 · 星栈</span><span>生活偏好卡</span></div>
+    <div class="card-bottom"><span>花屿星 · 星栈</span><span>生活偏好卡</span></div>
   </article>
 </template>
 <style scoped>

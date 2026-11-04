@@ -19,7 +19,7 @@ from .xinchao import XinchaoClient
 db.init_db()
 ensure_dirs()
 
-app = FastAPI(title="梦溯 API", version="0.1.0")
+app = FastAPI(title="花屿星 API", version="0.1.0")
 app.include_router(tarot_router)
 app.include_router(image_router)
 app.include_router(studio_router)

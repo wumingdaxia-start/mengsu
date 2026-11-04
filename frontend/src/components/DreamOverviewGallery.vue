@@ -36,7 +36,7 @@ onMounted(async()=>{
 
 <template>
  <section class="overview-gallery">
-  <header class="gallery-heading"><h1>梦溯 <span>梦境空间</span></h1><p>记录每一个梦境，连接每一段记忆</p><small lang="en">Record Every Dream, Connect Every Memory</small></header>
+  <header class="gallery-heading"><h1>花屿星 <span>梦境空间</span></h1><p>记录每一个梦境，连接每一段记忆</p><small lang="en">Record Every Dream, Connect Every Memory</small></header>
   <p class="gallery-notice" aria-live="polite">{{loading?'正在迎接你的梦境…':notice|| (personal.length?'你的意识快照':'示例梦境 · 不代表个人记录')}}</p>
   <section class="gallery-carousel" aria-label="梦境快照轮播" aria-roledescription="轮播" tabindex="0" @keydown.left.prevent="move(-1)" @keydown.right.prevent="move(1)" @touchstart.passive="touchX=$event.touches[0].clientX" @touchend.passive="swipe">
    <article v-for="item in visible" :key="item.offset" class="dream-slide" :class="'position-'+item.offset" :aria-hidden="item.offset!==0">

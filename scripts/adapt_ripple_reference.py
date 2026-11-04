@@ -24,7 +24,7 @@ for label, element in [('sparkle', 'rSparkle'), ('ripple', 'rRipple'), ('petals'
 source = source.replace('id="cursor" viewBox', 'id="cursor" aria-hidden="true" viewBox')
 source = source.replace('<body>', '''<body>
 <button id="motionToggle" class="integration-control" aria-label="暂停动态效果" aria-pressed="false" title="暂停动态效果"><span class="material-symbols-rounded" aria-hidden="true">pause</span></button>
-<a id="mengsuEnter" class="integration-control" href="/home" target="_top">进入梦溯 <span aria-hidden="true">↗</span></a>
+<a id="mengsuEnter" class="integration-control" href="/home" target="_top">进入花屿星 <span aria-hidden="true">↗</span></a>
 <p id="renderStatus" role="status" aria-live="polite"></p>''')
 source = source.replace('</style>', '''
   /* Local integration: retain the original composition and author attribution. */
@@ -104,7 +104,7 @@ source = source[:boot_start] + '''function fallback(message) {
   ['rSparkle','rRipple','rPetals','rLight','btnReset','btnSave','motionToggle'].forEach(id => $(id).disabled = true);
   window.parent.postMessage({type:'mengsu:ready'}, location.origin);
 }
-glCv.addEventListener('webglcontextlost', e => { e.preventDefault(); fallback('水面动态已暂停，仍可进入梦溯。'); });
+glCv.addEventListener('webglcontextlost', e => { e.preventDefault(); fallback('水面动态已暂停，仍可进入花屿星。'); });
 img.onload = () => {
   try {
     if (!gl) throw new Error('WebGL unavailable');
@@ -114,9 +114,9 @@ img.onload = () => {
     ['rSparkle','rRipple','rPetals','rLight','btnReset','btnSave'].forEach(id => $(id).disabled = false);
     updateMotionButton(); lastT = performance.now(); queueFrame();
     window.parent.postMessage({type:'mengsu:ready'}, location.origin);
-  } catch { fallback('当前设备暂不支持水面动态，仍可进入梦溯。'); }
+  } catch { fallback('当前设备暂不支持水面动态，仍可进入花屿星。'); }
 };
-img.onerror = () => fallback('背景暂时未能载入，请刷新页面或直接进入梦溯。');
+img.onerror = () => fallback('背景暂时未能载入，请刷新页面或直接进入花屿星。');
 ''' + source[boot_end:]
 # The user removed the complete adjustment bar, including its settings trigger.
 # Keep the reference defaults in params; remove the controls and their handlers.
@@ -134,9 +134,9 @@ panel_css_end = source.index('  #cursor{', panel_css_start)
 source = source[:panel_css_start] + source[panel_css_end:]
 source = re.sub(r'    #panel\{.*?    input\[type=range\]\{ width:104px; \}\n', '', source, flags=re.S)
 # Keep Mengsu's own copy and navigation over the reference water experience.
-source = source.replace('<title>Eau de Printemps — pastel water ripples</title>', '<title>梦溯 | Mengsu</title>')
+source = source.replace('<title>Eau de Printemps — pastel water ripples</title>', '<title>花屿星 | Mengsu</title>')
 source = re.sub(r'<header>.*?</header>', '''<header class="mengsu-header">
-  <a class="mengsu-brand" href="/entry" aria-label="梦溯入口"><svg viewBox="0 0 32 32" fill="none" aria-hidden="true"><path d="M23 5a12 12 0 1 0 4 18A13 13 0 0 1 23 5Z" stroke="currentColor" stroke-width="1.1"/><path d="m12 11 1 3 3 1-3 1-1 3-1-3-3-1 3-1Z" fill="currentColor"/></svg><span>梦溯</span></a>
+  <a class="mengsu-brand" href="/entry" aria-label="花屿星入口"><svg viewBox="0 0 32 32" fill="none" aria-hidden="true"><path d="M23 5a12 12 0 1 0 4 18A13 13 0 0 1 23 5Z" stroke="currentColor" stroke-width="1.1"/><path d="m12 11 1 3 3 1-3 1-1 3-1-3-3-1 3-1Z" fill="currentColor"/></svg><span>花屿星</span></a>
   <nav class="mengsu-chapters" aria-label="选择梦境篇章"><button type="button" data-chapter="0" aria-pressed="true">花屿</button><button type="button" data-chapter="1" aria-pressed="false">鱼庭</button><button type="button" data-chapter="2" aria-pressed="false">星笺</button></nav>
 </header>
 <main class="mengsu-copy" aria-live="polite" aria-atomic="true"><h1 id="dreamTitle">深呼吸，<br>让梦境浮现……</h1><p id="dreamDescription">从这里，回到昨夜的梦。</p><a id="dreamLink" href="/capture" target="_top"><span>记下我的梦</span><span aria-hidden="true">→</span></a></main>

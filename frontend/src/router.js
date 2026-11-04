@@ -36,7 +36,7 @@ const routes = [
   { path: '/profile', component: () => import('./views/ProfileView.vue'), meta: { label: '个人档案', healthPage: true } },
   { path: '/vision', component: () => import('./views/WellnessToolsView.vue'), props: { section: 'vision' }, meta: { label: '视力检测', healthPage: true } },
   { path: '/challenges', component: () => import('./views/WellnessToolsView.vue'), props: { section: 'challenges' }, meta: { label: '健康挑战赛', healthPage: true } },
-  { path: '/login', component: LoginView, meta: { chrome: false, label: '登录梦溯' } },
+  { path: '/login', component: LoginView, meta: { chrome: false, label: '登录花屿星' } },
   { path: '/sleep', component: SleepWorkspaceView, meta: { label: '睡眠监测', healthPage: true } },
   { path: '/smart-consult', component: SmartConsultView, meta: { label: '智慧问诊', healthPage: true } },
   ...[

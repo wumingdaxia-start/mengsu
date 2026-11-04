@@ -14,7 +14,7 @@ const savedResult = computed(() => result.value ? {type:'personality',title:`心
   {title:'六条生活偏好轴 · v1',lines:result.value.profile.map(p => `${p.label}｜${p.name === '灵活往返' ? p.name : p[p.side]}：${p.description} 选项位置 ${p.position}/100（左端：${p.low}；右端：${p.high}）。`)},
   {title:'本次人格卡牌',lines:resultCards.value.map(c=>`${c.number} · ${c.title}：${c.subtitle}。${c.description}`)},
   {title:'下一步小尝试',lines:result.value.actions},
-  {title:'阅读说明',lines:['梦溯自行编写的生活偏好问卷；未经心理测量学验证，不用于诊断、能力评价或固定人格分类。分数表示本次选项的位置，不是准确率或人群百分位。']}
+  {title:'阅读说明',lines:['花屿星自行编写的生活偏好问卷；未经心理测量学验证，不用于诊断、能力评价或固定人格分类。分数表示本次选项的位置，不是准确率或人群百分位。']}
 ]} : null)
 async function focus() { await nextTick(); heading.value?.focus() }
 function start() { answers.value={}; index.value=0; result.value=null; galleryOpen.value=false; selectedCard.value=null; started.value=true; focus() }
@@ -25,11 +25,11 @@ function previous() { if(index.value) index.value--; focus() }
   <div class="personality-page">
     <header><p class="eyebrow">星栈 / 心绪活动</p><h1>人格测试</h1><p>心绪行迹 · 从日常选择认识此刻的自己</p></header>
     <section v-if="!started && !result" class="panel intro intro-layout"><div>
-      <p class="eyebrow">梦溯问卷 · 24 道题 / 六条生活偏好轴</p>
+      <p class="eyebrow">花屿星问卷 · 24 道题 / 六条生活偏好轴</p>
       <h2>你习惯怎样，与生活相处？</h2><p>把最近两周的日常放在心里，再选择更接近自己的答案。没有标准答案，也不必努力成为某一种人。</p>
       <div class="axis-list"><span v-for="axis in axes" :key="axis.id">{{ axis.name }}</span></div>
       <div class="intro-actions"><button class="primary" @click="start">开始认识自己 →</button><button class="text-button" @click="browse()">先看看人格卡牌</button></div>
-      <p class="note">约需 4–6 分钟。此问卷由梦溯自行编写，未经心理测量学验证，仅用于自我观察。登录后完成会自动保存至心理总览。</p></div><div class="intro-stack" aria-hidden="true"><PersonalityCard class="preview-back" :card="personalityCards[7]" /><PersonalityCard class="preview-front" :card="personalityCards[0]" /></div>
+      <p class="note">约需 4–6 分钟。此问卷由花屿星自行编写，未经心理测量学验证，仅用于自我观察。登录后完成会自动保存至心理总览。</p></div><div class="intro-stack" aria-hidden="true"><PersonalityCard class="preview-back" :card="personalityCards[7]" /><PersonalityCard class="preview-front" :card="personalityCards[0]" /></div>
     </section>
     <section v-if="started" class="panel question-panel">
       <div class="question-meta"><span>第 {{ index+1 }} / {{ questions.length }} 题</span><span>已答 {{ answered }} 题</span></div>

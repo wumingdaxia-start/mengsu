@@ -36,7 +36,7 @@ onBeforeUnmount(() => { window.removeEventListener('message', receive); clearTim
     <iframe ref="frame" class="safety-original" :src="source" title="安康守护：安全文件夹原版健康管理网站" allow="geolocation" />
     <div v-if="timedOut" class="safety-connection" role="status">
       <h1>安全健康服务尚未连接</h1>
-      <p>请通过梦溯启动脚本启动本地服务，再重试连接。</p>
+      <p>请通过花屿星启动脚本启动本地服务，再重试连接。</p>
       <div><button type="button" @click="retry">重试连接</button><button type="button" @click="router.push('/entry')">返回主页面</button></div>
     </div>
   </section>

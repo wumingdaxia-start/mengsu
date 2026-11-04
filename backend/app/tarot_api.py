@@ -1,4 +1,4 @@
-"""梦溯星栈映照网页接口。"""
+"""花屿星星栈映照网页接口。"""
 from typing import Literal
 from fastapi import APIRouter
 from pydantic import BaseModel, Field

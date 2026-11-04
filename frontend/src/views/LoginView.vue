@@ -44,7 +44,7 @@ function continueGuest() {
     <header class="login-header">
       <button class="login-brand" type="button" @click="router.push('/entry')">
         <span class="login-brand-mark">⌁</span>
-        <span><strong>梦溯</strong><small>MENGSU</small></span>
+        <span><strong>花屿星</strong><small>MENGSU</small></span>
       </button>
       <button class="login-back" type="button" @click="router.push('/entry')">回到入口 <span aria-hidden="true">↗</span></button>
     </header>

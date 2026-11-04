@@ -1,4 +1,4 @@
-"""梦溯「星栈映照」v1。独立实现；传统牌名保留，抽牌和反思文案重新编写。"""
+"""花屿星「星栈映照」v1。独立实现；传统牌名保留，抽牌和反思文案重新编写。"""
 import secrets
 from datetime import datetime, timezone
 

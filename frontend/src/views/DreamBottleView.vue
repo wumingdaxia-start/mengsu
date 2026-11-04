@@ -75,7 +75,7 @@ const mail = computed(()=>tab.value==='sent'?bottles.value:favorites.value)
  <linearGradient id="drift-glass" x1="0" x2="1"><stop stop-color="#abc4e9" stop-opacity=".3"/><stop offset=".45" stop-color="#f5f5ff" stop-opacity=".13"/><stop offset="1" stop-color="#9a9cdb" stop-opacity=".4"/></linearGradient>
  <symbol id="drift-bottle" viewBox="0 0 120 200"><path d="M46 20h28v43c0 15 23 22 23 43v64q0 16-18 16H41q-18 0-18-16v-64c0-21 23-28 23-43Z" fill="url(#drift-glass)" stroke="currentColor" stroke-width="1.5"/><path d="M45 19h30v14H45Z" fill="#b5a8b7" stroke="currentColor"/><path d="M33 110v52q0 11 10 11 M52 43v18" fill="none" stroke="#f5eeff" stroke-opacity=".55" stroke-width="3" stroke-linecap="round"/><path d="m44 96 35 5-5 52-35-5Z" fill="#e7ddea" fill-opacity=".65"/><path d="m49 111 20 3m-21 7 20 3m-21 7 14 2" stroke="#827793" fill="none"/></symbol>
  </defs></svg>
- <header class="drift-top"><button v-if="stage!=='home'" class="text-btn" @click="stage='home';opened=null">〈 回到星海</button><span v-else>梦溯 · 漂流瓶</span><button class="text-btn" @click="stage='mail'">我的信箱 <b>{{bottles.length+favorites.length}}</b></button></header>
+ <header class="drift-top"><button v-if="stage!=='home'" class="text-btn" @click="stage='home';opened=null">〈 回到星海</button><span v-else>花屿星 · 漂流瓶</span><button class="text-btn" @click="stage='mail'">我的信箱 <b>{{bottles.length+favorites.length}}</b></button></header>
  <div class="drift-body">
  <h1>{{heading}}</h1>
  <template v-if="stage==='home'">

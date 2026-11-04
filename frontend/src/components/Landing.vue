@@ -112,7 +112,7 @@ onBeforeUnmount(() => {
 
     <!-- 文字 -->
     <div class="content">
-      <h1>梦溯 · Mengsu</h1>
+      <h1>花屿星 · Mengsu</h1>
       <p>记录梦境，回溯夜晚的思绪，解析每一次睡眠与苏醒</p>
       <p class="hold-hint" :class="{ lit: progress > 0.05 }">深呼吸，让梦境浮现……</p>
     </div>

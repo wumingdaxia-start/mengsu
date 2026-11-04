@@ -4,7 +4,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>梦溯 | Mengsu</title>
+<title>花屿星 | Huayuxing</title>
 <script>if(new URLSearchParams(location.search).get('background')==='1')document.documentElement.classList.add('health-background');</script>
 <style>.health-background :is(.mengsu-header,.mengsu-copy,.integration-control,#dreamDetail,#hint,#credit,#cursor,header,nav){display:none!important}</style>
 <link rel="stylesheet" href="assets/fonts.css">
@@ -206,7 +206,7 @@
 </head>
 <body>
 <button id="motionToggle" class="integration-control" aria-label="暂停动态效果" aria-pressed="false" title="暂停动态效果"><span class="material-symbols-rounded" aria-hidden="true">pause</span></button>
-<a hidden style="display:none" id="mengsuEnter" class="integration-control" href="/home" target="_top">进入梦溯 <span aria-hidden="true">↗</span></a>
+<a hidden style="display:none" id="mengsuEnter" class="integration-control" href="/home" target="_top">进入花屿星 <span aria-hidden="true">↗</span></a>
 <p id="renderStatus" role="status" aria-live="polite"></p>
 <div id="stage" tabindex="0" role="application" aria-label="互动水面，移动鼠标或拖动手指产生涟漪，空格键轻触水面">
   <canvas id="gl"></canvas>
@@ -806,7 +806,7 @@ stage.addEventListener('pointerleave', () => { cursorEl.style.opacity = 0; lastM
 const $ = (id) => document.getElementById(id);
 const chapters = [
   { brand:'安康', title:'花映清波，\n让日常慢慢舒展。', description:'在花影与日光之间，照顾身体，也安放心情。', link:'进入安康', path:'/safety', detail:'花屿 · 粉花映水，日光轻漾，把每一天过得从容。' },
-  { brand:'梦溯', title:'梦的片段，\n总有回来的地方。', description:'记下醒来时的梦，回看记忆里的线索与故事。', link:'进入梦溯', path:'/dream', detail:'鱼庭 · 捕梦、梦境档案、睡前线索与梦境对话。' },
+  { brand:'花屿星', title:'梦的片段，\n总有回来的地方。', description:'记下醒来时的梦，回看记忆里的线索与故事。', link:'进入花屿星', path:'/dream', detail:'鱼庭 · 捕梦、梦境档案、睡前线索与梦境对话。' },
   { brand:'心灵', title:'给心情，\n留一小片空间。', description:'写下此刻感受，放慢呼吸，按照自己的节奏前行。', link:'进入心灵', path:'/psychology', detail:'星栈 · 心情记录、呼吸练习与情绪回顾。' }
 ];
 const entryBrandIcons = ['<path d="M16 28V14M16 20C7 20 4 14 5 7c8 0 12 5 11 13ZM16 17C16 9 22 5 28 6c0 8-5 13-12 11Z" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>','<path d="M23 5a12 12 0 1 0 4 18A13 13 0 0 1 23 5Z" stroke="currentColor" stroke-width="1.1"/><path d="m12 11 1 3 3 1-3 1-1 3-1-3-3-1 3-1Z" fill="currentColor"/>','<path d="M16 25S5 18 5 11a6 6 0 0 1 11-3 6 6 0 0 1 11 3c0 7-11 14-11 14Z" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/><path d="M16 1v3M2 8l3 1m24-1-3 1M5 25l3-2m19 2-3-2" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/>'];
@@ -902,7 +902,7 @@ function fallback(message) {
   if (ready) { renderStatus.textContent = ''; updateMotionButton(); queueFrame(); }
   window.parent.postMessage({type:'mengsu:ready'}, location.origin);
 }
-glCv.addEventListener('webglcontextlost', e => { e.preventDefault(); fallback('水面动态已暂停，仍可进入梦溯。'); });
+glCv.addEventListener('webglcontextlost', e => { e.preventDefault(); fallback('水面动态已暂停，仍可进入花屿星。'); });
 img.onload = () => {
   try {
     if (!gl) throw new Error('WebGL unavailable');
@@ -911,9 +911,9 @@ img.onload = () => {
     ready = activeChapter === 1 ? Boolean(moonScene) : activeChapter === 2 ? Boolean(starScene) : true;
     updateMotionButton(); lastT = performance.now(); queueFrame();
     window.parent.postMessage({type:'mengsu:ready'}, location.origin);
-  } catch { fallback('当前设备暂不支持水面动态，仍可进入梦溯。'); }
+  } catch { fallback('当前设备暂不支持水面动态，仍可进入花屿星。'); }
 };
-img.onerror = () => fallback('背景暂时未能载入，请刷新页面或直接进入梦溯。');
+img.onerror = () => fallback('背景暂时未能载入，请刷新页面或直接进入花屿星。');
 img.src = PHOTO_SRC;
 
 if (new URLSearchParams(location.search).get('background') === '1') {

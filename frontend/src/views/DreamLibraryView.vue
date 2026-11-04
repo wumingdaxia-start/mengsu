@@ -23,7 +23,7 @@ const calendar = computed(() => { const [y,m] = month.value.split('-').map(Numbe
 const has = date => category.value.some(s => s.date?.slice(0,10) === date)
 async function lock(s) { if(s.demo)return notify('示例快照不写入你的梦库'); await save(commit, 'snapshots', snapshots.value.map(x=>x.id===s.id?{...x,locked:!x.locked}:x), s.locked?'快照已解除锁定':'快照已锁定'); selected.value=null }
 async function remove() { const s=pendingDelete.value; if(s.locked)return notify('先解除锁定，再删除快照'); if(await save(commit,'snapshots',snapshots.value.filter(x=>x.id!==s.id),'快照已从当前账号删除')){pendingDelete.value=null;selected.value=null} }
-function exportLibrary(){downloadText('梦溯-梦库.json',JSON.stringify(snapshots.value,null,2),'application/json');notify('已导出当前账号梦库')}
+function exportLibrary(){downloadText('花屿星-梦库.json',JSON.stringify(snapshots.value,null,2),'application/json');notify('已导出当前账号梦库')}
 function open(s){selected.value=s}
 onMounted(refresh)
 </script>

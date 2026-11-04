@@ -451,7 +451,7 @@ def export_markdown(start: str, end: str) -> dict[str, Any]:
     rows = _rows(start, end)
     summary = insight(start, end)
     lines = [
-        f"# 梦溯记录导出 {start} 至 {end}",
+        f"# 花屿星记录导出 {start} 至 {end}",
         "",
         f"- 记录条数：{len(rows)}",
         f"- 平均情绪分：{summary['avg_mood'] if summary['avg_mood'] is not None else '样本不足'}",

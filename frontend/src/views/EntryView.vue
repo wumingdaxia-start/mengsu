@@ -30,13 +30,13 @@ onBeforeUnmount(() => { clearTimeout(loadingTimer); window.removeEventListener('
 </script>
 
 <template>
-  <section class="ripple-entry" aria-label="梦溯梦境入口">
-    <iframe ref="frame" src="/entry-ripples/index.html?v=crisp-star-flow-20261030-6" title="梦溯互动：花屿安康守护、鱼庭梦溯与星栈心灵"
+  <section class="ripple-entry" aria-label="花屿星梦境入口">
+    <iframe ref="frame" src="/entry-ripples/index.html?v=crisp-star-flow-20261030-6" title="花屿星互动：花屿安康守护、鱼庭花屿星与星栈心灵"
       sandbox="allow-scripts allow-same-origin allow-downloads allow-popups allow-popups-to-escape-sandbox"
       referrerpolicy="no-referrer" @error="failed = true" />
     <div v-if="failed" class="ripple-entry-fallback" role="status">
       <p>水面暂时未能载入。</p>
-      <div class="fallback-links"><button @click="enter('/safety')">安康守护</button><button @click="enter('/dream')">梦溯</button><button @click="enter('/psychology')">心灵</button></div>
+      <div class="fallback-links"><button @click="enter('/safety')">安康守护</button><button @click="enter('/dream')">花屿星</button><button @click="enter('/psychology')">心灵</button></div>
     </div>
   </section>
 </template>
