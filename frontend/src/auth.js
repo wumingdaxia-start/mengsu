@@ -1,5 +1,6 @@
 // All spaces use the safety server's HttpOnly cookie. Storage is a UI cache only.
-export const SAFETY_API_BASE = `${location.protocol}//${location.hostname}:3001`
+const localService = ['localhost', '127.0.0.1', '[::1]'].includes(location.hostname)
+export const SAFETY_API_BASE = localService ? `${location.protocol}//${location.hostname}:3001` : '/safety-app'
 const AUTH_KEY = 'mengsu-auth'
 const CHANGE_KEY = 'mengsu-auth-change'
 let revision = 0
