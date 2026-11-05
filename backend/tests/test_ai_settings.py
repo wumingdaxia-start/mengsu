@@ -88,6 +88,20 @@ class AiSettingsTests(unittest.TestCase):
             text='<script src="/app.js"></script>',headers={'content-type':'text/html'}))):
             self.assertIn('/account-service/app.js',self.a.get('/account-service/').text)
 
+    def test_local_proxy_ignores_system_proxy(self):
+        # A broken proxy must not intercept the account service on loopback.
+        with patch.dict('os.environ', {'HTTP_PROXY':'http://127.0.0.1:1', 'ALL_PROXY':'http://127.0.0.1:1', 'NO_PROXY':''}):
+            with patch('app.account_proxy.httpx.AsyncClient.request', new=AsyncMock(return_value=httpx.Response(200, json={'ok':True}))) as request:
+                original = httpx.AsyncClient.__init__
+                options = []
+                def capture(client, *args, **kwargs):
+                    options.append(kwargs)
+                    original(client, *args, **kwargs)
+                with patch('app.account_proxy.httpx.AsyncClient.__init__', new=capture):
+                    self.assertEqual(self.a.get('/account-service/api/me').status_code, 200)
+                self.assertFalse(options[0]['trust_env'])
+                self.assertEqual(request.call_args.args[1], 'http://127.0.0.1:3001/api/me')
+
 
 if __name__ == '__main__':
     unittest.main()
