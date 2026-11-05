@@ -1,5 +1,6 @@
 """Expose the local account service through the website's single origin."""
 import re
+import hashlib
 import httpx
 from fastapi import APIRouter, Request, HTTPException
 from fastapi.responses import Response
@@ -42,7 +43,17 @@ async def account_proxy(path: str, request: Request):
         text = re.sub(r'''((?:src|href)=["'])/(?!/)''', r'\1'+PREFIX+'/', text)
         text = re.sub(r'''(url\(["']?)/(?!/)''', r'\1'+PREFIX+'/', text)
         content = text.encode('utf-8')
-    response = Response(content, status_code=upstream.status_code, headers={'content-type':kind,'cache-control':'no-store'})
+    response_headers = {'content-type':kind, 'cache-control':'no-store'}
+    # Cache public static resources only; never cache account records or HTML.
+    static = (request.method == 'GET' and upstream.status_code == 200
+              and not path.startswith(('api/', 'account/', 'admin/'))
+              and any(t in kind for t in ('javascript', 'text/css', 'image/', 'font/')))
+    if static:
+        etag = chr(34) + hashlib.sha256(content).hexdigest() + chr(34)
+        response_headers.update({'etag':etag, 'cache-control':'public, max-age=86400' if request.query_params.get('v') else 'public, no-cache'})
+        if request.headers.get('if-none-match') == etag:
+            return Response(status_code=304, headers=response_headers)
+    response = Response(content, status_code=upstream.status_code, headers=response_headers)
     for cookie in upstream.headers.get_list('set-cookie'):
         if request.url.scheme == 'https' and 'secure' not in cookie.lower():
             cookie += '; Secure'
