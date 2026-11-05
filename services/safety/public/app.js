@@ -146,12 +146,18 @@ function identityUI(){
  q('#topLogout').hidden=true;
  q('#topAccountButton').setAttribute('aria-expanded','false');
 }
-async function loadAccount(){
+let accountLoading=null;
+function loadAccount(options={}){
+ if(accountLoading)return accountLoading;
+ accountLoading=readAccount(options).finally(()=>{accountLoading=null});
+ return accountLoading;
+}
+async function readAccount({background=false}={}){
  resetVision();
  resetProfileDraft();
  planDraft=null;
  challengeRank={leaders:[],myRank:null};
- const epoch=++generation;ready=false;loadError='';modal.hidden=true;render();
+ const epoch=++generation;const previousId=String(user?.id||'');const keepView=background&&ready;loadError='';if(!keepView){ready=false;modal.hidden=true;render();}
  try{
   const res=await fetch('/api/me',{cache:'no-store'});
   if(epoch!==generation)return;
@@ -159,6 +165,7 @@ async function loadAccount(){
   else {
    if(!res.ok)throw new Error('账号读取失败');
    const me=await res.json(),identity=me.user;
+   if(keepView&&previousId!==String(identity.id)){user=null;data=emptyData();ready=false;render();}
    if(identity.role==='健康安全管理员'){location.href='/admin/';return}
    const records=await fetch('/api/health-data',{cache:'no-store',headers:{'X-Health-User':String(identity.id)}});
    if(!records.ok)throw new Error('个人记录读取失败，请重新加载');
@@ -190,5 +197,5 @@ q('#modalClose').onclick=()=>{if(!saving){resetVision();modal.hidden=true}};
 modal.onclick=e=>{if(e.target===modal&&!saving){resetVision();modal.hidden=true}};
 q('#menuBtn').onclick=()=>q('.sidebar').classList.toggle('open');
 addEventListener('hashchange',render);
-addEventListener('focus',()=>{if(!saving&&modal.hidden&&!profileDraftActive())loadAccount()});
+addEventListener('focus',()=>{if(!saving&&modal.hidden&&!profileDraftActive())loadAccount({background:true})});
 loadAccount();
