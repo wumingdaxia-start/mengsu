@@ -1,6 +1,7 @@
 """Expose the local account service through the website's single origin."""
 import re
 import hashlib
+import ssl
 import httpx
 from fastapi import APIRouter, Request, HTTPException
 from fastapi.responses import Response
@@ -8,6 +9,8 @@ from .ai_settings import check_origin, request_config, REGIONS
 
 router = APIRouter()
 PREFIX = '/account-service'
+# Loading the Windows certificate store per asset blocks the event loop.
+_LOCAL_SSL_CONTEXT = ssl.create_default_context()
 
 
 @router.api_route(PREFIX+'/{path:path}', methods=['GET','POST','PUT','DELETE','PATCH','OPTIONS'], include_in_schema=False)
@@ -29,7 +32,8 @@ async def account_proxy(path: str, request: Request):
     # The AI session cookie has no meaning to the account service.
     headers['cookie'] = '; '.join(p.strip() for p in headers.get('cookie','').split(';') if p.strip().startswith('health_session='))
     try:
-        async with httpx.AsyncClient(timeout=90) as client:
+        # This fixed loopback upstream must bypass OS/environment proxies.
+        async with httpx.AsyncClient(timeout=90, trust_env=False, verify=_LOCAL_SSL_CONTEXT) as client:
             upstream = await client.request(request.method, 'http://127.0.0.1:3001/'+path,
                                             params=request.query_params, headers=headers, content=await request.body())
     except httpx.HTTPError:
