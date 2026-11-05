@@ -76,7 +76,7 @@ function render(){
  if(key==='consult')bindConsult();
  if(key==='analysis')bindInsight();
  if(key==='knowledge')bindKnowledge();
- window.dispatchEvent(new CustomEvent('mengsu:health-state', {detail:{user:user?{id:user.id}:null,gender:data.profile?.gender||''}}));
+ window.dispatchEvent(new CustomEvent('mengsu:health-state', {detail:{user:user?{id:user.id,name:currentDisplayName()}:null,gender:data.profile?.gender||''}}));
  scrollTo(0,0);
 }
 async function persist(candidate,identity,version){

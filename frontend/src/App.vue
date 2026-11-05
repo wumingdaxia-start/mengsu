@@ -207,9 +207,12 @@ function closeHeaderAccount(event) {
   if (!event.target.closest('.header-account, .header-account-menu')) headerAccountOpen.value = false
 }
 
-function onSafetyAuthMessage(event) {
-  if (event.origin !== location.origin || event.source !== document.querySelector('.safety-original')?.contentWindow) return
-  if (['mengsu:safety-auth', 'mengsu:safety-logout'].includes(event.data?.type)) void refreshSession()
+async function onSafetyAuthMessage(event) {
+  if (event.origin !== new URL(SAFETY_API_BASE, location.origin).origin || event.source !== document.querySelector('.safety-original')?.contentWindow) return
+  if (['mengsu:safety-auth', 'mengsu:safety-logout', 'mengsu:profile-change'].includes(event.data?.type)) {
+    await refreshSession()
+    if (event.data.type === 'mengsu:profile-change') localStorage.setItem('mengsu-auth-change', `${Date.now()}:${Math.random()}`)
+  }
 }
 
 function onWheel(event) {

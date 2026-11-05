@@ -31,7 +31,7 @@ function profile(){
  '<article class="card profile-form-card"><div class="profile-form-head"><div><span class="profile-kicker">MY INFORMATION</span><h2>填写个人信息</h2><p>除登录账号外，以下内容均可修改或清空。</p></div><span class="profile-save-state">'+(data.profile?'已保存档案':'尚未保存')+'</span></div>'+
  '<form id="profileForm" class="profile-form">'+
   '<section class="profile-form-section"><div class="profile-section-title"><span>01</span><div><h3>基础信息</h3><p>用于识别和查看自己的档案</p></div></div><div class="profile-fields">'+
-   '<div class="field"><label>姓名或称呼</label><input name="displayName" maxlength="50" autocomplete="name" placeholder="请输入姓名或常用称呼" value="'+profileText(p.displayName)+'"></div>'+
+   '<div class="field"><label>姓名或称呼</label><input name="displayName" maxlength="50" autocomplete="name" placeholder="请输入姓名或常用称呼" value="'+profileText(p.displayName || (user ? user.name : ''))+'"></div>'+
    '<div class="field"><label>性别</label><select name="gender"><option value="">请选择</option><option'+profileSelected(p.gender,'男')+'>男</option><option'+profileSelected(p.gender,'女')+'>女</option><option'+profileSelected(p.gender,'其他')+'>其他</option><option'+profileSelected(p.gender,'不愿透露')+'>不愿透露</option></select></div>'+
    '<div class="field"><label>出生日期</label><input name="birthDate" type="date" min="1900-01-01" max="'+todayKey()+'" value="'+profileText(p.birthDate)+'"></div>'+
    '<div class="field"><label>血型</label><select name="bloodType"><option value="">请选择</option><option'+profileSelected(p.bloodType,'A型')+'>A型</option><option'+profileSelected(p.bloodType,'B型')+'>B型</option><option'+profileSelected(p.bloodType,'AB型')+'>AB型</option><option'+profileSelected(p.bloodType,'O型')+'>O型</option><option'+profileSelected(p.bloodType,'不清楚')+'>不清楚</option></select></div>'+

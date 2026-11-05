@@ -12,9 +12,13 @@
   let manualGender = '男';
   let profileGender = '';
   let lastIdentity;
+  let lastName;
   function syncState(event) {
     const { user, gender } = event.detail;
     const identity = user?.id || null;
+    const name = user?.name || '';
+    if (identity && identity === lastIdentity && name !== lastName) send('mengsu:profile-change');
+    lastName = name;
     const nextGender = gender === '男' || gender === '女' ? gender : '';
     if (identity !== lastIdentity || nextGender !== profileGender) {
       if (identity !== lastIdentity) {

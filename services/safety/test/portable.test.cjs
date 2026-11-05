@@ -48,10 +48,12 @@ test('portable local accounts, health records and psychology survive service res
     let cookie=await login();
     assert.equal((await (await request('/api/me',cookie)).json()).user.id,'first');
     const original=await (await request('/api/health-data',cookie)).json();
+    original.data.profile={displayName:'同步后的昵称'};
     original.data.sleep=[{hours:7.5,date:'2026-10-28',quality:4}];
     const saved=await request('/api/health-data',cookie,'first','PUT',original);
     assert.equal(saved.status,200);
     assert.equal((await saved.json()).revision,1);
+    assert.equal((await (await request('/api/me',cookie)).json()).user.name,'同步后的昵称');
     assert.equal((await request('/api/health-data',cookie,'first','PUT',original)).status,409);
     for(const type of ['personality','tarot','views']) {
       const result={id:'portable-'+type,type,title:'Test',summary:'Portable test',sections:[{title:'Result',lines:['Saved']} ]};
@@ -63,6 +65,7 @@ test('portable local accounts, health records and psychology survive service res
     assert.equal((await (await request('/api/health-data',second,'second')).json()).data.sleep.length,0);
     await close(); await start();
     cookie=await login();
+    assert.equal((await (await request('/api/me',cookie)).json()).user.name,'同步后的昵称');
     assert.equal((await (await request('/api/health-data',cookie)).json()).data.sleep[0].hours,7.5);
     const records=(await (await request('/api/psychology-tests',cookie)).json()).records;
     assert.equal(records.length,3);
