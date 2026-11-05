@@ -11,32 +11,28 @@
   const send = type => parent.postMessage({ type }, parentOrigin);
   let manualGender = '男';
   let profileGender = '';
-  let genderRequest = 0;
   let lastIdentity;
-  function syncIdentity(user) {
+  function syncState(event) {
+    const { user, gender } = event.detail;
     const identity = user?.id || null;
-    if (identity === lastIdentity) return;
-    const changed = lastIdentity !== undefined;
-    lastIdentity = identity;
-    parent.postMessage({ type: identity ? 'mengsu:safety-auth' : 'mengsu:safety-logout' }, parentOrigin);
-    // Refresh the original safety app when another tab changes the session.
-    if (changed) window.dispatchEvent(new Event('focus'));
+    const nextGender = gender === '男' || gender === '女' ? gender : '';
+    if (identity !== lastIdentity || nextGender !== profileGender) {
+      if (identity !== lastIdentity) {
+        manualGender = '男';
+        parent.postMessage({ type: identity ? 'mengsu:safety-auth' : 'mengsu:safety-logout' }, parentOrigin);
+      }
+      lastIdentity = identity;
+      profileGender = nextGender;
+      document.querySelector('.mengsu-role-panel')?.remove();
+    }
+    rolePanel();
   }
-  async function readProfileGender() {
-    const request = ++genderRequest;
-    try {
-      const me = await fetch('/api/me', { credentials: 'include', cache: 'no-store' });
-      if (!me.ok) { if (me.status === 401) syncIdentity(null); profileGender = ''; return ''; }
-      const user = await me.json();
-      syncIdentity(user.user);
-      const result = await fetch('/api/health-data', { credentials: 'include', cache: 'no-store', headers: { 'X-Health-User': String(user.user?.id || '') } });
-      const payload = await result.json();
-      if (request !== genderRequest) return '';
-      const gender = payload?.data?.profile?.gender;
-      profileGender = gender === '男' || gender === '女' ? gender : '';
-    } catch { profileGender = ''; }
-    return profileGender;
-  }
+  // The health app owns account loading; reuse its validated state instead of
+  // fetching the same identity and records again or polling every five seconds.
+  window.addEventListener('mengsu:health-state', syncState);
+  window.addEventListener('storage', event => {
+    if (event.key === 'mengsu-auth-change') window.dispatchEvent(new Event('focus'));
+  });
   function rolePanel() {
     if ((location.hash.slice(1) || 'home') !== 'home') return;
     const page = document.querySelector('#page');
@@ -54,7 +50,6 @@
     }));
     page.prepend(panel);
   }
-  async function refreshRolePanel() { await readProfileGender(); rolePanel(); }
   function mount() {
     // Keep the original account menu, but open the shared login for guests.
     document.addEventListener('click', event => {
@@ -64,13 +59,6 @@
       event.stopImmediatePropagation();
       send('mengsu:login');
     }, true);
-    const originalFetch = window.fetch.bind(window);
-    window.fetch = async (...args) => {
-      const response = await originalFetch(...args);
-      const path = new URL(typeof args[0] === 'string' ? args[0] : args[0].url, location.href).pathname;
-      if (response.ok && ['/api/login', '/api/logout'].includes(path)) void readProfileGender();
-      return response;
-    };
     const button = document.createElement('button');
     button.type = 'button';
     button.className = 'mengsu-return-entry';
@@ -85,11 +73,9 @@
     if (page) {
       const observer = new MutationObserver(() => { if ((location.hash.slice(1) || 'home') === 'home') window.setTimeout(rolePanel, 0); });
       observer.observe(page, { childList: true, subtree: true });
-      window.addEventListener('hashchange', refreshRolePanel);
-      const retry = window.setInterval(() => { if (page.querySelector('.mengsu-role-panel')) window.clearInterval(retry); else rolePanel(); }, 300);
-      window.setInterval(readProfileGender, 5000);
+      window.addEventListener('hashchange', rolePanel);
     }
-    refreshRolePanel();
+    rolePanel();
     send('mengsu:safety-ready');
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', mount, { once: true });

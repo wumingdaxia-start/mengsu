@@ -76,6 +76,7 @@ function render(){
  if(key==='consult')bindConsult();
  if(key==='analysis')bindInsight();
  if(key==='knowledge')bindKnowledge();
+ window.dispatchEvent(new CustomEvent('mengsu:health-state', {detail:{user:user?{id:user.id}:null,gender:data.profile?.gender||''}}));
  scrollTo(0,0);
 }
 async function persist(candidate,identity,version){
@@ -148,9 +149,10 @@ function identityUI(){
 }
 let accountLoading=null;
 function loadAccount(options={}){
- if(accountLoading)return accountLoading;
- accountLoading=readAccount(options).finally(()=>{accountLoading=null});
- return accountLoading;
+ if(accountLoading&&!options.force)return accountLoading;
+ const request=readAccount(options).finally(()=>{if(accountLoading===request)accountLoading=null});
+ accountLoading=request;
+ return request;
 }
 async function readAccount({background=false}={}){
  resetVision();
@@ -188,7 +190,7 @@ async function logout(){
  if(saving)return notify('正在保存记录，请稍候');
  const button=q('#topLogout');button.disabled=true;
  q('#topLogout').disabled=true;
- try{const res=await fetch('/api/logout',{method:'POST'});if(!res.ok)throw new Error();await loadAccount();notify('已退出，游客模式不显示个人数据')}
+ try{const res=await fetch('/api/logout',{method:'POST'});if(!res.ok)throw new Error();await loadAccount({force:true});notify('已退出，游客模式不显示个人数据')}
  catch{notify('退出失败，请重试')}finally{button.disabled=false;q('#topLogout').disabled=false}
 }
 q('#topLogout').onclick=logout;
