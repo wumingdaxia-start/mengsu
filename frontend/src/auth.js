@@ -1,5 +1,10 @@
 // All spaces use the safety server's HttpOnly cookie. Storage is a UI cache only.
-export const SAFETY_API_BASE = '/account-service'
+// On the bundled local launcher, avoid routing every health asset through the
+// Python proxy. The Node service is already started on port 3001 and can serve
+// the iframe and its account requests directly. Public deployments continue
+// using the same-origin proxy so cookies and reverse-proxy routing stay intact.
+const localService = ['localhost', '127.0.0.1', '[::1]'].includes(location.hostname)
+export const SAFETY_API_BASE = localService ? `${location.protocol}//${location.hostname}:3001` : '/account-service'
 const AUTH_KEY = 'mengsu-auth'
 const CHANGE_KEY = 'mengsu-auth-change'
 let revision = 0
