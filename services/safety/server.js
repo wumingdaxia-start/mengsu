@@ -23,6 +23,7 @@ const sessions=new Map();
 const weatherCache=new Map();
 const mysql=options.mysql===false?null:options.mysql||(Object.keys(options).length===0&&loadMysqlConfig());
 const persistence=mysql?createMysqlPersistence(mysql,{pool:options.mysqlPool}):null;
+const register=require('./registration').createRegistrar({readUsers,persistence,usersFile:options.usersFile||usersFile});
 const store=persistence?.health||createStore(options.dataDir||path.join(__dirname,'../../data/safety/health'));
 const consultStore=persistence?.consult||createConsultStore(options.consultDir||path.join(__dirname,'../../data/safety/consult'));
 const testStore=require('./local-persistence').createTests(options.testsDir||path.join(__dirname,'../../data/safety/tests'));
@@ -64,6 +65,7 @@ async function handler(req,res){const url=new URL(req.url,'http://localhost');
   return json(res,200,safe);
  }catch{return json(res,503,{message:'天气服务暂时不可用，请稍后重试'})}
  }
+ if(req.method==='POST'&&url.pathname==='/api/register'){const result=await register(await readBody(req,8192));return json(res,result.status,{message:result.message});}
  if(req.method==='POST'&&url.pathname==='/api/login'){try{const input=await readBody(req),account=String(input.account||'').trim(),password=String(input.password||''),mode=input.mode||'user';if(!account||!password||!['user','admin'].includes(mode))return json(res,400,{message:'请输入账号和密码'});const user=(await readUsers()).find(x=>x.account.toLowerCase()===account.toLowerCase());if(!user||isAdmin(user)!==(mode==='admin')||!validPassword(password,user))return json(res,401,{message:'账号或密码不正确'});const id=crypto.randomBytes(32).toString('base64url'),maxAge=input.remember?604800:28800;sessions.set(id,{userId:user.id,expires:Date.now()+maxAge*1000});return json(res,200,{ok:true},{'Set-Cookie':'health_session='+encodeURIComponent(id+'.'+sign(id))+'; HttpOnly; SameSite=Strict; Path=/; Max-Age='+maxAge})}catch(e){return json(res,e.message==='请求格式错误'?400:500,{message:e.message==='请求格式错误'?e.message:'登录暂时不可用，请稍后重试'})}}
  if(req.method==='GET'&&url.pathname==='/api/me'){const s=getSession(req);if(!s)return json(res,401,{message:'请先登录'});const user=(await readUsers()).find(x=>x.id===s.userId);if(!user)return json(res,401,{message:'账号不存在'});return json(res,200,{user:{id:user.id,name:user.name,account:user.account,role:user.role,phone:user.phone}})}
  if(req.method==='POST'&&url.pathname==='/api/logout'){const s=getSession(req);if(s)sessions.delete(s.id);return json(res,200,{ok:true},{'Set-Cookie':'health_session=; HttpOnly; SameSite=Strict; Path=/; Max-Age=0'})}

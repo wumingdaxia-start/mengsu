@@ -2,7 +2,7 @@
 import { computed, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { loginDestination, WORKSPACES } from '../workspaces'
-import { signIn } from '../auth'
+import { signIn, registerAccount } from '../auth'
 
 const router = useRouter()
 const route = useRoute()
@@ -12,6 +12,10 @@ const selectedSpaceKey = computed(() => Object.entries(WORKSPACES).find(([, spac
 const email = ref('')
 const password = ref('')
 const remember = ref(true)
+const registering = ref(false)
+const nickname = ref('')
+const confirmation = ref('')
+function toggleMode() { registering.value = !registering.value; message.value = ''; password.value = ''; confirmation.value = '' }
 const message = ref('')
 const busy = ref(false)
 
@@ -24,6 +28,15 @@ async function submit() {
   busy.value = true
   message.value = ''
   try {
+    if (registering.value) {
+      if (password.value !== confirmation.value) { message.value = '两次密码不一致'; return }
+      await registerAccount(email.value.trim(), password.value, nickname.value.trim() || email.value.trim().slice(0, 40))
+      registering.value = false
+      confirmation.value = ''
+      password.value = ''
+      message.value = '注册成功，请使用刚才的密码登录'
+      return
+    }
     await signIn(email.value.trim(), password.value, remember.value)
     sessionStorage.setItem('mengsu-entered', '1')
     router.push(destination())
@@ -60,21 +73,27 @@ function continueGuest() {
       <form class="login-form" @submit.prevent="submit">
         <p class="login-destination">{{ selectedSpace.subtitle }}</p>
         <button class="login-return" type="button" @click="router.push('/entry')">← 返回水波首页</button>
-        <div class="login-form-heading"><p>欢迎回来</p><h2>进入{{ selectedSpace.name }}</h2><span>登录后继续你的记录</span></div>
-        <label>账号<input v-model="email" type="text" autocomplete="username" placeholder="请输入花屿星账号、手机号或邮箱" :disabled="busy" /></label>
-        <label>密码<input v-model="password" type="password" autocomplete="current-password" placeholder="输入你的密码" /></label>
-        <div class="login-form-options"><label class="remember"><input v-model="remember" type="checkbox" /> <span>记住我</span></label><button type="button" class="forgot">忘记密码？</button></div>
+        <div class="login-form-heading"><p>{{ registering ? '在这里留下你的记录' : '欢迎回来' }}</p><h2>{{ registering ? '注册花屿星账号' : '进入' + selectedSpace.name }}</h2><span>{{ registering ? '一个账号，连接三个空间' : '登录后继续你的记录' }}</span></div>
+        <label>账号<input v-model="email" type="text" autocomplete="username" placeholder="请输入花屿星账号" maxlength="64" :disabled="busy" /></label>
+        <label v-if="registering">昵称<input v-model="nickname" type="text" autocomplete="nickname" maxlength="40" placeholder="选填，默认使用账号名" :disabled="busy" /></label>
+        <label>密码<input v-model="password" type="password" :autocomplete="registering ? 'new-password' : 'current-password'" :placeholder="registering ? '设置 8～128 位密码' : '输入你的密码'" maxlength="128" :disabled="busy" /></label>
+        <label v-if="registering">确认密码<input v-model="confirmation" type="password" autocomplete="new-password" maxlength="128" placeholder="再次输入密码" :disabled="busy" /></label>
+        <p v-if="registering" class="login-note">账号使用 3～64 位字母、数字或 _ @ . -，注册后可在三个空间登录。</p>
+        <div v-if="!registering" class="login-form-options"><label class="remember"><input v-model="remember" type="checkbox" /> <span>记住我</span></label><button type="button" class="forgot">忘记密码？</button></div>
         <p v-if="message" class="login-message" role="status">{{ message }}</p>
-        <button class="login-submit" type="submit" :disabled="busy">{{ busy ? '正在验证…' : '登录并进入' }} <span aria-hidden="true">→</span></button>
+        <button class="login-submit" type="submit" :disabled="busy">{{ busy ? (registering ? '正在创建…' : '正在验证…') : (registering ? '注册账号' : '登录并进入') }} <span aria-hidden="true">→</span></button>
+        <button class="login-register" type="button" :disabled="busy" @click="toggleMode">{{ registering ? '已有账号？返回登录' : '还没有账号？注册账号' }}</button>
         <div class="login-divider"><span>或</span></div>
         <button class="login-guest" type="button" @click="continueGuest">先以访客方式进入</button>
-        <p class="login-note">三个空间共用安康守护账号，登录后可在空间之间直接切换。</p>
+        <p class="login-note">三个空间共用花屿星账号，个人记录按账号保存。</p>
       </form>
     </section>
   </main>
 </template>
 
 <style scoped>
+.login-register { display:block;margin:20px auto 0;padding:8px;border:0;background:transparent;color:var(--login-accent-strong);font-size:16px; }
+.login-register:disabled { opacity:.6; }
 .login-page { position: relative; min-height: 100dvh; overflow: hidden; color: #42546a; background: #edf3f5 url('/entry-ripples/assets/water.jpg') center/cover no-repeat; }
 .login-page::before { content: ''; position: absolute; inset: 0; background: linear-gradient(110deg, rgba(235,242,243,.91), rgba(239,235,246,.78) 54%, rgba(237,246,244,.6)); pointer-events: none; }
 .login-wash { position: absolute; width: 38vw; height: 38vw; min-width: 280px; min-height: 280px; right: 4%; bottom: -15%; border-radius: 50%; background: rgba(207, 218, 243, .42); filter: blur(42px); animation: login-breathe 9s cubic-bezier(.77,0,.175,1) infinite; }
