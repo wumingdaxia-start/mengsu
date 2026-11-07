@@ -75,6 +75,29 @@ function removeRecord(record) {
 function toggleTrigger(value) { selectedTriggers.value = selectedTriggers.value.includes(value) ? selectedTriggers.value.filter(item => item !== value) : [...selectedTriggers.value, value] }
 const recent = computed(() => records.value.slice(0, 5))
 const recordedDays = computed(() => new Set(records.value.map(row => row.date)).size)
+const recentWeek = computed(() => {
+  const days = Array.from({ length: 7 }, (_, index) => {
+    const date = new Date()
+    date.setDate(date.getDate() - (6 - index))
+    const key = date.toLocaleDateString('sv-SE')
+    return { key, count: records.value.filter(row => row.date === key).length }
+  })
+  const max = Math.max(1, ...days.map(day => day.count))
+  return days.map((day, index) => ({ ...day, x: 8 + index * 14, y: 58 - day.count / max * 38 }))
+})
+const weeklyMoodPercent = computed(() => Math.round(records.value.filter(row => row.date >= recentWeek.value[0].key).length / 7 * 100))
+const currentStreak = computed(() => {
+  const days = new Set(records.value.map(row => row.date))
+  const date = new Date()
+  let streak = 0
+  while (streak < 366) {
+    const key = date.toLocaleDateString('sv-SE')
+    if (!days.has(key)) break
+    streak += 1
+    date.setDate(date.getDate() - 1)
+  }
+  return streak
+})
 const distribution = computed(() => moods.map(item => ({ ...item, count: records.value.filter(row => row.mood === item.value).length })))
 const maxCount = computed(() => Math.max(1, ...distribution.value.map(row => row.count)))
 const latest = computed(() => records.value[0])
@@ -115,7 +138,11 @@ onBeforeUnmount(() => { testVersion++; pauseBreathing(); window.removeEventListe
       <p class="psych-space-note">测试结果保存在当前账号；心情记录保存在当前浏览器，并按账号区分。</p>
       <div class="psych-space-links"><RouterLink to="/psychology/journal">记录心情 →</RouterLink><RouterLink to="/psychology/history">查看情绪回顾 →</RouterLink></div>
     </section>
-    <section v-if="section === 'overview'" class="psych-summary"><div><p class="psych-eyebrow">给自己一个温柔的问候</p><h2>今天，你还好吗？</h2><p>有些感受不需要立刻找到答案。<br />先记下来，再慢慢和自己相处。</p></div><dl><div><dt>留下的心情</dt><dd>{{ records.length }}<small> 次</small></dd></div><div><dt>认真记录的日子</dt><dd>{{ recordedDays }}<small> 天</small></dd></div><div><dt>最近一次感受</dt><dd class="latest-mood">{{ latest?.mood || '还没有记录' }}</dd></div></dl></section>
+    <section v-if="section === 'overview'" class="psych-overview-cards" aria-label="心情概览">
+      <article class="psych-overview-card psych-week-card"><h2>情绪波动</h2><div class="week-chart"><svg viewBox="0 0 100 70" role="img" aria-label="近七天心情记录趋势"><path class="week-area" :d="`M ${recentWeek.map(point => `${point.x} ${point.y}`).join(' L ')} L 92 66 L 8 66 Z`"/><path class="week-line" :d="`M ${recentWeek.map(point => `${point.x} ${point.y}`).join(' L ')}`"/><circle v-for="point in recentWeek" :key="point.key" :cx="point.x" :cy="point.y" r="1.7"/></svg></div><div class="week-stat"><span>本周波动</span><strong>{{ weeklyMoodPercent }}%</strong><small>{{ records.length ? '整体平稳' : '从今天开始记录' }}</small></div></article>
+      <article class="psych-overview-card psych-today-card"><span class="today-mark" aria-hidden="true">•　♥</span><p>今日状态</p><h2>今天，你还好吗？</h2><p class="today-copy">连续观察情绪、身体与关系，帮助你更清楚地认识自己。</p><div class="today-latest"><span>最近一次记录</span><strong>{{ latest?.mood || '还没有记录' }}</strong></div></article>
+      <article class="psych-overview-card psych-streak-card"><h2>连续记录</h2><div class="streak-ring"><strong>{{ currentStreak }}</strong><span>天</span></div><p>{{ currentStreak ? '继续留意自己的感受' : '开始记录，建立自我观察习惯' }}</p></article>
+    </section>
     <section v-if="['overview', 'analysis', 'space'].includes(section)" class="psych-panel saved-tests">
       <div class="psych-panel-heading"><div><span class="psych-eyebrow">心绪活动 / 我的测试</span><h2>留下探索自己的片段</h2></div><button :disabled="testsLoading" @click="loadTests">{{ testsLoading?'读取中…':'刷新记录' }}</button></div>
       <p v-if="testsError" role="alert">{{ testsError }} <button @click="loadTests">重试</button></p>
@@ -166,4 +193,54 @@ onBeforeUnmount(() => { testVersion++; pauseBreathing(); window.removeEventListe
 .psychology-home:has(> .psych-summary) .saved-test-row>a { padding:9px 28px; border:1px solid #e6bd96; border-radius:999px; background:#fff6ea; color:#8a5a3f; }
 .psychology-home:has(> .psych-summary) .saved-tests>small { grid-column:1/-1; display:block; text-align:center; margin-top:2px; }
 @media(max-width:760px){.psychology-home:has(> .psych-summary){padding-inline:14px}.psychology-home:has(> .psych-summary) .psych-guest-note{margin:0 auto 20px}.psychology-home:has(> .psych-summary) .psych-summary{min-height:0;padding:70px 28px;border-radius:36px}.psychology-home:has(> .psych-summary) .psych-summary:before{inset:14px;border-radius:28px}.psychology-home:has(> .psych-summary) .psych-summary h2{font-size:28px}.psychology-home:has(> .psych-summary) .saved-tests{display:block}.psychology-home:has(> .psych-summary) .saved-tests>.psych-panel-heading{display:flex}.psychology-home:has(> .psych-summary) .saved-test-row{margin-bottom:14px}}
+/* Three compact overview cards from the supplied reference. */
+.psychology-home:has(> .psych-overview-cards) { max-width:none; padding:8px clamp(18px,4vw,64px) 34px; }
+.psychology-home:has(> .psych-overview-cards) .psych-page-heading { max-width:1250px; margin:12px auto 20px; }
+.psychology-home:has(> .psych-overview-cards) .psych-guest-note { max-width:610px; margin:-76px auto 30px; justify-content:center; border-radius:999px; background:rgba(255,248,239,.78); border-color:#e6c5a8; padding:9px 24px; }
+.psych-overview-cards { display:grid!important; grid-template-columns:minmax(190px,1fr) minmax(280px,1.52fr) minmax(190px,1fr); gap:24px; max-width:1250px; margin:0 auto 28px; align-items:stretch; }
+.psych-overview-card { position:relative; min-width:0; min-height:174px; padding:15px 16px; overflow:hidden; border:1px solid #f0e6dc; border-radius:14px; background:rgba(255,251,247,.52); box-shadow:0 8px 24px rgba(123,88,59,.025); color:#715b4b; }
+.psych-overview-card h2 { margin:0; font-size:14px; font-weight:600; color:#735943; }
+.psych-week-card { display:grid!important; grid-template-columns:minmax(90px,1fr) auto; grid-template-rows:auto 1fr; align-items:center; column-gap:18px; }
+.psych-week-card h2 { grid-column:1/-1; }
+.week-chart { grid-row:2; width:94px; height:94px; max-width:100%; align-self:center; justify-self:center; display:flex; align-items:center; border:7px solid #f1d7c4; border-top-color:#efcfb7; border-right-color:#f8ede4; border-radius:50%; box-sizing:border-box; }
+.week-chart svg { display:block; width:100%; overflow:visible; }
+.week-area { fill:rgba(207,158,111,.13); }
+.week-line { fill:none; stroke:#d4a67d; stroke-width:1.6; stroke-linecap:round; stroke-linejoin:round; }
+.week-chart circle { fill:#e4c3a2; }
+.week-stat { display:grid; gap:3px; align-content:center; text-align:left; }
+.week-stat span,.week-stat small { font-size:10px; color:#a18b78; }
+.week-stat strong { font-size:23px; line-height:1.15; color:#775a45; }
+.psych-today-card { text-align:center; padding-top:15px; background:linear-gradient(135deg,#f8e8da,#f9eadd); box-shadow:0 6px 15px rgba(157,110,75,.12); }
+.psych-today-card::after { content:'\2665 \00b7'; position:absolute; left:17px; bottom:17px; color:#eac5aa; font-size:15px; }
+.psych-today-card>p:first-of-type { margin:0 0 9px; text-align:left; font-size:12px; font-weight:600; color:#735943; }
+.psych-today-card h2 { font:500 25px/1.4 var(--display); color:#674a39; }
+.psych-today-card .today-copy { margin:7px 0 11px; font-size:11px; line-height:1.65; color:#947b66; }
+.today-mark { position:absolute; top:15px; right:18px; color:#d8af8c; font-size:12px; }
+.today-latest { display:grid; gap:3px; }
+.today-latest span { font-size:10px; color:#a18b78; }
+.today-latest strong { font:500 16px var(--display); color:#725844; }
+.psych-streak-card { display:flex!important; flex-direction:column; align-items:center; }
+.psych-streak-card h2 { align-self:stretch; }
+.streak-ring { width:76px; height:76px; display:flex; align-items:baseline; justify-content:center; padding-top:20px; margin:10px auto 9px; border:6px solid #f3e9e1; border-top-color:#eac4a8; border-right-color:#f0d5c1; border-radius:50%; box-sizing:border-box; }
+.streak-ring strong { font-size:21px; line-height:1; font-weight:500; color:#715744; }
+.streak-ring span { font-size:10px; color:#99836f; }
+.psych-streak-card>p { margin:0; text-align:center; font-size:10px; line-height:1.7; color:#a18b78; }
+.psychology-home:has(> .psych-overview-cards) .saved-tests { max-width:1250px; margin:0 auto; background:transparent; border:0; padding:0; display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:22px; }
+.psychology-home:has(> .psych-overview-cards) .saved-tests>.psych-panel-heading { grid-column:1/-1; display:flex; margin-bottom:0; }
+.psychology-home:has(> .psych-overview-cards) .saved-tests>.psych-panel-heading>div { text-align:left; }
+.psychology-home:has(> .psych-overview-cards) .saved-tests>.psych-panel-heading h2 { display:none; }
+.psychology-home:has(> .psych-overview-cards) .saved-tests>.psych-panel-heading .psych-eyebrow { font-size:16px; color:#8b624b; }
+.psychology-home:has(> .psych-overview-cards) .saved-test-row { min-height:145px; padding:26px 20px; display:flex; flex-direction:column; align-items:center; justify-content:space-between; text-align:center; border:1px solid #e6c5a8; border-radius:15px; background:rgba(255,248,241,.82); }
+.psychology-home:has(> .psych-overview-cards) .saved-test-row h3 { font-size:19px; color:#805743; }
+.psychology-home:has(> .psych-overview-cards) .saved-test-row p { display:none; }
+.psychology-home:has(> .psych-overview-cards) .saved-test-row>a { padding:9px 24px; border:1px solid #e6bd96; border-radius:999px; background:#fff6ea; color:#8a5a3f; }
+.psychology-home:has(> .psych-overview-cards) .saved-tests>small { grid-column:1/-1; display:block; text-align:center; margin-top:2px; }
+@media(max-width:760px){
+ .psychology-home:has(> .psych-overview-cards){padding-inline:14px}
+ .psychology-home:has(> .psych-overview-cards) .psych-guest-note{margin:0 auto 20px}
+ .psych-overview-cards{grid-template-columns:1fr!important;gap:12px}
+ .psych-overview-card{min-height:148px}
+ .psychology-home:has(> .psych-overview-cards) .saved-tests{display:block}
+ .psychology-home:has(> .psych-overview-cards) .saved-test-row{margin-bottom:14px}
+}
 </style>
