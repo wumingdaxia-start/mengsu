@@ -20,7 +20,7 @@ export const dreamNavigation = [
   { label: '梦境空间', items: [
     entry('梦境总览', '/dream', '昼夜信号在此相遇，看看白天的分身，和夜里的意识如何相互回响。', 'moon'),
     entry('✦ 记梦', '/capture', '趁意识还未消散，捕捉昨夜的碎片。', 'pen'),
-    entry('梦库', '/dream/library', '按日期找回一场梦，让每一束意识微光都有归处。', 'book', 'library'),
+    entry('梦库', '/dream/library', '把旧日梦境一一珍藏，让每一束微光都有归处。', 'book', 'library'),
     entry('漂流瓶', '/dreams', '把心事交给星海，让温柔在此靠岸。', 'bottle', 'bottle'),
   ] },
   { label: '梦境创作', items: [

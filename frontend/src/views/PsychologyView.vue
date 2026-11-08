@@ -75,6 +75,29 @@ function removeRecord(record) {
 function toggleTrigger(value) { selectedTriggers.value = selectedTriggers.value.includes(value) ? selectedTriggers.value.filter(item => item !== value) : [...selectedTriggers.value, value] }
 const recent = computed(() => records.value.slice(0, 5))
 const recordedDays = computed(() => new Set(records.value.map(row => row.date)).size)
+const recentWeek = computed(() => {
+  const days = Array.from({ length: 7 }, (_, index) => {
+    const date = new Date()
+    date.setDate(date.getDate() - (6 - index))
+    const key = date.toLocaleDateString('sv-SE')
+    return { key, count: records.value.filter(row => row.date === key).length }
+  })
+  const max = Math.max(1, ...days.map(day => day.count))
+  return days.map((day, index) => ({ ...day, x: 8 + index * 14, y: 58 - day.count / max * 38 }))
+})
+const weeklyMoodPercent = computed(() => Math.round(records.value.filter(row => row.date >= recentWeek.value[0].key).length / 7 * 100))
+const currentStreak = computed(() => {
+  const days = new Set(records.value.map(row => row.date))
+  const date = new Date()
+  let streak = 0
+  while (streak < 366) {
+    const key = date.toLocaleDateString('sv-SE')
+    if (!days.has(key)) break
+    streak += 1
+    date.setDate(date.getDate() - 1)
+  }
+  return streak
+})
 const distribution = computed(() => moods.map(item => ({ ...item, count: records.value.filter(row => row.mood === item.value).length })))
 const maxCount = computed(() => Math.max(1, ...distribution.value.map(row => row.count)))
 const latest = computed(() => records.value[0])
@@ -115,7 +138,11 @@ onBeforeUnmount(() => { testVersion++; pauseBreathing(); window.removeEventListe
       <p class="psych-space-note">测试结果保存在当前账号；心情记录保存在当前浏览器，并按账号区分。</p>
       <div class="psych-space-links"><RouterLink to="/psychology/journal">记录心情 →</RouterLink><RouterLink to="/psychology/history">查看情绪回顾 →</RouterLink></div>
     </section>
-    <section v-if="section === 'overview'" class="psych-summary"><div><p class="psych-eyebrow">给自己一个温柔的问候</p><h2>今天，你还好吗？</h2><p>有些感受不需要立刻找到答案。<br />先记下来，再慢慢和自己相处。</p></div><dl><div><dt>留下的心情</dt><dd>{{ records.length }}<small> 次</small></dd></div><div><dt>认真记录的日子</dt><dd>{{ recordedDays }}<small> 天</small></dd></div><div><dt>最近一次感受</dt><dd class="latest-mood">{{ latest?.mood || '还没有记录' }}</dd></div></dl></section>
+    <section v-if="section === 'overview'" class="psych-overview-cards" aria-label="心情概览">
+      <article class="psych-overview-card psych-week-card"><h2>情绪波动</h2><div class="week-chart"><svg viewBox="0 0 100 70" role="img" aria-label="近七天心情记录趋势"><path class="week-area" :d="`M ${recentWeek.map(point => `${point.x} ${point.y}`).join(' L ')} L 92 66 L 8 66 Z`"/><path class="week-line" :d="`M ${recentWeek.map(point => `${point.x} ${point.y}`).join(' L ')}`"/><circle v-for="point in recentWeek" :key="point.key" :cx="point.x" :cy="point.y" r="1.7"/></svg></div><div class="week-stat"><span>本周波动</span><strong>{{ weeklyMoodPercent }}%</strong><small>{{ records.length ? '整体平稳' : '从今天开始记录' }}</small></div></article>
+      <article class="psych-overview-card psych-today-card"><span class="today-mark" aria-hidden="true">•　♥</span><p>今日状态</p><h2>今天，你还好吗？</h2><p class="today-copy">连续观察情绪、身体与关系，帮助你更清楚地认识自己。</p><div class="today-latest"><span>最近一次记录</span><strong>{{ latest?.mood || '还没有记录' }}</strong></div></article>
+      <article class="psych-overview-card psych-streak-card"><h2>连续记录</h2><div class="streak-ring"><strong>{{ currentStreak }}</strong><span>天</span></div><p>{{ currentStreak ? '继续留意自己的感受' : '开始记录，建立自我观察习惯' }}</p></article>
+    </section>
     <section v-if="['overview', 'analysis', 'space'].includes(section)" class="psych-panel saved-tests">
       <div class="psych-panel-heading"><div><span class="psych-eyebrow">心绪活动 / 我的测试</span><h2>留下探索自己的片段</h2></div><button :disabled="testsLoading" @click="loadTests">{{ testsLoading?'读取中…':'刷新记录' }}</button></div>
       <p v-if="testsError" role="alert">{{ testsError }} <button @click="loadTests">重试</button></p>
@@ -143,4 +170,77 @@ onBeforeUnmount(() => { testVersion++; pauseBreathing(); window.removeEventListe
 
 .personality-entry{display:flex;align-items:center;justify-content:space-between;gap:24px;margin-bottom:24px}.personality-entry h2{margin-bottom:8px!important}.personality-entry p{font-size:13px;line-height:1.8;color:hsl(var(--psych-hue, 145) 15% 50%);margin:0}.personality-entry button{flex-shrink:0}@media(max-width:600px){.personality-entry{align-items:flex-start;flex-direction:column}}
 .psychology-home{max-width:1300px;margin:0 auto;color:hsl(var(--psych-hue, 145) 15% 40%)}.psych-page-heading{margin:14px 0 28px}.psych-page-heading>p,.psych-eyebrow{color:hsl(var(--psych-hue, 145) 15% 51%);font-size:11px;margin:0 0 8px}.psych-page-heading h1{font:500 29px/1.4 var(--display);margin:0 0 8px;color:hsl(var(--psych-hue, 145) 15% 33%)}.psych-page-heading>span{font-size:14px;color:hsl(var(--psych-hue, 145) 15% 47%)}.psychology-home button{border-radius:7px;box-shadow:none;font-weight:500}.psychology-home button:not(.psych-primary){background:transparent;color:hsl(var(--psych-hue, 145) 15% 43%);border:0;font-size:12px;padding:7px 0}.psychology-home button:focus-visible{outline:2px solid hsl(var(--psych-hue, 145) 16% 56%);outline-offset:3px}.psychology-home .psych-primary{color:#fff;background:hsl(var(--psych-hue, 145) 16% 44%);border:1px solid hsl(var(--psych-hue, 145) 16% 44%);font-size:13px;padding:10px 16px}.psych-guest-note{display:flex;justify-content:space-between;align-items:center;gap:18px;padding:12px 17px;border:1px solid hsl(var(--psych-hue, 145) 16% 90%);border-radius:8px;background:hsl(var(--psych-hue, 145) 15% 98%);color:hsl(var(--psych-hue, 145) 15% 43%);font-size:12px;margin-bottom:22px}.psych-summary{display:grid;grid-template-columns:1fr 1.1fr;gap:30px;padding:30px 34px;background:hsl(var(--psych-hue, 145) 28% 94% / .9);border:1px solid hsl(var(--psych-hue, 145) 16% 90%);border-radius:14px;margin-bottom:26px}.psych-summary h2{font:500 28px var(--display);color:hsl(var(--psych-hue, 145) 16% 40%);margin:13px 0}.psych-summary p:not(.psych-eyebrow){font-size:14px;line-height:1.9;color:hsl(var(--psych-hue, 145) 15% 46%);margin-bottom:0}.psych-summary dl{align-self:center;display:grid;grid-template-columns:1fr 1fr;gap:26px;margin:0}.psych-summary dl>div:last-child{grid-column:1/-1;border-top:1px solid hsl(var(--psych-hue, 145) 17% 89%);padding-top:17px}.psych-summary dt{font-size:11px;color:hsl(var(--psych-hue, 145) 15% 51%)}.psych-summary dd{font-size:30px;color:hsl(var(--psych-hue, 145) 15% 37%);margin:5px 0 0;font-weight:500}.psych-summary dd small{font-size:12px}.psych-summary .latest-mood{font:500 18px var(--display)}.psych-content-grid{display:grid;grid-template-columns:1.5fr 1fr;gap:24px;align-items:start}.psych-content-grid.single-panel{grid-template-columns:1fr}.psych-panel{padding:26px;background:rgba(255,254,249,.87);border:1px solid hsl(var(--psych-hue, 145) 15% 91%);border-radius:13px;min-width:0}.psych-panel-heading{display:flex;justify-content:space-between;gap:20px;align-items:start;flex-wrap:wrap}.psych-panel h2{font:500 20px/1.6 var(--display);color:hsl(var(--psych-hue, 145) 16% 43%);margin:5px 0 18px}.psych-date-label{display:grid;gap:5px;font-size:10px;color:hsl(var(--psych-hue, 145) 15% 53%)}.psych-date-label input{padding:5px 8px;width:140px;font-size:11px;min-height:30px;background:hsl(var(--psych-hue, 145) 15% 98%);border:1px solid hsl(var(--psych-hue, 145) 16% 90%);border-radius:6px;color:hsl(var(--psych-hue, 145) 15% 41%)}.mood-selector{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px;border:0;padding:0;margin:12px 0 23px}.mood-selector button{display:grid;justify-items:center;gap:9px;padding:11px 2px!important;border:1px solid transparent!important;border-radius:10px!important}.mood-selector button>span{width:40px;height:40px;display:grid;place-items:center;border-radius:50%;background:color-mix(in srgb,var(--mood-color) 18%,white);color:var(--mood-color);font:500 25px/1 sans-serif}.mood-selector button b{font-size:11px;font-weight:400;white-space:nowrap}.mood-selector button.selected{background:hsl(var(--psych-hue, 145) 18% 96%)!important;border-color:hsl(var(--psych-hue, 145) 16% 72%)!important}.mood-selector button.selected b{font-weight:600;color:hsl(var(--psych-hue, 145) 16% 44%)}.psych-field{display:grid;gap:10px;font-size:13px;color:hsl(var(--psych-hue, 145) 15% 42%)}.psych-field textarea{background:hsl(var(--psych-hue, 145) 25% 98%);border:1px solid hsl(var(--psych-hue, 145) 15% 91%);border-radius:9px;min-height:126px;font-size:13px;line-height:1.9;color:hsl(var(--psych-hue, 145) 15% 44%)}.psych-field textarea::placeholder{color:hsl(var(--psych-hue, 145) 15% 57%)}.psych-field small{font-size:10px;text-align:right;color:hsl(var(--psych-hue, 145) 15% 56%)}.psych-trigger-field{border:0;padding:0;margin:19px 0}.psych-trigger-field legend{font-size:12px;color:hsl(var(--psych-hue, 145) 15% 42%)}.psych-trigger-field legend span{font-size:10px;color:hsl(var(--psych-hue, 145) 15% 56%)}.psych-trigger-field>div{display:flex;gap:7px;flex-wrap:wrap;margin-top:12px}.psych-trigger-field button{border:1px solid hsl(var(--psych-hue, 145) 15% 92%)!important;padding:5px 9px!important;background:hsl(var(--psych-hue, 145) 25% 98%)!important;font-size:11px!important}.psych-trigger-field button.selected{background:hsl(var(--psych-hue, 145) 15% 93%)!important;color:hsl(var(--psych-hue, 145) 16% 47%)!important;border-color:hsl(var(--psych-hue, 145) 16% 72%)!important}.psych-save-row{border-top:1px solid hsl(var(--psych-hue, 145) 19% 94%);padding-top:19px;display:flex;gap:12px;align-items:center;flex-wrap:wrap;justify-content:space-between}.psych-save-row>span{font-size:10px;color:hsl(var(--psych-hue, 145) 15% 55%);max-width:210px}.breathe-panel{text-align:center}.breathe-panel h2{font-size:20px}.breathe-panel>p{font-size:12px;line-height:1.9;color:hsl(var(--psych-hue, 145) 15% 50%)}.breathing-circle{position:relative;display:grid;place-items:center;width:180px;height:180px;margin:34px auto;color:hsl(var(--psych-hue, 145) 16% 45%)}.breathing-circle:before{content:'';position:absolute;inset:0;border:1px solid hsl(var(--psych-hue, 145) 16% 86%);border-radius:50%;background:hsl(var(--psych-hue, 145) 17% 95%);transform:scale(var(--breath-size,1));transition:transform 150ms cubic-bezier(.22,1,.36,1);box-shadow:0 0 0 12px hsl(var(--psych-hue, 145) 15% 98%),0 0 0 13px hsl(var(--psych-hue, 145) 15% 93%)}.breathing-circle>div{position:relative;display:grid;gap:9px}.breathing-circle strong{font:500 20px var(--display)}.breathing-circle span{font-size:11px;color:hsl(var(--psych-hue, 145) 16% 55%)}.breathing-progress{display:flex;justify-content:space-between;font-size:10px;color:hsl(var(--psych-hue, 145) 15% 55%);gap:10px}.breathe-panel progress{appearance:none;width:100%;height:4px;margin:8px 0 20px;border:0;border-radius:5px;background:hsl(var(--psych-hue, 145) 15% 94%);accent-color:hsl(var(--psych-hue, 145) 16% 59%)}.breathe-panel progress::-webkit-progress-bar{background:hsl(var(--psych-hue, 145) 15% 94%);border-radius:5px}.breathe-panel progress::-webkit-progress-value{background:hsl(var(--psych-hue, 145) 16% 59%);border-radius:5px}.breathing-actions{display:flex;justify-content:center;align-items:center;gap:20px}.breathe-panel>small{display:block;font-size:10px;color:hsl(var(--psych-hue, 145) 15% 57%);margin-top:18px}.psych-history{margin-top:26px}.psych-empty{text-align:center;padding:20px;color:hsl(var(--psych-hue, 145) 15% 54%);font-size:13px;line-height:1.9}.psych-empty>span{color:hsl(var(--psych-hue, 145) 16% 65%);font-size:26px}.psych-record{border-top:1px solid hsl(var(--psych-hue, 145) 15% 93%);padding:18px 0}.psych-record>div{display:flex;align-items:center;gap:16px}.psych-record time{font-size:12px;color:hsl(var(--psych-hue, 145) 15% 55%)}.psych-record strong{font-size:13px;color:hsl(var(--psych-hue, 145) 16% 40%);font-weight:500}.psych-record>div>button{margin-left:auto;font-size:11px!important;color:hsl(var(--psych-hue, 145) 15% 55%)!important}.psych-record>p{white-space:pre-wrap;overflow-wrap:anywhere;font-size:14px;color:hsl(var(--psych-hue, 145) 15% 42%);line-height:1.9;margin:12px 0}.psych-record-tag{display:inline-block;padding:3px 7px;margin:4px 5px 0 0;color:hsl(var(--psych-hue, 145) 16% 50%);background:hsl(var(--psych-hue, 145) 15% 96%);border-radius:4px;font-size:10px}.mood-distribution{padding:5px 0 24px}.mood-distribution>p{color:hsl(var(--psych-hue, 145) 15% 54%);font-size:12px}.mood-distribution>div{display:grid;grid-template-columns:80px 1fr 45px;gap:15px;align-items:center;margin:14px 0;font-size:12px;color:hsl(var(--psych-hue, 145) 15% 49%)}.mood-distribution>div>div{position:relative;height:6px;border-radius:5px;background:hsl(var(--psych-hue, 145) 15% 95%);overflow:hidden}.mood-distribution i{display:block;height:100%;transform-origin:left;border-radius:5px}.mood-distribution b{font-weight:400;font-size:11px}.psych-message{padding:13px 16px;background:hsl(var(--psych-hue, 145) 19% 94%);border-radius:8px;font-size:13px;color:hsl(var(--psych-hue, 145) 16% 41%)}.psych-footer{font-size:11px;color:hsl(var(--psych-hue, 145) 15% 56%);margin:25px 0;line-height:1.9}.visually-hidden{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}@media(min-width:1100px){.single-panel .breathe-panel{max-width:650px;width:100%;justify-self:center}.single-panel .mood-editor{max-width:900px;width:100%;justify-self:center}}@media(max-width:1100px){.psych-content-grid{grid-template-columns:1fr}.psych-summary{grid-template-columns:1fr}.psych-summary dl{grid-template-columns:1fr 1fr 1fr}.psych-summary dl>div:last-child{grid-column:auto;border:0;padding-top:0}.psych-summary .latest-mood{font-size:15px}}@media(max-width:600px){.psych-summary,.psych-panel{padding:20px}.psych-summary{gap:17px}.psych-summary dl{gap:12px}.psych-summary dt{font-size:10px}.psych-summary dd{font-size:25px}.psych-summary .latest-mood{line-height:1.7}.psych-guest-note{flex-wrap:wrap}.psych-panel h2{font-size:18px}.mood-selector{gap:1px}.mood-selector button b{font-size:10px}.mood-selector button>span{width:35px;height:35px}.psych-save-row>.psych-primary{width:100%}}@media(prefers-reduced-motion:reduce){.breathing-circle:before{transform:none!important;transition:none!important}}
+
+/* Overview follows the supplied 心流记录舱 composition while keeping every existing action. */
+.psychology-home:has(> .psych-summary) { max-width: none; position: relative; padding: 8px clamp(18px, 4vw, 64px) 34px; }
+.psychology-home:has(> .psych-summary) .psych-page-heading { max-width: 1250px; margin: 12px auto 20px; }
+.psychology-home:has(> .psych-summary) .psych-page-heading h1 { font-size: clamp(34px, 4vw, 58px); }
+.psychology-home:has(> .psych-summary) .psych-guest-note { max-width: 610px; margin: -76px auto 30px; justify-content:center; border-radius: 999px; background: rgba(255,248,239,.78); border-color:#e6c5a8; padding: 9px 24px; }
+.psychology-home:has(> .psych-summary) .psych-summary { position:relative; isolation:isolate; max-width:760px; min-height:350px; margin: 0 auto 42px; padding:112px 92px 86px; display:block; border-radius:50%; background:rgba(255,248,242,.68); border:1px solid #e6c5a8; box-shadow:0 0 0 15px rgba(255,255,255,.32),0 18px 55px rgba(168,117,83,.12); }
+.psychology-home:has(> .psych-summary) .psych-summary:before { content:''; position:absolute; inset:26px; border:1px solid rgba(227,189,157,.65); border-radius:50%; pointer-events:none; }
+.psychology-home:has(> .psych-summary) .psych-summary>div,.psychology-home:has(> .psych-summary) .psych-summary>dl { position:relative; z-index:1; text-align:center; }
+.psychology-home:has(> .psych-summary) .psych-summary h2 { font-size:34px; margin:11px 0 18px; }
+.psychology-home:has(> .psych-summary) .psych-summary dl { grid-template-columns:1fr 1fr; gap:16px; margin:24px auto 0; max-width:420px; }
+.psychology-home:has(> .psych-summary) .psych-summary dl>div:last-child { grid-column:1/-1; border-top:1px solid #e6cfbb; padding-top:14px; }
+.psychology-home:has(> .psych-summary) .saved-tests { max-width:1250px; margin:0 auto; background:transparent; border:0; padding:0; display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:22px; }
+.psychology-home:has(> .psych-summary) .saved-tests>.psych-panel-heading { grid-column:1/-1; display:flex; margin-bottom:0; }
+.psychology-home:has(> .psych-summary) .saved-tests>.psych-panel-heading>div { grid-column:1/-1; text-align:center; }
+.psychology-home:has(> .psych-summary) .saved-tests>.psych-panel-heading h2 { display:none; }
+.psychology-home:has(> .psych-summary) .saved-tests>.psych-panel-heading .psych-eyebrow { font-size:16px; color:#8b624b; }
+.psychology-home:has(> .psych-summary) .saved-test-row { min-height:145px; padding:26px 25px; display:flex; flex-direction:column; align-items:center; justify-content:space-between; text-align:center; border:1px solid #e6c5a8; border-radius:18px; background:rgba(255,248,241,.82); box-shadow:0 12px 26px rgba(164,113,78,.1); }
+.psychology-home:has(> .psych-summary) .saved-test-row h3 { font-size:21px; color:#805743; }
+.psychology-home:has(> .psych-summary) .saved-test-row p { display:none; }
+.psychology-home:has(> .psych-summary) .saved-test-row>a { padding:9px 28px; border:1px solid #e6bd96; border-radius:999px; background:#fff6ea; color:#8a5a3f; }
+.psychology-home:has(> .psych-summary) .saved-tests>small { grid-column:1/-1; display:block; text-align:center; margin-top:2px; }
+@media(max-width:760px){.psychology-home:has(> .psych-summary){padding-inline:14px}.psychology-home:has(> .psych-summary) .psych-guest-note{margin:0 auto 20px}.psychology-home:has(> .psych-summary) .psych-summary{min-height:0;padding:70px 28px;border-radius:36px}.psychology-home:has(> .psych-summary) .psych-summary:before{inset:14px;border-radius:28px}.psychology-home:has(> .psych-summary) .psych-summary h2{font-size:28px}.psychology-home:has(> .psych-summary) .saved-tests{display:block}.psychology-home:has(> .psych-summary) .saved-tests>.psych-panel-heading{display:flex}.psychology-home:has(> .psych-summary) .saved-test-row{margin-bottom:14px}}
+/* Three compact overview cards from the supplied reference. */
+.psychology-home:has(> .psych-overview-cards) { max-width:none; padding:8px clamp(18px,4vw,64px) 34px; }
+.psychology-home:has(> .psych-overview-cards) .psych-page-heading { max-width:1250px; margin:12px auto 20px; }
+.psychology-home:has(> .psych-overview-cards) .psych-guest-note { max-width:610px; margin:-76px auto 30px; justify-content:center; border-radius:999px; background:rgba(255,248,239,.78); border-color:#e6c5a8; padding:9px 24px; }
+.psych-overview-cards { display:grid!important; grid-template-columns:minmax(190px,1fr) minmax(280px,1.52fr) minmax(190px,1fr); gap:24px; max-width:1250px; margin:0 auto 28px; align-items:stretch; }
+.psych-overview-card { position:relative; min-width:0; min-height:174px; padding:15px 16px; overflow:hidden; border:1px solid #f0e6dc; border-radius:14px; background:rgba(255,251,247,.52); box-shadow:0 8px 24px rgba(123,88,59,.025); color:#715b4b; }
+.psych-overview-card h2 { margin:0; font-size:14px; font-weight:600; color:#735943; }
+.psych-week-card { display:grid!important; grid-template-columns:minmax(90px,1fr) auto; grid-template-rows:auto 1fr; align-items:center; column-gap:18px; }
+.psych-week-card h2 { grid-column:1/-1; }
+.week-chart { grid-row:2; width:94px; height:94px; max-width:100%; align-self:center; justify-self:center; display:flex; align-items:center; border:7px solid #f1d7c4; border-top-color:#efcfb7; border-right-color:#f8ede4; border-radius:50%; box-sizing:border-box; }
+.week-chart svg { display:block; width:100%; overflow:visible; }
+.week-area { fill:rgba(207,158,111,.13); }
+.week-line { fill:none; stroke:#d4a67d; stroke-width:1.6; stroke-linecap:round; stroke-linejoin:round; }
+.week-chart circle { fill:#e4c3a2; }
+.week-stat { display:grid; gap:3px; align-content:center; text-align:left; }
+.week-stat span,.week-stat small { font-size:10px; color:#a18b78; }
+.week-stat strong { font-size:23px; line-height:1.15; color:#775a45; }
+.psych-today-card { text-align:center; padding-top:15px; background:linear-gradient(135deg,#f8e8da,#f9eadd); box-shadow:0 6px 15px rgba(157,110,75,.12); }
+.psych-today-card::after { content:'\2665 \00b7'; position:absolute; left:17px; bottom:17px; color:#eac5aa; font-size:15px; }
+.psych-today-card>p:first-of-type { margin:0 0 9px; text-align:left; font-size:12px; font-weight:600; color:#735943; }
+.psych-today-card h2 { font:500 25px/1.4 var(--display); color:#674a39; }
+.psych-today-card .today-copy { margin:7px 0 11px; font-size:11px; line-height:1.65; color:#947b66; }
+.today-mark { position:absolute; top:15px; right:18px; color:#d8af8c; font-size:12px; }
+.today-latest { display:grid; gap:3px; }
+.today-latest span { font-size:10px; color:#a18b78; }
+.today-latest strong { font:500 16px var(--display); color:#725844; }
+.psych-streak-card { display:flex!important; flex-direction:column; align-items:center; }
+.psych-streak-card h2 { align-self:stretch; }
+.streak-ring { width:76px; height:76px; display:flex; align-items:baseline; justify-content:center; padding-top:20px; margin:10px auto 9px; border:6px solid #f3e9e1; border-top-color:#eac4a8; border-right-color:#f0d5c1; border-radius:50%; box-sizing:border-box; }
+.streak-ring strong { font-size:21px; line-height:1; font-weight:500; color:#715744; }
+.streak-ring span { font-size:10px; color:#99836f; }
+.psych-streak-card>p { margin:0; text-align:center; font-size:10px; line-height:1.7; color:#a18b78; }
+.psychology-home:has(> .psych-overview-cards) .saved-tests { max-width:1250px; margin:0 auto; background:transparent; border:0; padding:0; display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:22px; }
+.psychology-home:has(> .psych-overview-cards) .saved-tests>.psych-panel-heading { grid-column:1/-1; display:flex; margin-bottom:0; }
+.psychology-home:has(> .psych-overview-cards) .saved-tests>.psych-panel-heading>div { text-align:left; }
+.psychology-home:has(> .psych-overview-cards) .saved-tests>.psych-panel-heading h2 { display:none; }
+.psychology-home:has(> .psych-overview-cards) .saved-tests>.psych-panel-heading .psych-eyebrow { font-size:16px; color:#8b624b; }
+.psychology-home:has(> .psych-overview-cards) .saved-test-row { min-height:145px; padding:26px 20px; display:flex; flex-direction:column; align-items:center; justify-content:space-between; text-align:center; border:1px solid #e6c5a8; border-radius:15px; background:rgba(255,248,241,.82); }
+.psychology-home:has(> .psych-overview-cards) .saved-test-row h3 { font-size:19px; color:#805743; }
+.psychology-home:has(> .psych-overview-cards) .saved-test-row p { display:none; }
+.psychology-home:has(> .psych-overview-cards) .saved-test-row>a { padding:9px 24px; border:1px solid #e6bd96; border-radius:999px; background:#fff6ea; color:#8a5a3f; }
+.psychology-home:has(> .psych-overview-cards) .saved-tests>small { grid-column:1/-1; display:block; text-align:center; margin-top:2px; }
+@media(max-width:760px){
+ .psychology-home:has(> .psych-overview-cards){padding-inline:14px}
+ .psychology-home:has(> .psych-overview-cards) .psych-guest-note{margin:0 auto 20px}
+ .psych-overview-cards{grid-template-columns:1fr!important;gap:12px}
+ .psych-overview-card{min-height:148px}
+ .psychology-home:has(> .psych-overview-cards) .saved-tests{display:block}
+ .psychology-home:has(> .psych-overview-cards) .saved-test-row{margin-bottom:14px}
+}
 </style>

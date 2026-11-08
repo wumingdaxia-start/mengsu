@@ -245,3 +245,20 @@
   gap:11px;min-height:46px;padding:7px 10px 7px 12px;
  }
 }
+/* Psychology frame palette matches the warm ivory sign-in surface. */
+.app.app[data-workspace='psychology'] { --workspace-ink:#654536;--workspace-muted:#927763;--workspace-accent:#a66a4e;--workspace-soft:#f5e4d2;--workspace-line:#e4d2be;--workspace-sidebar:#faf3e9;--accent:#a66a4e;--accent-bright:#895138;--psych-hue:25; }
+.app.app[data-workspace='psychology'] .app-main { --accent:#a66a4e;--accent-bright:#895138;background:#f6eadc; }
+.app.app[data-workspace='psychology'] .app-head {background:rgba(255,250,242,.96)!important}
+.app.app[data-workspace='psychology'] .health-scene-background .reading-veil {background:rgba(250,240,226,.94)!important}
+.app.app[data-workspace='psychology'] .health-navigation .health-nav-group {background:#fffaf2!important;border-color:#e4d2be!important}
+.app.app[data-workspace='psychology'] .health-navigation .health-nav-group>p {color:#765643!important;border-bottom-color:#e4d2be}
+.app.app[data-workspace='psychology'] .health-navigation .health-nav-group>p>span {background:#f5e4d2!important;color:#895138!important}
+.app.app[data-workspace='psychology'] .health-navigation .health-nav-group button {color:#765c4d!important}
+.app.app[data-workspace='psychology'] .health-navigation .health-nav-group button.active {background:#f0ddca!important;color:#654536!important;box-shadow:inset 3px 0 0 #a66a4e!important}
+.app.app[data-workspace='psychology'] .health-navigation .health-nav-group button:hover {background:#f5e8d9!important}
+.app.app[data-workspace='psychology'] .health-navigation .psych-nav-icon {background:#f5e4d2;color:#a66a4e}
+.app.app[data-workspace='psychology'] .health-navigation button.active .psych-nav-icon {background:#e8cfb8;color:#895138}
+.app.app[data-workspace='psychology'] .health-navigation button:hover .psych-nav-icon {background:#efdbc7}
+.app.app[data-workspace='psychology'] .health-navigation button:focus-visible {outline-color:#a66a4e}
+.app.app[data-workspace='psychology'] .psych-panel,.app.app[data-workspace='psychology'] .psych-guest-note {background:#fffaf2;border-color:#e4d2be}
+.app.app[data-workspace='psychology'] .psych-summary {background:#f5e4d2;border-color:#e4d2be}
