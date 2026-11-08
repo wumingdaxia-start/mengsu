@@ -2,3 +2,5 @@
 
 .modal-card:has(#foodPhotoForm){max-height:calc(100dvh - 40px);overflow-y:auto;overscroll-behavior:contain;width:min(640px,100%)}
 #foodCamera,#foodRecognize{border:1px solid var(--page-accent,#b45247);background:var(--page-soft,#ffe5df);color:var(--page-accent,#b45247);box-shadow:none}#foodCamera:hover:not(:disabled),#foodRecognize:hover:not(:disabled){background:var(--page-start,#ffebe4)}#foodRecognize:disabled{opacity:1;cursor:not-allowed;filter:none;transform:none}
+
+.food-camera-panel{margin:16px 0;padding:14px;border:1px solid var(--border,#dce6df);border-radius:10px}.food-camera-panel[hidden]{display:none}.food-camera-panel label{display:grid;gap:6px;margin-bottom:12px}.food-camera-panel select{max-width:100%;padding:9px;border:1px solid var(--border,#dce6df);border-radius:8px;background:white;color:inherit}.food-camera-panel video{display:block;width:100%;max-height:340px;background:#202020;border-radius:8px;object-fit:contain;margin-bottom:12px}
