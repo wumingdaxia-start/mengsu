@@ -151,12 +151,17 @@ async function handler(req,res){const url=new URL(req.url,'http://localhost');
   if(url.pathname==='/api/consult'&&req.method==='GET')return json(res,200,{messages:await consultStore.read(user.id)});
   if(url.pathname==='/api/consult'&&req.method==='POST'){
    if(consultBusy.has(user.id))return json(res,409,{message:'上一条消息尚未完成，请稍候'});
-   const input=await readBody(req),message=typeof input.message==='string'?input.message.trim():'';
-   if(!message||message.length>1500)return json(res,400,{message:'请输入 1～1500 字的问诊内容'});
+   let input;try{input=await readBody(req,3*1024*1024)}catch{return json(res,400,{message:'请求格式错误'})}
+   const hasPhoto=input.image!==undefined;
+   if(hasPhoto){try{foodRecognition.validateImage(input.image)}catch{return json(res,400,{message:'图片无效，请上传不超过 2MB 的 JPEG 或 PNG 照片'})}if(input.photoConsent!==true)return json(res,400,{message:'请先同意发送照片进行解读'})}
+   const message=typeof input.message==='string'?input.message.trim():(hasPhoto?'请结合照片说明可见情况、还需补充的信息与就医建议。':'');
+   const question=message||(hasPhoto?'请结合照片说明可见情况、还需补充的信息与就医建议。':'');
+   if(!question||message.length>1500)return json(res,400,{message:'请输入 1～1500 字的问题或附加照片'});
    consultBusy.add(user.id);
    try{
-    const previous=await consultStore.read(user.id),resultMessages=[...previous,{role:'user',content:message,createdAt:new Date().toISOString()}];
-    const result=await consultService.reply(resultMessages,{env:requestAiEnv,request:options.aiFetch||fetch});
+    const previous=await consultStore.read(user.id),resultMessages=[...previous,{role:'user',content:question,...(hasPhoto?{hasPhoto:true}:{}),createdAt:new Date().toISOString()}];
+    const urgentText=/胸痛|胸口痛|喘不过气|呼吸困难|昏厥|晕厥|意识不清|一侧无力|半身不遂|口齿不清|严重出血|大出血|自杀|自残|过敏性休克/.test(question);
+    const result=hasPhoto&&!urgentText?await require('./consult-photo').replyPhoto(resultMessages,input.image,{env:requestAiEnv,request:options.aiFetch||fetch}):await consultService.reply(resultMessages,{env:requestAiEnv,request:options.aiFetch||fetch});
     if(result.error)return json(res,result.status||503,{message:result.error});
     resultMessages.push({role:'assistant',content:result.answer,createdAt:new Date().toISOString(),urgent:!!result.urgent});
     await consultStore.write(user.id,resultMessages);

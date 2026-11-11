@@ -12,7 +12,7 @@ function insightPanel(){
  return '<section class="card insight-card"><div class="insight-header"><div><span class="tag">AI PERSONAL INSIGHT</span><h2>近 7 天健康习惯洞察</h2><p>结合本人已填写的运动、饮食和睡眠记录，生成可执行的生活习惯建议。</p></div><span class="insight-mark" aria-hidden="true">✦</span></div><div class="insight-consent"><b>发送给 AI 的内容</b><p>发送最近 7 天的汇总指标和公开健康资料片段：运动次数和时长、已记录餐次的营养合计、睡眠时长及自评分。不发送姓名、联系方式、健康备忘或原始食物文字。记录不完整时不会推断未记录的活动。</p></div>'+'<div class="insight-actions"><button class="primary" id="insightGenerate" type="button" '+(insightLoading?'disabled':'')+'>'+(insightLoading?'正在分析…':user?'生成我的 AI 洞察':'登录后生成')+'</button></div>'+(insightError?'<p class="insight-error" role="alert">'+escapeHtml(insightError)+'</p>':'')+output+references+'</section>';
 }
 
-function bindInsight(){
+function renderInsightInPlace(){const container=q('#page');const positions=[];for(let el=container.parentElement;el;el=el.parentElement)positions.push([el,el.scrollLeft,el.scrollTop]);const x=window.scrollX,y=window.scrollY;container.style.minHeight=Math.max(container.getBoundingClientRect().height,parseFloat(container.style.minHeight)||0)+'px';render();for(const [el,left,top]of positions){el.scrollLeft=left;el.scrollTop=top}window.scrollTo({left:x,top:y,behavior:'instant'})} function bindInsight(){
  const button=q('#insightGenerate');
 
  if(!button)return;
@@ -20,7 +20,7 @@ function bindInsight(){
   if(!user){showLoginPrompt();return}
   if(insightLoading)return;
   const identity=String(user.id),epoch=generation;
-  insightLoading=true;insightError='';insightResult=null;render();
+  insightLoading=true;insightError='';insightResult=null;renderInsightInPlace();
   try{
    const response=await fetch('/api/health-insight',{method:'POST',headers:{'Content-Type':'application/json','X-Health-User':identity},body:JSON.stringify({consent:true})});
    const result=await response.json();
@@ -28,6 +28,6 @@ function bindInsight(){
    if(!response.ok)throw Error(result.message||'AI 洞察暂时不可用');
    insightResult=result;
   }catch(error){if(epoch===generation&&String(user?.id)===identity)insightError=error.message||'AI 洞察暂时不可用'}
-  finally{if(epoch===generation&&String(user?.id)===identity){insightLoading=false;if(location.hash==='#analysis')render()}}
+  finally{if(epoch===generation&&String(user?.id)===identity){insightLoading=false;if(location.hash==='#analysis')renderInsightInPlace()}}
  };
 }

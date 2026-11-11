@@ -48,9 +48,9 @@ const pageMeta={
  consult:{group:'趋势洞察',description:'描述不适、生活习惯或检查疑问，获得有边界的健康信息。'},
  knowledge:{group:'趋势洞察',description:'检索权威资料，并让 AI 根据命中的内容回答一般健康知识。'}
 };
-function render(){
+function render(options={}){
  const route=location.hash.slice(1)||'home',key=pages[route]?route:'home';
- page.dataset.route=key;if(document.body)document.body.dataset.route=key;
+ if(key!==page.dataset.route)page.style.minHeight='';page.dataset.route=key;if(document.body)document.body.dataset.route=key;
  q('#pageTitle').textContent=titles[key];
  q('#pageCrumb').textContent=titles[key];
  q('#pageGroup').textContent=pageMeta[key].group;
@@ -77,7 +77,7 @@ function render(){
  if(key==='analysis')bindInsight();
  if(key==='knowledge')bindKnowledge();
  window.dispatchEvent(new CustomEvent('mengsu:health-state', {detail:{user:user?{id:user.id,name:currentDisplayName()}:null,gender:data.profile?.gender||''}}));
- scrollTo(0,0);
+ if(!options.preserveScroll)scrollTo(0,0);
 }
 async function persist(candidate,identity,version){
  if(identity){
@@ -178,7 +178,7 @@ async function readAccount({background=false}={}){
  }catch(error){if(epoch!==generation)return;loadError=error.message||'暂时无法读取记录，请重试'}
  syncInsightIdentity();
  syncKnowledgeIdentity();
- render();
+ render({preserveScroll:keepView});
  refreshChallengeRank();
  if(typeof resetConsult==='function'){resetConsult();loadConsult()}
 }
@@ -199,5 +199,5 @@ q('#modalClose').onclick=()=>{if(!saving){resetVision();modal.hidden=true}};
 modal.onclick=e=>{if(e.target===modal&&!saving){resetVision();modal.hidden=true}};
 q('#menuBtn').onclick=()=>q('.sidebar').classList.toggle('open');
 addEventListener('hashchange',render);
-addEventListener('focus',()=>{if(!saving&&modal.hidden&&!profileDraftActive())loadAccount({background:true})});
+async function refreshFocusedAccount(){if(saving||!modal.hidden||profileDraftActive())return;if(!['#consult','#analysis','#knowledge'].includes(location.hash)){loadAccount({background:true});return}const identity=String(user?.id||''),epoch=generation;try{const response=await fetch('/api/me',{cache:'no-store'});if(epoch!==generation)return;if(response.status===401){if(identity)loadAccount({background:true});return}if(!response.ok)return;const result=await response.json();if(epoch===generation&&String(result.user?.id||'')!==identity)loadAccount({background:true})}catch{}} addEventListener('focus',refreshFocusedAccount);
 loadAccount();

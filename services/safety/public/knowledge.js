@@ -12,6 +12,8 @@ function knowledge(){
  return '<div class="knowledge-hero"><span class="tag">SOURCE-GROUNDED AI</span><h2>健康知识检索</h2><p>先从可追溯的资料中检索，再让 AI 根据检索片段回答一般健康问题。当前收录身体活动、健康饮食和睡眠的基础知识。</p></div><section class="card knowledge-search-card"><form id="knowledgeForm"><label for="knowledgeInput">你想了解什么健康知识？</label><div class="knowledge-search-row"><input id="knowledgeInput" maxlength="200" value="'+escapeHtml(knowledgeQuery)+'" placeholder="例如：成年人每天需要睡多久？" autocomplete="off"><button class="primary" type="submit" '+(knowledgeLoading?'disabled':'')+'>'+(knowledgeLoading==='search'?'检索中…':'检索资料')+'</button></div></form><div class="knowledge-examples"><span>试试：</span><button type="button" data-knowledge-example="每周应该运动多久？">每周运动</button><button type="button" data-knowledge-example="如何减少游离糖摄入？">减少糖摄入</button><button type="button" data-knowledge-example="成年人每天需要睡多久？">睡眠时长</button></div><div class="knowledge-actions"><button class="primary" id="knowledgeAsk" type="button" '+(knowledgeLoading?'disabled':'')+'>'+(knowledgeLoading==='answer'?'AI 正在组织回答…':'让 AI 依据资料回答')+'</button>'+(!user?'<small>登录后可使用 AI 回答；资料检索无需登录</small>':'')+'</div>'+(knowledgeError?'<p class="knowledge-error" role="alert">'+escapeHtml(knowledgeError)+'</p>':'')+'</section>'+answer+results;
 }
 
+function renderKnowledgeInPlace(){const container=q('#page');const positions=[];for(let el=container.parentElement;el;el=el.parentElement)positions.push([el,el.scrollLeft,el.scrollTop]);const x=window.scrollX,y=window.scrollY;container.style.minHeight=Math.max(container.getBoundingClientRect().height,parseFloat(container.style.minHeight)||0)+'px';render();for(const [el,left,top]of positions){el.scrollLeft=left;el.scrollTop=top}window.scrollTo({left:x,top:y,behavior:'instant'})}
+
 function bindKnowledge(){
  const form=q('#knowledgeForm'),input=q('#knowledgeInput'),ask=q('#knowledgeAsk');
  if(!form||!input||!ask)return;
@@ -23,10 +25,10 @@ function bindKnowledge(){
   event.preventDefault();if(knowledgeLoading)return;
   const query=input.value.trim();knowledgeQuery=query;
   if(query.length<2||query.length>200){notify('请输入 2～200 字的问题');return}
-  const epoch=generation;knowledgeLoading='search';knowledgeError='';knowledgeAnswer=null;knowledgeSearched=true;render();
+  const epoch=generation;knowledgeLoading='search';knowledgeError='';knowledgeAnswer=null;knowledgeSearched=true;renderKnowledgeInPlace();
   try{const response=await fetch('/api/health-knowledge/search?query='+encodeURIComponent(query),{cache:'no-store'});const result=await response.json();if(epoch!==generation)return;if(!response.ok)throw Error(result.message||'资料检索失败');knowledgeSources=result.sources||[]}
   catch(error){if(epoch===generation)knowledgeError=error.message||'资料检索失败'}
-  finally{if(epoch===generation){knowledgeLoading='';if(location.hash==='#knowledge')render()}}
+  finally{if(epoch===generation){knowledgeLoading='';if(location.hash==='#knowledge')renderKnowledgeInPlace()}}
  };
  ask.onclick=async()=>{
   if(knowledgeLoading)return;
@@ -34,9 +36,9 @@ function bindKnowledge(){
 
   const question=input.value.trim();knowledgeQuery=question;
   if(question.length<2||question.length>200){notify('请输入 2～200 字的问题');return}
-  const identity=String(user.id),epoch=generation;knowledgeLoading='answer';knowledgeError='';knowledgeAnswer=null;knowledgeSearched=true;render();
+  const identity=String(user.id),epoch=generation;knowledgeLoading='answer';knowledgeError='';knowledgeAnswer=null;knowledgeSearched=true;renderKnowledgeInPlace();
   try{const response=await fetch('/api/health-knowledge/answer',{method:'POST',headers:{'Content-Type':'application/json','X-Health-User':identity},body:JSON.stringify({question,consent:true})});const result=await response.json();if(epoch!==generation||String(user?.id)!==identity)return;if(!response.ok)throw Error(result.message||'AI 回答暂时不可用');knowledgeAnswer=result;knowledgeSources=result.sources||[]}
   catch(error){if(epoch===generation&&String(user?.id)===identity)knowledgeError=error.message||'AI 回答暂时不可用'}
-  finally{if(epoch===generation&&String(user?.id)===identity){knowledgeLoading='';if(location.hash==='#knowledge')render()}}
+  finally{if(epoch===generation&&String(user?.id)===identity){knowledgeLoading='';if(location.hash==='#knowledge')renderKnowledgeInPlace()}}
  };
 }
