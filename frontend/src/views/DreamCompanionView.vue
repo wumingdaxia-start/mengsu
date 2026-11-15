@@ -18,17 +18,24 @@ const activeCalm = computed(()=>calmTools.find(item=>item.name===tool.value)||ca
 const readingMode=ref('browser'),voiceSettings=ref(false),thoughtInput=ref(null)
 let nativeSpeech
 function focusThought(){thoughtInput.value?.scrollIntoView({behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth',block:'center'});thoughtInput.value?.focus({preventScroll:true})}
+const deviceVoices=ref([]),deviceVoice=ref('')
+function loadDeviceVoices(){deviceVoices.value=window.speechSynthesis?.getVoices().filter(v=>/^zh/i.test(v.lang))||[]}
+function readOnDevice(text){
+ stopVoice()
+ if(!('speechSynthesis' in window)){notify('这个浏览器暂时不能朗读，请用 Edge 或 Chrome 打开后再点一次。');return}
+ loadDeviceVoices()
+ const request=++voiceRequest
+ nativeSpeech=new SpeechSynthesisUtterance(text)
+ nativeSpeech.lang='zh-CN';nativeSpeech.rate=.85
+ const voice=deviceVoices.value.find(v=>v.voiceURI===deviceVoice.value)||deviceVoices.value.find(v=>/zh[-_]CN/i.test(v.lang))||deviceVoices.value[0]
+ if(voice)nativeSpeech.voice=voice
+ nativeSpeech.onend=()=>{if(request===voiceRequest)playing.value=false}
+ nativeSpeech.onerror=e=>{if(request===voiceRequest){playing.value=false;if(e.error!=='interrupted'&&e.error!=='canceled')notify('声音没有播放出来，请检查设备音量，再点一次“读给我听”。')}}
+ playing.value=true;window.speechSynthesis.speak(nativeSpeech)
+}
 function readCalm(){
  if(playing.value||ttsLoading.value){stopVoice();return}
- const text=[activeCalm.value.title,activeCalm.value.text,activeCalm.value.extra].join('。')
- if(readingMode.value==='cloud'){void speak(false,text);return}
- if(!('speechSynthesis' in window)){notify('这个浏览器暂不支持原生朗读，可以在朗读设置里选择云端音色。');voiceSettings.value=true;return}
- stopVoice()
- const request=++voiceRequest
- nativeSpeech=new SpeechSynthesisUtterance(text);nativeSpeech.lang='zh-CN';nativeSpeech.rate=.85
- nativeSpeech.onend=()=>{if(request===voiceRequest)playing.value=false}
- nativeSpeech.onerror=()=>{if(request===voiceRequest){playing.value=false;notify('朗读暂时未能开始，可以再试一次，或选择云端音色。')}}
- playing.value=true;window.speechSynthesis.speak(nativeSpeech)
+ readOnDevice([activeCalm.value.title,activeCalm.value.text,activeCalm.value.extra].join('。'))
 }
 watch(tool,()=>stopVoice())
 // 云端音色：qwen3-tts-flash 系统音色，选中后用于故事朗读。
@@ -52,6 +59,7 @@ const currentText=computed(()=>customStory.value||story.value.text)
 function changeVoice(){stopVoice();notify('音色已切换，下次朗读使用新声音')}
 function stopVoice(){voiceRequest++;if(nativeSpeech){window.speechSynthesis?.cancel();nativeSpeech=null;}voiceAbort?.abort();voiceAbort=null;voiceAudio?.pause();voiceAudio=null;playing.value=false;ttsLoading.value=false}
 async function speak(sample=false,overrideText=''){
+ if(readingMode.value==='browser'){readOnDevice(overrideText||(sample?'今晚，不用赶路。让自己慢慢安静下来，做个好梦。':currentText.value));return}
  if(ttsLoading.value)return
  stopVoice()
  const request=++voiceRequest,controller=new AbortController();voiceAbort=controller
@@ -123,7 +131,8 @@ function volume(e){soundVolume.value=Number(e.target.value);if(gain&&audio)gain.
 function startMinute(){clearInterval(timer);seconds.value=60;timer=setInterval(()=>{seconds.value--;if(seconds.value<=0){clearInterval(timer);notify('这一分钟结束了。你可以停下来，也可以继续按自己的节奏。')}},1000)}
 async function removeHole(id){await save(commit,'holes',holes.value.filter(x=>x.id!==id),'这句心事已从当前账号移除')}
 watch(path,()=>{stopVoice();if(sound.value)stopMusic()})
-onMounted(()=>{refresh()})
+onMounted(()=>{refresh();loadDeviceVoices();window.speechSynthesis?.addEventListener('voiceschanged',loadDeviceVoices)})
+onBeforeUnmount(()=>window.speechSynthesis?.removeEventListener('voiceschanged',loadDeviceVoices))
 onBeforeUnmount(()=>{abort?.abort();stopVoice();if(sound.value){noise?.stop();audio?.close()}clearInterval(timer)})
 </script>
 <template>
@@ -134,8 +143,8 @@ onBeforeUnmount(()=>{abort?.abort();stopVoice();if(sound.value){noise?.stop();au
  </div>
  <p class="j-notice"><span class="j-dot"></span>陪伴与日常放松，不替代心理或睡眠诊疗。{{path==='/dream/tree-hole'?'工具朗读默认使用浏览器声音，也可选择云端音色。':'人物朗读由 AI 云端音色提供。'}}</p>
  <template v-if="path==='/dream/bedtime-stories'">
-  <div class="j-wide-grid"><aside class="j-panel j-stack"><h2>今晚，听哪一种世界？</h2><button v-for="s in bedtimeStories" :key="s.name" :class="{'j-selected':story.name===s.name&&!customStory}" @click="changeStory(s)">{{s.name}}<small>{{s.theme}}</small></button><button class="j-glass" @click="randomStory">✧ 随机换一篇</button><div class="j-rule"></div><label>陪伴语气<select v-model="role" class="j-glass"><option>朋友般的陪伴</option><option>安静轻声陪伴</option><option>缓慢疗愈陪伴</option></select></label><label>人物声音切换<select v-model="cloudVoice" class="j-glass" @change="changeVoice"><option v-for="v in cloudVoices" :key="v.id" :value="v.id">{{v.name}}</option></select></label><button class="j-voice-preview j-glass" :disabled="ttsLoading" @click="speak(true)"><span v-if="ttsLoading" class="j-star-load" aria-hidden="true"><i></i><i></i><i></i></span><span>{{ttsLoading?'声音正在点亮…':'试听人物声音'}}</span></button><small>AI云端音色，可自由切换男女声，用于故事朗读，无需额外配置系统语音。</small><RouterLink class="j-glass" to="/settings/ai">AI 服务设置 · 配置与测试音色 ↗</RouterLink><label>背景音乐切换<select v-model="musicTrack" class="j-glass" @change="changeMusic"><option v-for="track in musicTracks" :key="track.id" :value="track.id">{{track.name}}</option></select></label><button :aria-pressed="sound" @click="toggleSound">{{sound?'暂停背景音乐':'播放背景音乐'}}</button><label>音乐音量<input type="range" min="0" max=".2" step=".01" :value="soundVolume" @input="volume"></label><small>氛围音乐在本机轻声合成，循环播放；人物朗读与背景音乐可独立开关。</small></aside>
-  <section class="j-stack"><div class="j-panel story-paper"><div class="j-between"><span class="j-tag">{{customStory?'AI 生成故事':'内置原创故事'}}</span><small>{{genre}}</small></div><h2>{{customStory?'今夜，专属的一段故事':story.name}}</h2><p class="j-prose">{{currentText}}</p><div class="j-row j-section-gap"><button class="j-primary" :disabled="ttsLoading" @click="playing?stopVoice():speak()"><span v-if="ttsLoading" class="j-star-load" aria-hidden="true"><i></i><i></i><i></i></span><span>{{ttsLoading?'正在点亮声音…':playing?'停止朗读':'轻轻读给我听'}}</span></button><button @click="toggleSound">{{sound?'暂停背景音乐':'播放背景音乐'}}</button></div><label v-if="sound" class="j-section-gap">音乐音量<input type="range" min="0" max=".2" step=".01" :value="soundVolume" @input="volume"></label></div><section class="j-panel"><h3>让千问为今夜写一段</h3><div class="j-row"><label style="flex:1">故事主题<select v-model="genre"><option v-for="s in bedtimeStories" :key="s.theme">{{s.theme}}</option></select></label><button :disabled="busy" @click="generateStory">{{busy?'故事正在慢慢展开…':'生成今夜故事'}}</button><button v-if="busy" @click="abort?.abort()">停止等待</button></div><p v-if="error" class="j-error" role="alert">{{error}}</p><RouterLink v-if="error" to="/settings/ai">打开 AI 服务设置，配置或测试连接 →</RouterLink></section><div class="j-row j-section-gap"><button @click="router.push('/dream?scene=map')">梦境地图 ↗</button><button @click="router.push('/dream?scene=network')">丝线网络 ↗</button></div><button @click="stopVoice();router.push('/dream/cues')">听到这里，给今夜留下一颗种子 ↗</button></section></div>
+  <div class="j-wide-grid"><aside class="j-panel j-stack"><h2>今晚，听哪一种世界？</h2><button v-for="s in bedtimeStories" :key="s.name" :class="{'j-selected':story.name===s.name&&!customStory}" @click="changeStory(s)">{{s.name}}<small>{{s.theme}}</small></button><button class="j-glass" @click="randomStory">✧ 随机换一篇</button><div class="j-rule"></div><label>陪伴语气<select v-model="role" class="j-glass"><option>朋友般的陪伴</option><option>安静轻声陪伴</option><option>缓慢疗愈陪伴</option></select></label><label>朗读声音<select v-model="deviceVoice" class="j-glass" @change="stopVoice"><option value="">自动选择中文声音</option><option v-for="v in deviceVoices" :key="v.voiceURI" :value="v.voiceURI">{{v.name}}</option></select></label><button class="j-voice-preview j-glass" @click="playing?stopVoice():speak(true)">{{playing?'停止朗读':'听听这个声音'}}</button><small>不用设置，点“读给我听”就能听故事。声音由设备提供；如果没听见，请检查音量。</small><label>背景音乐切换<select v-model="musicTrack" class="j-glass" @change="changeMusic"><option v-for="track in musicTracks" :key="track.id" :value="track.id">{{track.name}}</option></select></label><button :aria-pressed="sound" @click="toggleSound">{{sound?'暂停背景音乐':'播放背景音乐'}}</button><label>音乐音量<input type="range" min="0" max=".2" step=".01" :value="soundVolume" @input="volume"></label><small>氛围音乐在本机轻声合成，循环播放；人物朗读与背景音乐可独立开关。</small></aside>
+  <section class="j-stack"><div class="j-panel story-paper"><div class="j-between"><span class="j-tag">{{customStory?'AI 生成故事':'内置原创故事'}}</span><small>{{genre}}</small></div><h2>{{customStory?'今夜，专属的一段故事':story.name}}</h2><p class="j-prose">{{currentText}}</p><div class="j-row j-section-gap"><button class="j-primary" :disabled="ttsLoading" @click="playing?stopVoice():speak()"><span v-if="ttsLoading" class="j-star-load" aria-hidden="true"><i></i><i></i><i></i></span><span>{{ttsLoading?'正在点亮声音…':playing?'停止朗读':'读给我听'}}</span></button><button @click="toggleSound">{{sound?'暂停背景音乐':'播放背景音乐'}}</button></div><label v-if="sound" class="j-section-gap">音乐音量<input type="range" min="0" max=".2" step=".01" :value="soundVolume" @input="volume"></label></div><section class="j-panel"><h3>让千问为今夜写一段</h3><div class="j-row"><label style="flex:1">故事主题<select v-model="genre"><option v-for="s in bedtimeStories" :key="s.theme">{{s.theme}}</option></select></label><button :disabled="busy" @click="generateStory">{{busy?'故事正在慢慢展开…':'生成今夜故事'}}</button><button v-if="busy" @click="abort?.abort()">停止等待</button></div><p v-if="error" class="j-error" role="alert">{{error}}</p><RouterLink v-if="error" to="/settings/ai">打开 AI 服务设置，配置或测试连接 →</RouterLink></section><div class="j-row j-section-gap"><button @click="router.push('/dream?scene=map')">梦境地图 ↗</button><button @click="router.push('/dream?scene=network')">丝线网络 ↗</button></div><button @click="stopVoice();router.push('/dream/cues')">听到这里，给今夜留下一颗种子 ↗</button></section></div>
  </template>
  <template v-else-if="path==='/dream/tree-hole'">
   <div class="tree-top j-section-gap"><section class="j-panel"><span class="j-tag">{{feeling}}</span><h2 class="j-section-gap">有一句话，想先放在这里吗？</h2><p class="tree-muted">不用强迫自己整理通顺，碎片词语、一句抱怨、模糊感受都可以。也不用现在就找到答案，只是先把它放下来。</p><label><span class="j-sr">留给树洞的一句话</span><textarea ref="thoughtInput" v-model="thought" rows="4" maxlength="500" placeholder="比如“我很担心今晚睡不着”“心里沉甸甸的”，不想写也可以直接跳过"></textarea></label><button class="j-primary j-section-gap" :disabled="!thought.trim()" @click="leaveThought">把这句话放下</button><p class="j-help">内容保存在当前账号，退出页面不会消失，下次登录可以继续回看；你随时可以删除这条记录。</p></section><section class="j-panel"><small>不必立刻睡着，先做一件轻松的小事</small><h2>{{activity.title}}</h2><p>{{activity.text}}</p><div class="j-row"><button @click="randomActivity">再给我一个小建议</button><button @click="router.replace('/dream/tree-hole#calm-tools')">查看下方安心小工具</button></div></section></div>
@@ -143,8 +152,8 @@ onBeforeUnmount(()=>{abort?.abort();stopVoice();if(sound.value){noise?.stop();au
  </template>
  <template v-if="path==='/dream/tree-hole'">
   <section id="calm-tools" class="j-panel j-section-gap" style="scroll-margin-top:110px"><h2>安心小工具・陪你照顾此刻</h2><p class="tree-muted">这些是照顾当下情绪的轻量练习，没有对错，随时可以停下、随时可以切换。</p><p class="j-help">不是医疗急救服务，如果持续难受，请寻求专业帮助。</p><div class="j-tabs calm-tabs" role="group" aria-label="安心小工具"><button v-for="t in calmTools" :key="t.name" :class="{'j-selected':tool===t.name}" :aria-label="t.name" :aria-pressed="tool===t.name" :aria-describedby="'preview-'+calmTools.indexOf(t)" @click="tool=t.name">{{t.name}}<span :id="'preview-'+calmTools.indexOf(t)" class="calm-tooltip" role="tooltip">{{t.preview}}</span></button></div></section>
-  <section class="j-panel calm-detail"><div class="calm-reading"><button :aria-expanded="voiceSettings" aria-controls="calm-voice-settings" @click="voiceSettings=!voiceSettings">⚙ 朗读设置</button><button :aria-pressed="playing" @click="readCalm">{{ttsLoading?'取消加载':playing?'停止朗读':'朗读这段话'}}</button></div>
-   <div v-if="voiceSettings" id="calm-voice-settings" class="calm-settings"><label>朗读方式<select v-model="readingMode" @change="stopVoice"><option value="browser">浏览器原生声音（无需配置）</option><option value="cloud">AI 云端音色</option></select></label><label v-if="readingMode==='cloud'">人物声音<select v-model="cloudVoice" @change="stopVoice"><option v-for="v in cloudVoices" :key="v.id" :value="v.id">{{v.name}}</option></select></label><RouterLink :to="{path:'/settings/ai',query:{from:route.fullPath}}">配置或测试云端 API →</RouterLink></div>
+  <section class="j-panel calm-detail"><div class="calm-reading"><button :aria-expanded="voiceSettings" aria-controls="calm-voice-settings" @click="voiceSettings=!voiceSettings">换个声音</button><button :aria-pressed="playing" @click="readCalm">{{ttsLoading?'取消加载':playing?'停止朗读':'读给我听'}}</button></div>
+   <div v-if="voiceSettings" id="calm-voice-settings" class="calm-settings"><label>朗读声音<select v-model="deviceVoice" @change="stopVoice"><option value="">自动选择中文声音</option><option v-for="v in deviceVoices" :key="v.voiceURI" :value="v.voiceURI">{{v.name}}</option></select></label><small>直接点“读给我听”即可，不用填写任何东西。</small></div>
    <Transition name="calm-fade" mode="out-in"><div :key="tool" class="calm-copy"><img src="/dream-rooms/listening.png" alt="柔和梦境插画"><h2>{{activeCalm.title}}</h2><p>{{activeCalm.text}}</p><p class="tree-muted">{{activeCalm.extra}}</p><button @click="focusThought">把一句心事交给树洞</button></div></Transition>
   </section>
   <section v-if="holes.length" class="j-panel j-section-gap"><h3>那些被安放的心事</h3><article v-for="h in holes.slice(0,10)" :key="h.id" class="hole-note"><div class="j-between"><small>{{h.date}} · {{h.feeling}}</small><button class="j-small-action" @click="removeHole(h.id)">移除</button></div><p>{{h.text}}</p></article></section>

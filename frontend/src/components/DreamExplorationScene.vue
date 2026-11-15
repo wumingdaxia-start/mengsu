@@ -1,27 +1,26 @@
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import DreamMapScene from './DreamMapScene.vue'
-import { dreamSceneCopy } from '../data/dream-scene-copy'
 const props=defineProps({kind:String,cards:{type:Array,default:()=>[]},personal:Boolean})
 const emit=defineEmits(['select','back'])
 const focused=ref(false)
 const layouts=[[14,54],[32,27],[50,50],[67,25],[85,35],[87,67],[68,79],[32,84]]
-const names=['桂花池','月光水岸','海底鱼群','星月之间','爱的交响曲','旧教室','星空回廊','夜里的回响']
-const art=Array.from({length:8},(_,i)=>`thread-scene-${i}.webp`)
-art[3]='star-moon-water.jpg'
-art[4]='love-symphony.jpg'
-art[1]='moonlit-shore.png'
-art[0]='osmanthus-pool.png'
-art[5]='quiet-classroom.png'
-art[7]='night-echoes.png'
-art[2]='underwater-school.webp'
-const nodes=computed(()=>layouts.map(([x,y],i)=>{const card=props.personal?props.cards[i]:null;return {x,y,name:card?.title||names[i],image:card?.image||'/dream-overview/'+art[i],card:card||{id:'scene-example-'+i,title:names[i],image:'/dream-overview/'+art[i],signal:dreamSceneCopy['scene-example-'+i].description,feeling:'安稳'},example:!card}}))
-const edges=[[0,1],[0,2],[0,7],[1,2],[1,3],[2,3],[2,4],[2,5],[2,6],[2,7],[3,4],[4,5],[4,6],[5,6],[6,7]]
+const page=ref(0)
+const pageSize=computed(()=>props.kind==='map'?7:8)
+const collection=computed(()=>[...new Map(props.cards.map(card=>[String(card.id),card])).values()])
+const pageCount=computed(()=>Math.max(1,Math.ceil(collection.value.length/pageSize.value)))
+watch([()=>props.kind,()=>props.cards],()=>{page.value=0})
+watch(pageCount,count=>{page.value=Math.min(page.value,count-1)})
+const nodes=computed(()=>collection.value.slice(page.value*pageSize.value,(page.value+1)*pageSize.value).map((card,i)=>({x:layouts[i][0],y:layouts[i][1],name:card.title,image:card.image,card,example:!!card.demo})))
+const edges=computed(()=>[[0,1],[0,2],[0,7],[1,2],[1,3],[2,3],[2,4],[2,5],[2,6],[2,7],[3,4],[4,5],[4,6],[5,6],[6,7]].filter(([a,b])=>a<nodes.value.length&&b<nodes.value.length))
 function path([a,b]){const p=nodes.value[a],q=nodes.value[b];return `M ${p.x*10} ${p.y*6} Q ${(p.x+q.x)*5} ${(p.y+q.y)*3+55} ${q.x*10} ${q.y*6}`}
 const mapNodes=[{i:0,x:20,y:35},{i:2,x:80,y:23},{i:3,x:49,y:54},{i:7,x:28,y:76},{i:5,x:82,y:80}]
 </script>
 
 <template>
+ <div class="exploration-collection">
+ <nav class="collection-pages" aria-label="梦境分页"><span>完整梦库 · {{collection.length}} 份梦境</span><button :disabled="page===0" @click="page--">上一页</button><span aria-live="polite">{{page+1}} / {{pageCount}}</span><button :disabled="page>=pageCount-1" @click="page++">下一页</button></nav>
+ <p v-if="!collection.length" class="collection-empty">这里还没有梦境，记录之后就能在这里探索。</p>
  <DreamMapScene v-if="kind==='map'" :nodes="nodes" @select="card=>emit('select',card)" @back="emit('back')" />
  <section v-else class="exploration" :class="[kind,{'is-focused':focused}]">
   <header><button class="back icon-control" @click="emit('back')" aria-label="返回梦境总览"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m14 5-7 7 7 7"/></svg></button><h2>{{kind==='map'?'梦境地图':'丝线网络'}}</h2><span class="scene-name">{{kind==='map'?'梦境地图':'丝线网络'}}</span><button v-if="kind==='network'" class="locate" @click="focused=!focused">✧ {{focused?'查看全景':'坐标定位'}}</button></header>
@@ -43,10 +42,13 @@ const mapNodes=[{i:0,x:20,y:35},{i:2,x:80,y:23},{i:3,x:49,y:54},{i:7,x:28,y:76},
    <span v-for="n in 32" :key="'star'+n" class="spark" :style="{left:(n*37%98)+'%',top:(n*19%96)+'%','--delay':(-n*.37)+'s'}" aria-hidden="true">{{n%5===0?'✧':'·'}}</span>
    <div class="foreground-mist" aria-hidden="true"></div>
   </div>
-  <footer>{{personal?'点击光点，重访你的意识快照':'示例梦境场景 · 点击光点，查看梦境素材'}}<span>仅呈现画面之间的联系，不推断梦境含义</span></footer>
+  <footer>点击光点，查看对应梦境的完整内容<span>仅呈现画面之间的联系，不推断梦境含义</span></footer>
  </section>
+ </div>
 </template>
 
 <style scoped>
+.exploration-collection{background:#f7f5f1}.collection-pages{display:flex;align-items:center;justify-content:flex-end;gap:12px;flex-wrap:wrap;padding:14px 22px;color:#79678f;font-size:13px}.collection-pages>span:first-child{margin-right:auto}.collection-pages button{border:1px solid #d8cce6;border-radius:18px;padding:6px 15px;background:#faf7ff;color:#756087;cursor:pointer}.collection-pages button:disabled{opacity:.4;cursor:default}.collection-pages button:focus-visible{outline:2px solid #8c72ae;outline-offset:3px}.collection-empty{padding:20px;color:#79678f}
+
 .exploration{position:relative;isolation:isolate;overflow:hidden;min-height:560px;color:#79678f;background:radial-gradient(ellipse at 84% 30%,#d9cfeeaa,transparent 60%),linear-gradient(130deg,#faf7ee,#eee9f3 70%,#e0d7ed);font-family:'Noto Serif SC',serif}.exploration header{height:84px;display:flex;align-items:center;gap:13px;padding:0 36px;position:relative;z-index:4}.exploration h2{font-size:27px!important;margin:0!important;font-weight:600}.back{width:36px;height:36px;border:1px solid #e4deee;background:#ffffff88;color:#9480af;border-radius:50%;font-size:28px;cursor:pointer}.scene-name{position:absolute;left:50%;transform:translateX(-50%);font-size:25px;font-weight:600}.locate{margin-left:auto;border:0;border-bottom:1px solid #b6a4cc;background:none;color:#837395;padding:8px 5px;cursor:pointer;font-family:inherit}.scene-stage{position:relative;aspect-ratio:1.94;min-height:380px;margin:0 30px;isolation:isolate}.moon{position:absolute;right:2%;top:2%;width:74px;height:74px;border-radius:50%;box-shadow:15px 9px 9px #fff9d9;opacity:.8;transform:rotate(-25deg)}.network .moon{display:none}.threads,.island{position:absolute;width:100%;height:100%;inset:0}.thread-base{fill:none;stroke:url(#thread);stroke-width:1.8}.dream-node{position:absolute;transform:translate(-50%,-50%);width:12%;min-width:80px;border:0;padding:0;background:none;color:#fff8e8;cursor:pointer;z-index:3;animation:node-drift 7s cubic-bezier(.45,0,.55,1) infinite;animation-delay:var(--delay)}.node-art{display:block;position:relative;aspect-ratio:1.25;border:2px solid #ffffffa1;border-radius:19px;box-shadow:0 9px 18px #8677a83d,0 0 13px #fff6ff;overflow:hidden;transition:transform .25s cubic-bezier(.23,1,.32,1)}.node-art img{height:100%;width:100%;object-fit:cover;display:block}.node-art:after{content:'';position:absolute;inset:0;border-radius:inherit;box-shadow:inset 0 0 15px #fff8dc77;pointer-events:none}.node-art>span{position:absolute;inset:auto 0 0;padding:16px 3px 5px;background:linear-gradient(transparent,#453d637a);font-size:clamp(10px,1.2vw,15px);text-shadow:0 1px 3px #373047}.central{width:14%}.dream-node i{display:block;width:7px;height:7px;background:#fff9ff;border-radius:50%;margin:0 auto;box-shadow:0 0 9px 4px #fff0fe}.spark{position:absolute;color:#fffefa;text-shadow:0 0 7px #fff;animation:star-glow 4s cubic-bezier(.45,0,.55,1) infinite;animation-delay:var(--delay);pointer-events:none;font-size:21px}.foreground-mist{position:absolute;inset:65% -10% -20%;background:radial-gradient(ellipse at 20% 80%,#f8f4ffea,transparent 45%),radial-gradient(ellipse at 75% 100%,#d8c6efba,transparent 65%);filter:blur(20px);pointer-events:none}.exploration footer{position:relative;z-index:4;padding:15px 30px 22px;font:12px/1.8 sans-serif;color:#80758c}.exploration footer span{float:right}.map .scene-stage{margin:0 11%;border:1px solid #fff9;border-radius:24px;background:#ffffff2e;box-shadow:0 10px 25px #9a8caf20;overflow:hidden}.map .threads{opacity:.5}.map-node{width:15%;min-width:70px}.map-node .node-art{border:3px solid #fff5dc;box-shadow:0 0 10px 3px #fff9d9}.place-name{display:inline-block;background:#fff9eced;color:#756580;font-size:12px;border-radius:20px;padding:5px 14px;margin-top:3px;white-space:nowrap}.map .scene-name{font-size:18px}.map .moon{position:fixed;right:4%;top:15%;z-index:-1}.is-focused .dream-node:not(.central){opacity:.55}.is-focused .central .node-art{transform:scale(1.13)}button:focus-visible{outline:2px solid #8c72ae;outline-offset:5px}@media(hover:hover) and (pointer:fine){.dream-node:hover{z-index:5}.dream-node:hover .node-art{transform:translateY(-5px) scale(1.07)}}@keyframes node-drift{0%,100%{transform:translate(-50%,-50%)}50%{transform:translate(-50%,calc(-50% - 7px))}}@keyframes star-glow{0%,100%{opacity:.2}50%{opacity:.9}}@media(max-width:600px){.exploration{min-height:640px}.exploration header{padding:0 16px;height:76px}.exploration h2{font-size:21px!important}.scene-name{display:none}.scene-stage{margin:0 8px;min-height:490px;aspect-ratio:auto}.dream-node{min-width:68px}.central{min-width:90px}.node-art{border-radius:14px}.exploration footer{padding:18px;font-size:11px}.exploration footer span{float:none;display:block}.map .scene-stage{margin:0 8px}.map .island{width:160%;left:-30%}.place-name{font-size:10px;padding:4px 7px}.map-node{min-width:65px}}@media(prefers-reduced-motion:reduce){.dream-node,.spark{animation:none}.traveller{display:none}.node-art{transition:none}}
 </style>
