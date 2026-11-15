@@ -31,7 +31,7 @@ function texture(card) {
     else if(glyph==='twin'){circle(-33,0,48);circle(33,0,48);line(0,-90,0,-65);line(0,65,0,90)}
     else if(glyph==='garden'){for(let i=0;i<6;i++){const a=i*Math.PI/3;circle(Math.cos(a)*36,Math.sin(a)*36,36)}circle(0,0,19);line(0,74,0,96)}
     else{for(let i=0;i<3;i++){c.save();c.rotate(i*Math.PI/3);c.beginPath();c.ellipse(0,0,83,31,0,0,Math.PI*2);c.stroke();c.restore()}circle(0,0,9)}
-    c.restore(); c.fillStyle='#51452f';c.textAlign='center';c.font='30px serif';c.fillText(card.name,0,211);c.font='20px serif';c.fillText(card.reversed?'逆位':'正位',0,254)
+    c.restore(); c.fillStyle='#51452f';c.textAlign='center';c.font='38px serif';c.fillText(card.name,0,211);c.font='26px serif';c.fillText(card.reversed?'逆位':'正位',0,254)
   }
   const t=new THREE.CanvasTexture(canvas);t.colorSpace=THREE.SRGBColorSpace;textures.push(t);return t
 }
@@ -45,7 +45,7 @@ function animate(object,values){
 function resize(){if(!renderer)return;const w=host.value.clientWidth,h=host.value.clientHeight;renderer.setSize(w,h);camera.aspect=w/h;camera.position.z=w<650?13.8:11.6;camera.updateProjectionMatrix();request()}
 function hit(e){const r=host.value.getBoundingClientRect();pointer.set((e.clientX-r.left)/r.width*2-1,-(e.clientY-r.top)/r.height*2+1);ray.setFromCamera(pointer,camera);const hits=ray.intersectObjects(groups.flatMap(g=>g.children));return hits.length?hits[0].object.userData.index:-1}
 function hover(index){if(active===index)return;active=index;emit('hover',index);sync();if(host.value)host.value.style.cursor=index>=0&&!props.locked?'pointer':'default'}
-function sync(){groups.forEach((g,i)=>{const picked=props.selected.includes(i),highlight=active===i||props.focused===i;animate(g.position,{z:picked ? .45 : highlight ? .32 : 0});animate(g.rotation,{y:picked?Math.PI:0,z:picked?0:g.userData.tilt});g.children[0].material.color.set(highlight||picked?'#ddc68e':'#65717b')});request()}
+function sync(){groups.forEach((g,i)=>{const picked=props.selected.includes(i),highlight=active===i||props.focused===i;animate(g.position,{z:picked ? .7 : highlight ? .32 : 0});animate(g.scale,{x:picked ? 1.42 : highlight ? 1.08 : 1,y:picked ? 1.42 : highlight ? 1.08 : 1,z:1});animate(g.rotation,{y:picked?Math.PI:0,z:picked?0:g.userData.tilt});g.children[0].material.color.set(highlight||picked?'#ddc68e':'#65717b')});request()}
 function move(e){if(!props.locked)hover(hit(e))}
 function leave(){hover(-1)}
 function click(e){const i=hit(e);if(i>=0&&!props.locked&&!props.selected.includes(i)&&props.selected.length<props.limit){emit('pick',i)}}
@@ -75,5 +75,5 @@ onBeforeUnmount(()=>{disposed=true;cancelAnimationFrame(frame);observer?.disconn
 </script>
 <template><div ref="host" class="tarot-table" aria-hidden="true"><div class="table-orbit"></div><div v-if="unavailable" class="table-fallback"><span>STELLAR / 牌阵</span><p>使用下方牌号选择，翻牌与解读仍然可用。</p></div></div></template>
 <style scoped>
-.tarot-table{height:430px;position:relative;isolation:isolate;overflow:hidden;background:radial-gradient(ellipse at center,#202b2d 0%,#11191f 65%)}.tarot-table :deep(canvas){position:absolute;inset:0;width:100%;height:100%}.table-orbit{position:absolute;inset:12% 11%;border:1px solid #bca77e20;border-radius:50%;transform:rotate(-12deg);z-index:-1}.table-orbit:after{content:'';position:absolute;inset:8%;border:1px solid #bca77e18;border-radius:50%}.table-fallback{position:absolute;inset:0;display:grid;place-content:center;text-align:center;color:#b9ab8e;padding:20px}.table-fallback span{font:26px Georgia}.table-fallback p{font-size:13px}@media(max-width:650px){.tarot-table{height:270px}}
+.tarot-table{height:470px;position:relative;isolation:isolate;overflow:hidden;background:radial-gradient(ellipse at center,#202b2d 0%,#11191f 65%)}.tarot-table :deep(canvas){position:absolute;inset:0;width:100%;height:100%}.table-orbit{position:absolute;inset:12% 11%;border:1px solid #bca77e20;border-radius:50%;transform:rotate(-12deg);z-index:-1}.table-orbit:after{content:'';position:absolute;inset:8%;border:1px solid #bca77e18;border-radius:50%}.table-fallback{position:absolute;inset:0;display:grid;place-content:center;text-align:center;color:#b9ab8e;padding:20px}.table-fallback span{font:26px Georgia}.table-fallback p{font-size:13px}@media(max-width:650px){.tarot-table{height:350px}}
 </style>
