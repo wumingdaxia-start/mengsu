@@ -13,6 +13,7 @@ const {createConsultStore}=require('./consult-store');
 const consultService=require('./consult-service');
 const healthInsight=require('./health-insight');
 const healthKnowledge=require('./health-knowledge');
+const psychologySupport=require('./psychology-support');
 const foodRecognition=require('./food-recognition');
 const {loadMysqlConfig,createMysqlPersistence}=require('./mysql-store');
 const adminRoot=path.join(__dirname,'admin');
@@ -31,6 +32,7 @@ const dreamStore=persistence?.dream||require('./dream-store').createDreamStore(o
 const foodBusy=new Set(),foodQuota=new Map();
 const consultBusy=new Set();
 const insightBusy=new Set();
+const supportBusy=new Set(),supportQuota=new Map();
 const knowledgeBusy=new Set(),knowledgeQuota=new Map();
 const types={'.html':'text/html; charset=utf-8','.css':'text/css; charset=utf-8','.js':'text/javascript; charset=utf-8','.svg':'image/svg+xml'};
 function json(res,status,value,headers={}){res.writeHead(status,{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store',...headers});res.end(JSON.stringify(value))}
@@ -209,6 +211,24 @@ async function handler(req,res){const url=new URL(req.url,'http://localhost');
    return json(res,200,{ok:true});
   }
   return json(res,405,{message:'请求方式不支持'});
+ }
+ if(url.pathname==='/api/psychology-support'){
+  if(req.method!=='POST')return json(res,405,{message:'请求方式不支持'});
+  const session=getSession(req),user=session&&(await readUsers()).find(x=>x.id===session.userId);
+  if(!user)return json(res,401,{message:'请先登录后使用心理倾诉'});
+  if(isAdmin(user))return json(res,403,{message:'请使用个人账号'});
+  if(req.headers['x-health-user']!==String(user.id))return json(res,409,{message:'账号已切换，请刷新页面'});
+  let input;try{input=await readBody(req,24000)}catch{return json(res,400,{message:'请求内容无效'})}
+  if(input.consent!==true)return json(res,400,{message:'请先同意将本次对话发送给 AI 服务'});
+  if(supportBusy.has(user.id))return json(res,409,{message:'上一条回应还没完成，请稍候'});
+  const now=Date.now(),old=supportQuota.get(user.id),quota=old&&now-old.start<600000?old:{start:now,count:0};
+  if(quota.count>=8)return json(res,429,{message:'发送太频繁了，请休息一会儿再试'});
+  quota.count++;supportQuota.set(user.id,quota);supportBusy.add(user.id);
+  try{
+   const result=await psychologySupport.reply(input.message,input.history,{env:requestAiEnv,request:options.aiFetch||fetch});
+   if(result.error)return json(res,result.status||503,{message:result.error});
+   return json(res,200,{answer:result.answer,urgent:!!result.urgent});
+  }finally{supportBusy.delete(user.id)}
  }
  if(url.pathname==='/api/health-data'){
  const s=getSession(req),user=s&&(await readUsers()).find(x=>x.id===s.userId);

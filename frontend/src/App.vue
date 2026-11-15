@@ -102,7 +102,8 @@ const psychologyNavIcons = {
   '/psychology/tarot': 'M7 3h13v18H7Z M4 5H2v16h2 M13.5 7l1.5 3 3 1.5-3 1.5-1.5 3-1.5-3-3-1.5 3-1.5Z M11 18h5',
   '/psychology/views-test': 'M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20 M16 8l-3 7-5 1 3-7Z M12 2v2 M22 12h-2 M12 22v-2 M2 12h2',
   '/psychology/breathe': 'M3 8h11a3 3 0 1 0-3-3 M3 12h15a3 3 0 1 1-3 3 M3 16h5a3 3 0 1 1-3 3',
-  '/psychology/history': 'M3 4v5h5 M3 9a9 9 0 1 1 1 9 M12 7v5l4 2'
+  '/psychology/history': 'M3 4v5h5 M3 9a9 9 0 1 1 1 9 M12 7v5l4 2',
+  '/psychology/support': 'M4 5.5A2.5 2.5 0 0 1 6.5 3h11A2.5 2.5 0 0 1 20 5.5v8a2.5 2.5 0 0 1-2.5 2.5H11l-4.2 3.1.7-3.1a2.5 2.5 0 0 1-2.5-2.5Z M9 8h6 M9 11h4'
 }
 const healthNavigationGroups = computed(() => {
   const makeItem = (label, path, icon) => ({ label, path, icon: icon || psychologyNavIcons[path] || 'M4 4h16v16H4Z M8 9h8 M8 14h5' })
@@ -112,7 +113,7 @@ const healthNavigationGroups = computed(() => {
   if (workspaceKey.value === 'psychology') return [
     { label: '此刻的自己', items: [makeItem('心理总览', '/psychology'), makeItem('心情记录', '/psychology/journal')] },
     { label: '心绪活动', items: [makeItem('人格测试', '/psychology/personality'), makeItem('塔罗牌测试', '/psychology/tarot'), makeItem('三观测试', '/psychology/views-test'), makeItem('呼吸练习', '/psychology/breathe')] },
-    { label: '心理分析', items: [makeItem('情绪回顾', '/psychology/history')] }
+    { label: '心理分析', items: [makeItem('心理倾诉', '/psychology/support'), makeItem('情绪回顾', '/psychology/history')] }
   ]
   return ['健康看板', '生活打卡', '健康洞察与交流'].map(label => ({ label, items: healthNavigation.filter(item => label === '健康洞察与交流' ? ['趋势洞察', '健康交流'].includes(item.group) : item.group === label).map(item => item.path === '/home' ? { ...item, path: '/safety' } : item) }))
 })

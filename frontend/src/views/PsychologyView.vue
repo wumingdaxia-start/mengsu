@@ -37,6 +37,25 @@ const note = ref('')
 const selectedTriggers = ref([])
 const message = ref('')
 const storageError = ref('')
+const supportText=ref(''),supportConsent=ref(false),supportBusy=ref(false),supportError=ref('')
+const supportTurns=ref([])
+let supportRequestId=0
+async function sendSupport(){
+  const content=supportText.value.trim(),owner=testAccount()
+  if(supportBusy.value||!content)return
+  if(!loggedIn.value||!owner){router.push({path:'/login',query:{next:'/psychology/support'}});return}
+  if(!supportConsent.value){supportError.value='请先确认本次内容会发送给 AI 服务。';return}
+  supportBusy.value=true;supportError.value='';const requestId=++supportRequestId
+  try{
+    const result=await safetyRequest('/api/psychology-support',{method:'POST',headers:{'Content-Type':'application/json','X-Health-User':owner},body:JSON.stringify({message:content,history:supportTurns.value.slice(-8),consent:true})})
+    if(requestId!==supportRequestId||owner!==testAccount())return
+    supportTurns.value=[...supportTurns.value,{role:'user',content},{role:'assistant',content:result.answer,urgent:result.urgent}]
+    supportText.value=''
+  }catch(error){if(requestId===supportRequestId)supportError.value=error.message||'暂时无法回复，请稍后再试。'}
+  finally{if(requestId===supportRequestId)supportBusy.value=false}
+}
+function clearSupport(){if(supportBusy.value)return;supportTurns.value=[];supportText.value='';supportError.value=''}
+function resetSupportForAuthChange(){supportRequestId++;supportBusy.value=false;supportTurns.value=[];supportText.value='';supportConsent.value=false;supportError.value=''}
 function storageKey() {
   try { const account = JSON.parse(sessionStorage.getItem('mengsu-auth') || '{}')?.email; return account ? `mengsu-psychology-v1:${account}` : null }
   catch { return null }
@@ -103,7 +122,7 @@ const currentStreak = computed(() => {
 const distribution = computed(() => moods.map(item => ({ ...item, count: records.value.filter(row => row.mood === item.value).length })))
 const maxCount = computed(() => Math.max(1, ...distribution.value.map(row => row.count)))
 const latest = computed(() => records.value[0])
-const pageTitle = computed(() => ({ space: '我的空间', overview: '心理总览', analysis: '心理分析', journal: '心情记录', breathe: '呼吸练习', history: '情绪回顾' })[props.section])
+const pageTitle = computed(() => ({ space: '我的空间', overview: '心理总览', analysis: '心理分析', journal: '心情记录', breathe: '呼吸练习', history: '情绪回顾', support: '心理倾诉' })[props.section])
 const running = ref(false)
 const elapsed = ref(0)
 let ticker = 0
@@ -122,7 +141,7 @@ function startBreathing() {
 }
 function resetBreathing() { pauseBreathing(); elapsed.value = 0 }
 function onVisibility() { if (document.hidden) pauseBreathing() }
-function onAuthChange() { load(); resetBreathing(); message.value = ''; note.value = ''; mood.value = ''; selectedTriggers.value = [] }
+function onAuthChange() { load(); resetBreathing(); message.value = ''; note.value = ''; mood.value = ''; selectedTriggers.value = []; resetSupportForAuthChange() }
 watch(() => props.section, resetBreathing)
 onMounted(() => { load(); window.addEventListener('mengsu:auth-change', onAuthChange); window.addEventListener('storage', load); document.addEventListener('visibilitychange', onVisibility) })
 onBeforeUnmount(() => { testVersion++; pauseBreathing(); window.removeEventListener('mengsu:auth-change', onAuthChange); window.removeEventListener('storage', load); document.removeEventListener('visibilitychange', onVisibility) })
@@ -131,7 +150,7 @@ onBeforeUnmount(() => { testVersion++; pauseBreathing(); window.removeEventListe
 <template>
   <div ref="stablePage" class="psychology-home">
     <header class="psych-page-heading"><p>星栈 / 内心与感受</p><h1>{{ pageTitle }}</h1><span>{{ section === 'space' ? '整理属于你的心情与探索记录，随时回来看看自己。' : section === 'analysis' ? '回看已保存的人格、塔罗与三观结果，了解本次回答呈现的倾向。' : '不用急着调整情绪，先给自己一点被听见的时间。' }}</span></header>
-    <div v-if="!loggedIn" class="psych-guest-note"><span>你正在以访客身份浏览。心情记录需要登录后保存。</span><button @click="router.push({ path: '/login', query: { next: section === 'space' ? '/psychology/space' : '/psychology' } })">去登录 →</button></div>
+    <div v-if="!loggedIn" class="psych-guest-note"><span>{{ section === 'support' ? '心理倾诉需要登录后使用。' : '你正在以访客身份浏览。心情记录需要登录后保存。' }}</span><button @click="router.push({ path: '/login', query: { next: section === 'space' ? '/psychology/space' : section === 'support' ? '/psychology/support' : '/psychology' } })">去登录 →</button></div>
     <p v-if="storageError" role="alert">{{ storageError }}</p>
     <section v-if="section === 'space'" class="psych-panel psych-space-account">
       <div class="psych-panel-heading"><div><span class="psych-eyebrow">心灵 / 我的账号</span><h2>{{ loggedIn ? (spaceAccount?.name || '我的账号') : '欢迎来到你的心灵空间' }}</h2></div><span>{{ loggedIn ? '已登录' : '游客模式' }}</span></div>
@@ -152,7 +171,7 @@ onBeforeUnmount(() => { testVersion++; pauseBreathing(); window.removeEventListe
       <details v-if="testRecords.length" class="test-archive"><summary>查看已保存的测试与完整解读（最近 {{ testRecords.length }} 次）</summary><details v-for="record in testRecords" :key="record.id" class="test-detail"><summary>{{ testKinds.find(k=>k.type===record.type)?.name }} · {{ record.title }} <time>{{ resultDate(record.createdAt) }}</time></summary><p>{{ record.summary }}</p><section v-for="(part,i) in record.sections" :key="i"><h4>{{ part.title }}</h4><p v-for="(line,j) in part.lines" :key="j">{{ line }}</p></section></details></details>
       <small>测试记录保存在当前账号，仅供娱乐与自我探索。</small>
     </section>
-    <div v-if="!['overview', 'space'].includes(section)" class="psych-content-grid" :class="{ 'single-panel': section !== 'overview' }">
+    <div v-if="!['overview', 'space', 'support'].includes(section)" class="psych-content-grid" :class="{ 'single-panel': section !== 'overview' }">
       <section v-if="['overview', 'journal'].includes(section)" class="psych-panel mood-editor"><div class="psych-panel-heading"><div><span class="psych-eyebrow">此刻的心情</span><h2>哪一个，更接近现在的你？</h2></div><label class="psych-date-label">记录日期<input v-model="day" type="date" :max="today()" required /></label></div>
         <form @submit.prevent="save"><fieldset class="mood-selector"><legend class="visually-hidden">选择心情</legend><button v-for="item in moods" :key="item.value" type="button" :class="{ selected: mood === item.value }" :aria-pressed="mood === item.value" :style="{ '--mood-color': item.color }" @click="mood = item.value"><span aria-hidden="true">{{ item.symbol }}</span><b>{{ item.value }}</b></button></fieldset>
         <label class="psych-field">发生了什么，或者有什么想说的？<textarea v-model="note" rows="4" maxlength="2000" placeholder="今天有一点累，也有一件让自己开心的小事……（可不填）" /><small>{{ note.length }} / 2000</small></label><fieldset class="psych-trigger-field"><legend>可能与什么有关？<span>（可多选）</span></legend><div><button v-for="item in triggers" :key="item" type="button" :class="{ selected: selectedTriggers.includes(item) }" :aria-pressed="selectedTriggers.includes(item)" @click="toggleTrigger(item)">{{ item }}</button></div></fieldset><div class="psych-save-row"><span>只保存在当前浏览器，按登录标记分开存放。</span><button class="psych-primary" type="submit">保存这份心情 ↗</button></div></form>
@@ -161,6 +180,20 @@ onBeforeUnmount(() => { testVersion++; pauseBreathing(); window.removeEventListe
     </div>
     <p v-if="message" class="psych-message" role="status">{{ message }}</p>
     <section v-if="['history', 'space'].includes(section)" class="psych-panel psych-history"><div class="psych-panel-heading"><div><span class="psych-eyebrow">回看自己的节奏</span><h2>{{ section === 'history' ? '情绪回顾' : '最近留下的心情' }}</h2></div><button v-if="section === 'overview'" @click="router.push('/psychology/history')">查看全部 →</button></div><div v-if="!records.length" class="psych-empty"><span aria-hidden="true">—</span><p>还没有心情记录。从今天的一次感受开始，回顾会随着记录慢慢丰富。</p><button v-if="section === 'history'" @click="router.push('/psychology/journal')">记下今天的心情 →</button></div><template v-else><div v-if="section === 'history'" class="mood-distribution"><p>已记录心情的次数分布，仅呈现自填内容。</p><div v-for="item in distribution" :key="item.value"><span>{{ item.value }}</span><div><i :style="{ transform: 'scaleX(' + item.count / maxCount + ')', background: item.color }" /></div><b>{{ item.count }} 次</b></div></div><article v-for="row in (section === 'history' ? records : recent)" :key="row.id" class="psych-record"><div><time>{{ row.date }}</time><strong>{{ row.mood }}</strong><button type="button" :aria-label="'删除 ' + row.date + ' 的心情记录'" @click="removeRecord(row)">删除</button></div><p v-if="row.note">{{ row.note }}</p><span v-for="item in (row.triggers || [])" :key="item" class="psych-record-tag">{{ item }}</span></article></template></section>
+    <section v-if="section==='support'" class="psych-panel support-panel" aria-labelledby="support-title">
+      <div class="psych-panel-heading"><div><span class="psych-eyebrow">给感受一个出口</span><h2 id="support-title">心理倾诉</h2></div><button v-if="supportTurns.length" type="button" :disabled="supportBusy" @click="clearSupport">清空对话</button></div>
+      <p class="support-intro">可以说说最近让你挂心的事。AI 会先听你表达，再陪你理一理此刻的感受。</p>
+      <div class="support-chat" aria-live="polite">
+        <p v-if="!supportTurns.length" class="support-empty">从一句你现在最想说的话开始。</p>
+        <article v-for="(turn,index) in supportTurns" :key="index" class="support-turn" :class="turn.role"><span>{{ turn.role==='user'?'我':'倾听回应' }}</span><p>{{ turn.content }}</p><small v-if="turn.urgent">请优先联系现实中的紧急支持。</small></article>
+      </div>
+      <form class="support-form" @submit.prevent="sendSupport">
+        <label class="psych-field" for="support-text">此刻你想说什么？<textarea id="support-text" v-model="supportText" rows="3" maxlength="1600" placeholder="不用组织得很完整，想到什么就写什么。" /></label>
+        <label class="support-consent"><input v-model="supportConsent" type="checkbox" /><span>我同意将本次输入和本次对话上下文发送给 AI 服务。</span></label>
+        <p v-if="supportError" class="support-error" role="alert">{{ supportError }}</p>
+        <div class="support-submit"><small>对话只保留在当前页面，不会保存到账号。AI 不是心理咨询师；如有即时危险，请联系身边可信任的人及当地急救服务。</small><button class="psych-primary" type="submit" :disabled="supportBusy||!supportText.trim()">{{ supportBusy?'正在回应…':'发送给 AI' }}</button></div>
+      </form>
+    </section>
     <footer class="psych-footer">这里提供心情记录与日常放松练习，不作心理诊断。如果持续感到困扰，可以向信任的人或专业心理工作者寻求支持。</footer>
   </div>
 </template>
@@ -188,6 +221,28 @@ onBeforeUnmount(() => { testVersion++; pauseBreathing(); window.removeEventListe
 .psychology-home:has(> .psych-summary) .saved-tests>.psych-panel-heading { grid-column:1/-1; display:flex; margin-bottom:0; }
 .psychology-home:has(> .psych-summary) .saved-tests>.psych-panel-heading>div { grid-column:1/-1; text-align:center; }
 .psychology-home:has(> .psych-summary) .saved-tests>.psych-panel-heading h2 { display:none; }
+
+.support-panel{width:min(100%,1040px);box-sizing:border-box;margin:8px auto 0;padding:clamp(20px,3vw,34px);border-color:#e7d7c6;background:rgba(255,252,247,.94);box-shadow:0 14px 38px rgba(108,75,49,.055)}
+.support-panel .psych-panel-heading{align-items:center;margin-bottom:8px}
+.support-panel .psych-panel-heading h2{margin-bottom:12px}
+.support-intro{margin:0 0 22px;color:hsl(var(--psych-hue,145) 15% 49%);font-size:13px;line-height:1.8}
+.support-chat{display:flex;flex-direction:column;align-items:stretch;gap:14px;min-height:260px;max-height:min(48vh,460px);overflow:auto;padding:20px;border:1px solid #eadfd2;border-radius:10px;background:linear-gradient(145deg,#fbf5ed,#f8f3ec);overscroll-behavior-y:auto}
+.support-empty{display:grid;place-items:center;flex:1;min-height:210px;margin:0;padding:20px;text-align:center;color:hsl(var(--psych-hue,145) 15% 58%);font-size:13px}
+.support-turn{align-self:flex-start;box-sizing:border-box;width:fit-content;max-width:min(82%,680px);min-width:0;padding:13px 16px;border:1px solid #e9ded1;border-radius:4px 12px 12px 12px;background:#fffefa;box-shadow:0 3px 10px rgba(101,73,52,.035);overflow-wrap:anywhere}
+.support-turn.user{align-self:flex-end;background:#f2e4d4;border-color:#e7d1bc;border-radius:12px 4px 12px 12px}
+.support-turn>span{font-size:10px;color:hsl(var(--psych-hue,145) 15% 55%)}
+.support-turn p{margin:5px 0 0;white-space:pre-wrap;overflow-wrap:anywhere;font-size:13px;line-height:1.9;color:hsl(var(--psych-hue,145) 15% 40%)}
+.support-turn small{display:block;margin-top:8px;color:#9a4f45;font-size:11px}
+.support-form{display:grid;gap:0;min-width:0;border-top:1px solid #eadfd2;margin-top:20px;padding-top:20px}
+.support-form .psych-field textarea{box-sizing:border-box;width:100%;min-height:104px;resize:vertical}
+.support-consent{display:flex!important;justify-content:flex-start!important;align-items:flex-start!important;gap:10px;width:100%;min-width:0;margin:14px 0;color:hsl(var(--psych-hue,145) 15% 50%);font-size:11px;line-height:1.7}
+.support-consent input{flex:0 0 16px;width:16px;height:16px;margin:2px 0 0;accent-color:hsl(var(--psych-hue,145) 16% 44%)}
+.support-consent span{flex:1;min-width:0;overflow-wrap:anywhere}
+.support-submit{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:18px}
+.support-submit small{display:block;min-width:0;max-width:680px;color:hsl(var(--psych-hue,145) 15% 56%);font-size:10px;line-height:1.8;overflow-wrap:anywhere}
+.support-error{margin:10px 0;color:#9a4f45;font-size:12px}
+.support-submit button:disabled{opacity:.5;cursor:not-allowed}
+@media(max-width:600px){.support-panel{padding:18px}.support-chat{min-height:220px;padding:14px}.support-empty{min-height:180px}.support-turn{max-width:94%}.support-submit{grid-template-columns:minmax(0,1fr);gap:12px}.support-submit button{width:100%}}
 .psychology-home:has(> .psych-summary) .saved-tests>.psych-panel-heading .psych-eyebrow { font-size:16px; color:#8b624b; }
 .psychology-home:has(> .psych-summary) .saved-test-row { min-height:145px; padding:26px 25px; display:flex; flex-direction:column; align-items:center; justify-content:space-between; text-align:center; border:1px solid #e6c5a8; border-radius:18px; background:rgba(255,248,241,.82); box-shadow:0 12px 26px rgba(164,113,78,.1); }
 .psychology-home:has(> .psych-summary) .saved-test-row h3 { font-size:21px; color:#805743; }

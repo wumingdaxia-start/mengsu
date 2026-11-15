@@ -7,7 +7,7 @@ export const WORKSPACES = {
 }
 
 export const ENTRY_PATHS = Object.values(WORKSPACES).map(space => space.home)
-export const LOGIN_DESTINATIONS = [...ENTRY_PATHS, '/home', '/profile', '/activity', '/nutrition', '/sleep', '/vision', '/challenges', '/smart-consult', '/mood', '/health-analysis', '/capture', '/dreams', '/ask', '/dream/cues', '/psychology/analysis', '/psychology/journal', '/psychology/breathe', '/psychology/history', '/psychology/personality', '/psychology/tarot', '/psychology/views-test', '/psychology/space']
+export const LOGIN_DESTINATIONS = [...ENTRY_PATHS, '/home', '/profile', '/activity', '/nutrition', '/sleep', '/vision', '/challenges', '/smart-consult', '/mood', '/health-analysis', '/capture', '/dreams', '/ask', '/dream/cues', '/psychology/analysis', '/psychology/journal', '/psychology/breathe', '/psychology/history', '/psychology/support', '/psychology/personality', '/psychology/tarot', '/psychology/views-test', '/psychology/space']
 
 export function loginDestination(next) {
   return typeof next === 'string' && [...LOGIN_DESTINATIONS, ...dreamNavigation.flatMap(group => group.items.map(item => item.path))].includes(next) ? next : '/safety'

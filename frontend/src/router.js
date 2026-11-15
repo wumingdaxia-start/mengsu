@@ -34,6 +34,7 @@ const routes = [
   { path: '/psychology/personality', component: () => import('./views/PersonalityView.vue'), meta: { workspace: 'psychology', healthPage: true, label: '人格测试' } },
   { path: '/psychology/tarot', component: () => import('./views/TarotView.vue'), meta: { workspace: 'psychology', healthPage: true, label: '塔罗牌测试' } },
   { path: '/psychology/views-test', component: () => import('./views/ViewsTestView.vue'), meta: { workspace: 'psychology', healthPage: true, label: '三观测试' } },
+  { path: '/psychology/support', component: PsychologyView, props: { section: 'support' }, meta: { workspace: 'psychology', healthPage: true, label: '心理倾诉' } },
   ...['journal', 'breathe', 'history'].map(section => ({ path: `/psychology/${section}`, component: PsychologyView, props: { section }, meta: { workspace: 'psychology', healthPage: true } })),
   { path: '/profile', component: () => import('./views/ProfileView.vue'), meta: { label: '个人档案', healthPage: true } },
   { path: '/vision', component: () => import('./views/WellnessToolsView.vue'), props: { section: 'vision' }, meta: { label: '视力检测', healthPage: true } },
