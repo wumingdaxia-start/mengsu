@@ -50,7 +50,14 @@ const pageMeta={
 };
 function render(options={}){
  const route=location.hash.slice(1)||'home',key=pages[route]?route:'home';
- if(key!==page.dataset.route)page.style.minHeight='';page.dataset.route=key;if(document.body)document.body.dataset.route=key;
+ const preserveScroll=key===page.dataset.route&&options.preserveScroll!==false;
+ const scrollPositions=[];
+ if(preserveScroll){
+  for(let el=page.parentElement;el;el=el.parentElement)scrollPositions.push([el,el.scrollLeft,el.scrollTop]);
+  scrollPositions.push([window,window.scrollX,window.scrollY]);
+  page.style.minHeight=Math.max(page.getBoundingClientRect().height,parseFloat(page.style.minHeight)||0)+'px';
+ }else page.style.minHeight='';
+ page.dataset.route=key;if(document.body)document.body.dataset.route=key;
  q('#pageTitle').textContent=titles[key];
  q('#pageCrumb').textContent=titles[key];
  q('#pageGroup').textContent=pageMeta[key].group;
@@ -77,7 +84,12 @@ function render(options={}){
  if(key==='analysis')bindInsight();
  if(key==='knowledge')bindKnowledge();
  window.dispatchEvent(new CustomEvent('mengsu:health-state', {detail:{user:user?{id:user.id,name:currentDisplayName()}:null,gender:data.profile?.gender||''}}));
- if(!options.preserveScroll)scrollTo(0,0);
+ if(preserveScroll){
+  for(const [target,left,top]of scrollPositions){
+   if(target===window)window.scrollTo({left,top,behavior:'instant'});
+   else{target.scrollLeft=left;target.scrollTop=top}
+  }
+ }else window.scrollTo({left:0,top:0,behavior:'instant'});
 }
 async function persist(candidate,identity,version){
  if(identity){

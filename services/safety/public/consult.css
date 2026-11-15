@@ -14,3 +14,5 @@
 
 .consult-chat-photo{display:block;max-width:100%;width:200px;max-height:240px;object-fit:contain;border-radius:9px;margin:0 0 8px}.consult-pending{padding:8px 42px;color:#617f87;font-size:12px}
 #page[data-route=consult]{overflow-anchor:none}.consult-chat-photo{height:200px}.consult-thread{overscroll-behavior:contain}#page[data-route=analysis]{overflow-anchor:none}
+/* Keep record updates from moving the viewport across all health pages. */
+#page[data-route]{overflow-anchor:none}
