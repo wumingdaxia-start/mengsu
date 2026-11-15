@@ -101,7 +101,11 @@ routes.unshift({path:'/dream/bedtime-stories',redirect:to=>({path:'/dream/night-
 export const router = createRouter({
   history: createWebHistory(),
   routes,
-  scrollBehavior: (to) => to.hash ? { el: to.hash, top: 100 } : { top: 0 }
+  scrollBehavior: (to, from, savedPosition) => {
+    if (savedPosition) return savedPosition
+    if (to.path === from.path && to.meta.workspace === 'psychology' && to.hash === from.hash) return false
+    return to.hash ? { el: to.hash, top: 100 } : { top: 0 }
+  }
 })
 
 // 没连接 AI 服务时，进入应用先落到「AI 服务设置」，避免各处功能各自报错。

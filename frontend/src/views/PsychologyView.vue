@@ -1,4 +1,6 @@
 <script setup>
+import { useStablePageScroll } from '../composables/useStablePageScroll'
+const stablePage = useStablePageScroll()
 import { computed, onMounted, onBeforeUnmount, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { isLoggedIn, safetyRequest } from '../auth'
@@ -127,7 +129,7 @@ onBeforeUnmount(() => { testVersion++; pauseBreathing(); window.removeEventListe
 </script>
 
 <template>
-  <div class="psychology-home">
+  <div ref="stablePage" class="psychology-home">
     <header class="psych-page-heading"><p>星栈 / 内心与感受</p><h1>{{ pageTitle }}</h1><span>{{ section === 'space' ? '整理属于你的心情与探索记录，随时回来看看自己。' : section === 'analysis' ? '回看已保存的人格、塔罗与三观结果，了解本次回答呈现的倾向。' : '不用急着调整情绪，先给自己一点被听见的时间。' }}</span></header>
     <div v-if="!loggedIn" class="psych-guest-note"><span>你正在以访客身份浏览。心情记录需要登录后保存。</span><button @click="router.push({ path: '/login', query: { next: section === 'space' ? '/psychology/space' : '/psychology' } })">去登录 →</button></div>
     <p v-if="storageError" role="alert">{{ storageError }}</p>
