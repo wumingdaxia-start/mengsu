@@ -6,6 +6,7 @@ import { readDream, writeDream } from '../dream-account'
 import DreamExplorationScene from './DreamExplorationScene.vue'
 import { isLoggedIn } from '../auth'
 import { dreamSceneCopy } from '../data/dream-scene-copy'
+import { demoDreams } from '../composables/useDreamJourney'
 const router=useRouter(), route=useRoute(), personal=accountComputed(()=>readDream('snapshots',[])), active=ref(0), modal=ref(null), mode=ref(''), selected=ref(null), notice=ref(''), loading=ref(true)
 // Preview cards never enter the user's saved snapshot collection.
 const examples=[
@@ -15,7 +16,17 @@ const examples=[
  {id:'example-home',title:'旧屋灯光',date:'2026-10-20',image:'/dream-overview/old-room.jpg',place:'旧屋',people:'熟悉的身影',signal:'窗帘轻轻晃动，桌上那盏灯，和记忆里的光一样温暖。',feeling:'怀旧',motif:'灯光'},
  {id:'example-school',title:'回到教室',date:'2026-10-18',image:'/dream-overview/classroom.jpg',place:'高中教室',people:'我、同桌',signal:'我们在讨论一道题，他笑着递来笔，窗外的树叶沙沙作响。',feeling:'平静',motif:'旧屋'}
 ]
-const cards=computed(()=>personal.value.length?personal.value:examples)
+const addedExamples = ['library-example-19','library-example-20','library-example-01','library-example-02'].map(id => {
+ const dream = demoDreams.find(item => item.id === id)
+ const details = {
+  'library-example-19': { place:'雪地木屋', people:'我、久未见面的朋友' },
+  'library-example-20': { place:'收藏风的阁楼', people:'我' },
+  'library-example-01': { place:'银河边、山顶邮筒', people:'我' },
+  'library-example-02': { place:'海底琴房', people:'我、海龟' }
+ }
+ return dream ? { ...dream, ...details[id] } : null
+}).filter(Boolean)
+const cards=computed(()=>personal.value.length?personal.value:[...examples,...addedExamples])
 const visible=computed(()=>[-1,0,1].map(offset=>({offset,card:cards.value[(active.value+offset+cards.value.length)%cards.value.length]})))
 const places=computed(()=>{const groups=new Map();cards.value.forEach(c=>{const name=c.place||c.location;if(name){const key=String(name);if(groups.has(key))groups.get(key).count++;else groups.set(key,{name:key,count:1,card:c})}});return [...groups.values()]})
 const links=computed(()=>{const pairs=[];cards.value.forEach((a,i)=>cards.value.slice(i+1).forEach(b=>{const signals=[a.feeling||a.emotion,a.motif].filter(Boolean).filter(x=>[b.feeling||b.emotion,b.motif].includes(x));if(signals.length)pairs.push({a,b,signal:signals.join(' / ')})}));return pairs})
