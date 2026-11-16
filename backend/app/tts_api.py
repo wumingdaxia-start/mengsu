@@ -188,3 +188,47 @@ class TarotSpeechBody(BaseModel):
 async def tarot_speech(body: TarotSpeechBody):
     """Use Qwen's natural voice for both tarot previews and readings."""
     return await synthesize(TtsBody(text=body.text, voice="Serena"))
+
+
+class WebsiteSpeechBody(BaseModel):
+    text: str = Field(min_length=1, max_length=6000)
+    voice: str = Field(default="female", pattern="^(female|male)$")
+
+
+@router.post("/website-speech")
+async def website_speech(body: WebsiteSpeechBody):
+    """Website-managed natural Mandarin voices; no visitor key required."""
+    import asyncio
+    import edge_tts
+    text = body.text.strip()
+    if not text:
+        raise HTTPException(422, "先留下要朗读的文字。")
+    ensure_dirs()
+    for old in AUDIO_DIR.glob("site_voice_*.mp3"):
+        try:
+            if time.time() - old.stat().st_mtime > KEEP_HOURS * 3600:
+                old.unlink(missing_ok=True)
+        except OSError:
+            pass
+    target = AUDIO_DIR / f"site_voice_{uuid.uuid4().hex}.mp3"
+    voice = "zh-CN-YunxiNeural" if body.voice == "male" else "zh-CN-XiaoxiaoNeural"
+    try:
+        for attempt in range(3):
+            try:
+                await asyncio.wait_for(
+                    edge_tts.Communicate(text, voice, rate="-12%", volume="-5%").save(str(target)),
+                    timeout=45,
+                )
+                break
+            except Exception:
+                target.unlink(missing_ok=True)
+                if attempt == 2:
+                    raise
+                await asyncio.sleep(0.5)
+
+        if not target.exists() or target.stat().st_size < 1024:
+            raise ValueError("empty audio")
+    except Exception:
+        target.unlink(missing_ok=True)
+        raise HTTPException(503, "声音暂时没有准备好，请稍后再点一次；无需填写 API 或密钥。") from None
+    return {"url": f"/audio/{target.name}", "voice": body.voice}
