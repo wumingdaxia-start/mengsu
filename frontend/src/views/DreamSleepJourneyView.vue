@@ -40,7 +40,7 @@ onMounted(refresh)
 </script>
 <template>
 <div class="journey">
-<p class="j-notice"><span class="j-dot"></span>手动记录 · 数据保存在当前账号；未连接手环或医疗设备。</p>
+
 <template v-if="path==='/dream/sleep-diary'">
  <section v-if="!editing" class="j-panel diary-invite"><div><h2>把昨夜，轻轻交给今天</h2><p>从四个大致时刻开始，再留下醒来时的感受。</p><button class="j-primary" @click="begin">{{dates.has(today())?'修改今天的睡眠日记':'留下今天的睡眠日记'}}</button></div><img src="/dream-rooms/rest.png" alt="安静的睡前房间"></section>
  <template v-if="!editing">
@@ -57,10 +57,6 @@ onMounted(refresh)
 </template>
 <template v-else-if="path==='/dream/sleep-plan'">
 <SleepPlanLessons />
-</template>
-<template v-else-if="path==='/dream/wind-down'">
- <section class="j-panel"><div class="j-between"><div><h2>今晚 {{plan.bedtime}}，给自己一个温柔的收尾</h2><p>按你的心愿时刻自动倒推。流程是邀请，可以只选适合的部分。</p></div><button @click="router.push('/dream/sleep-plan')">调整作息</button></div><div class="routine-band"><article v-for="r in routine" :key="r.title"><small>{{before(r.before)}} — {{before(r.before-r.duration)}} · {{r.duration}} 分钟</small><h3>{{r.title}}</h3><p>{{r.text}}</p></article></div><small>共 70 分钟，从 {{before(70)}} 开始，到 {{plan.bedtime}} 结束。</small></section>
- <section v-for="(s,index) in winddown" :key="s.before" class="j-panel"><div class="j-between"><div><small>{{before(s.before)}} · 睡前 {{s.before===10?'最后 10 分钟':s.before/60+' 小时'}}</small><h2>{{s.title}}</h2></div><span class="j-tag">{{s.items.filter((_,i)=>done.includes(index+'-'+i)).length}} / {{s.items.length}}</span></div><label v-for="(item,i) in s.items" :key="item" class="j-check"><input type="checkbox" :checked="done.includes(index+'-'+i)" @change="checkRitual(index+'-'+i)"><span>{{item}}</span></label></section><div class="j-row j-section-gap"><button class="j-primary" @click="router.push('/dream/cues')">给今夜留一颗种子</button><button @click="router.push('/dream/bedtime-stories')">听一段睡前故事</button></div>
 </template>
 <template v-else>
  <section class="j-panel planet-stage"><div class="planet-sky" aria-hidden="true"><svg viewBox="0 0 600 360"><defs><radialGradient id="journeyPlanet"><stop stop-color="#faf5e8"/><stop offset=".7" stop-color="#c7d9d9"/><stop offset="1" stop-color="#acb8cc"/></radialGradient></defs><g fill="#c7bed8"><circle v-for="i in 24" :key="i" :cx="30+(i*79)%540" :cy="20+(i*53)%280" :r="i%3===0?2.5:1.2"/></g><ellipse cx="300" cy="195" rx="230" ry="55" fill="none" stroke="#d3c9df" stroke-width="2" transform="rotate(-17 300 195)"/><circle cx="300" cy="185" r="118" fill="url(#journeyPlanet)"/><path d="M199 180q45-35 93 6t110-10 M207 222q65-37 157 5" fill="none" stroke="#b0c6ba" stroke-width="15" opacity=".65"/><g v-for="i in Math.min(growth,18)" :key="i" :transform="'translate('+(218+i*37%160)+' '+(135+i*29%110)+')'"><path d="M0 12V-9 M0 2q-15-16-13-18Q2-16 0 2 M0-3q14-15 16-12Q17-3 0-3" fill="#8ba98e" stroke="#829d87"/><circle v-if="growth>12" cy="-12" r="5" fill="#e2bbbe"/></g></svg></div><div class="planet-copy"><span class="j-tag">30 天 · 温柔生长计划</span><h2>{{growth===0?'第一束微光，还在等你':growth<10?'小小的绿意，开始生长':growth<22?'星球已经长出自己的花园':'被照顾的夜晚，正在开花'}}</h2><p>已留下 {{growth}} 个不同日期的睡眠回执。漏记也没关系，不会扣除已经长出的绿意。</p><button class="j-primary" @click="router.push('/dream/sleep-diary')">{{dates.has(today())?'看看今天的回执':'给星球留下一晚'}}</button><div class="sleep-progress"><span :style="{transform:'scaleX('+growth/30+')'}"></span></div><small>记录旅程 {{Math.round(growth/30*100)}}% · 不是健康评分</small></div></section>

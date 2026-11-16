@@ -228,16 +228,7 @@ onBeforeUnmount(() => window.removeEventListener('mengsu:auth-change', loadPerso
         </div>
       </section>
 
-      <section class="journal-section sleep-tools">
-        <div class="section-heading compact-heading"><div><p class="health-eyebrow">BEFORE SLEEP</p><h2>睡前线索</h2></div></div>
-        <p class="journal-intro">挑选一段想温柔记住的片段，生成今晚的提示线索。</p>
-        <p v-if="!pending.length" class="empty-note">目前没有待整理的日间片段，可以先生成一条中性线索。</p>
-        <div v-else class="chips"><button v-for="item in pending" :key="item.id" class="chip" :class="{ on: chosen.find((row) => row.id === item.id) }" @click="toggleCue(item)">{{ item.text.slice(0, 14) }}</button></div>
-        <div class="tool-actions"><button @click="makeCue">生成线索</button><button class="ghost" :disabled="!cue || busy" @click="makeAudio">{{ busy ? '合成中' : '合成音频' }}</button></div>
-        <audio v-if="audioUrl" :src="audioUrl" controls class="audio" />
-        <div class="sleep-row"><input v-model="sleepText" placeholder="补记睡眠，例如：两点入睡，六点半醒" /><button class="ghost" @click="saveSleep">记下</button></div>
-        <p v-if="message" class="muted small">{{ message }}</p>
-      </section>
+
     </div>
 
     <section v-if="sleepOnly" class="dream-records rise" style="--i: 5">

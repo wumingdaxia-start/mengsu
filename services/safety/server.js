@@ -29,6 +29,7 @@ const store=persistence?.health||createStore(options.dataDir||path.join(__dirnam
 const consultStore=persistence?.consult||createConsultStore(options.consultDir||path.join(__dirname,'../../data/safety/consult'));
 const testStore=require('./local-persistence').createTests(options.testsDir||path.join(__dirname,'../../data/safety/tests'));
 const dreamStore=persistence?.dream||require('./dream-store').createDreamStore(options.dreamDir||path.join(__dirname,'../../data/safety/dream'));
+const driftStore=require('./drift-store').createDriftStore(options.driftFile||path.join(__dirname,'../../data/safety/drift.json'));
 const foodBusy=new Set(),foodQuota=new Map();
 const consultBusy=new Set();
 const insightBusy=new Set();
@@ -184,11 +185,25 @@ async function handler(req,res){const url=new URL(req.url,'http://localhost');
  const aggregate=(field,weight)=>{const total=details.reduce((n,d)=>n+d[weight],0);return total?Math.round(details.reduce((n,d)=>n+(d[field]||0)*d[weight],0)/total*10)/10:null};
  return json(res,200,{updated:today(),users:details,summary:{registeredUsers:users.length,usersWithData:details.filter(d=>d.exerciseCount+d.dietCount+d.sleepCount+d.visionCount>0).length,exerciseRecords:details.reduce((n,d)=>n+d.exerciseCount,0),dietRecords:details.reduce((n,d)=>n+d.dietCount,0),sleepRecords:details.reduce((n,d)=>n+d.sleepCount,0),visionRecords:details.reduce((n,d)=>n+d.visionCount,0),averageSleepHours:aggregate('averageSleepHours','sleepCount'),averageSleepQuality:aggregate('averageSleepQuality','qualityResponseCount'),qualityResponseCount,averageMealCalories:aggregate('averageMealCalories','dietCount'),averageMealProtein:aggregate('averageMealProtein','dietCount'),challengeParticipants:details.filter(d=>d.challengeScore>0).length}});
  }
+ if(url.pathname==='/api/drift'||url.pathname.startsWith('/api/drift/')){
+  const session=getSession(req),user=session&&(await readUsers()).find(x=>x.id===session.userId);
+  if(!user||isAdmin(user))return json(res,401,{message:'请先登录个人账号后使用漂流瓶'});
+  if(req.headers['x-health-user']!==String(user.id))return json(res,409,{message:'账号已切换，请刷新页面'});
+  const owner=String(user.id),parts=url.pathname.split('/').filter(Boolean);
+  try{
+   if(req.method==='GET'&&parts.length===3&&parts[2]==='mine')return json(res,200,driftStore.mine(owner));
+   if(req.method==='GET'&&parts.length===3&&parts[2]==='pick')return json(res,200,driftStore.pick(owner));
+   if(req.method==='POST'&&parts.length===2)return json(res,200,driftStore.send(owner,await readBody(req,8192)));
+   if(req.method==='POST'&&parts.length===4&&['favorite','reply'].includes(parts[3]))return json(res,200,driftStore.update(owner,parts[2],parts[3],await readBody(req,8192)));
+   if(req.method==='DELETE'&&parts.length===3)return json(res,200,driftStore.update(owner,parts[2],'delete',{}));
+   return json(res,405,{message:'请求方式不支持'});
+  }catch(e){if(e.status)return json(res,e.status,{message:e.message});throw e}
+ }
  if(url.pathname==='/api/community'||url.pathname.startsWith('/api/community/')){
   const session=getSession(req),user=session&&(await readUsers()).find(x=>x.id===session.userId);
   const file=options.communityFile||path.join(__dirname,'../../data/safety/community.json');
   const load=()=>{try{return JSON.parse(fs.readFileSync(file,'utf8'))}catch(e){if(e.code==='ENOENT')return [];throw e}};
-  const publicPost=p=>({id:p.id,date:p.date,title:p.title,text:p.text,image:p.image,author:p.author,topic:p.topic,mine:String(user?.id)===p.owner,liked:p.likes.includes(String(user?.id)),likeCount:p.likes.length,comments:p.comments.map(c=>({id:c.id,date:c.date,text:c.text,author:c.author}))});
+  const publicPost=p=>({id:p.id,date:p.date,title:p.title,text:p.text,image:p.image,tags:Array.isArray(p.tags)?p.tags:[],author:p.author,topic:p.topic,mine:String(user?.id)===p.owner,liked:p.likes.includes(String(user?.id)),likeCount:p.likes.length,comments:p.comments.map(c=>({id:c.id,date:c.date,text:c.text,author:c.author}))});
   if(req.method==='GET')return json(res,200,{posts:load().map(publicPost)});
   if(!user||isAdmin(user))return json(res,401,{message:'请先登录个人账号后分享'});
   let input;try{input=await readBody(req,16*1024*1024)}catch{return json(res,400,{message:'分享内容格式不正确'})}
@@ -196,8 +211,10 @@ async function handler(req,res){const url=new URL(req.url,'http://localhost');
   const author='梦游者 '+crypto.createHash('sha256').update(owner).digest('hex').slice(0,6).toUpperCase();
   if(req.method==='POST'&&!id){
    const title=String(input.title||'').trim(),text=String(input.text||'').trim(),image=String(input.image||'');
+   if(input.tags!==undefined&&(!Array.isArray(input.tags)||input.tags.length>64||input.tags.some(t=>typeof t!=='string'||!t.trim()||t.length>40)))return json(res,400,{message:'标签格式不正确'});
+   const tags=[...new Set((input.tags||[]).map(t=>t.trim()))];
    if(!title||title.length>60||!text||text.length>2000||image.length>12*1024*1024||image&&!/^(data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+|\/(?!\/)[^\s]*)$/.test(image))return json(res,400,{message:'请检查标题、正文和图片内容'});
-   posts.unshift({id:crypto.randomUUID(),owner,author,date:today(),title,text,image,topic:['轻盈的梦','温暖的梦','未说完的梦'].includes(input.topic)?input.topic:'温暖的梦',likes:[],comments:[]});
+   posts.unshift({id:crypto.randomUUID(),owner,author,date:today(),title,text,image,tags,topic:['轻盈的梦','温暖的梦','未说完的梦'].includes(input.topic)?input.topic:'温暖的梦',likes:[],comments:[]});
   }else{
    if(!post)return json(res,404,{message:'这条分享已被移除'});
    if(req.method==='DELETE'){if(post.owner!==owner)return json(res,403,{message:'只能删除自己的分享'});posts.splice(posts.indexOf(post),1)}

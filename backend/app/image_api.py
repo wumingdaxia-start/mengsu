@@ -29,14 +29,32 @@ async def generate_image(body: ImageRequest):
         raise HTTPException(503, "图像生成模型尚未配置，请配置 IMAGE_API_KEY、IMAGE_BASE_URL 和 IMAGE_MODEL。")
     try:
         async with httpx.AsyncClient(timeout=120) as client:
-            response = await client.post(
-                f"{base}/images/generations",
-                headers={"Authorization": f"Bearer {key}"},
-                json={"model": model, "prompt": prompt, "n": 1,
-                      "size": "1024x1024", "response_format": "b64_json"},
-            )
-            response.raise_for_status()
-            encoded = response.json()["data"][0]["b64_json"]
+            if os.getenv("IMAGE_PROVIDER", "") == "dashscope":
+                response = await client.post(
+                    f"{base}/services/aigc/multimodal-generation/generation",
+                    headers={"Authorization": f"Bearer {key}"},
+                    json={"model": model, "input": {"messages": [{"role": "user", "content": [{"text": prompt}]}]},
+                          "parameters": {"size": "1024*1024", "n": 1, "watermark": False}},
+                )
+                response.raise_for_status()
+                content = response.json()["output"]["choices"][0]["message"]["content"]
+                image_url = next(part["image"] for part in content if part.get("image"))
+                from urllib.parse import urlparse
+                host = urlparse(image_url).hostname or ""
+                if not image_url.startswith("https://") or not (host.endswith(".aliyuncs.com") or host.endswith(".alicdn.com")):
+                    raise ValueError("Unexpected image host")
+                picture = await client.get(image_url)
+                picture.raise_for_status()
+                encoded = base64.b64encode(picture.content).decode("ascii")
+            else:
+                response = await client.post(
+                    f"{base}/images/generations",
+                    headers={"Authorization": f"Bearer {key}"},
+                    json={"model": model, "prompt": prompt, "n": 1,
+                          "size": "1024x1024", "response_format": "b64_json"},
+                )
+                response.raise_for_status()
+                encoded = response.json()["data"][0]["b64_json"]
             if not isinstance(encoded, str) or len(encoded) > 20_000_000:
                 raise ValueError("Invalid image size")
             raw = base64.b64decode(encoded, validate=True)
@@ -48,5 +66,5 @@ async def generate_image(body: ImageRequest):
             return {"image": f"data:{mime};base64,{encoded}"}
     except httpx.TimeoutException:
         raise HTTPException(504, "画面生成超时，请稍后重试。") from None
-    except (httpx.HTTPError, ValueError, KeyError, IndexError, TypeError, binascii.Error):
+    except (httpx.HTTPError, ValueError, KeyError, IndexError, TypeError, StopIteration, binascii.Error):
         raise HTTPException(502, "图像服务暂时未能生成画面，请检查模型配置或稍后重试。") from None

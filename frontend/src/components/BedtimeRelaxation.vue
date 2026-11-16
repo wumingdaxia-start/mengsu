@@ -16,7 +16,7 @@ let startedAt=0,stepDuration=0
 const time=computed(()=>Math.floor(remaining.value/60)+":"+String(remaining.value%60).padStart(2,"0"))
 function stop(){clearInterval(timer);remaining.value=0;step.value=0;message.value="练习已停下，按自己的节奏就好。"}
 function start(){clearInterval(timer);minutes.value=Math.max(1,Math.min(30,Math.round(Number(minutes.value)||3)));remaining.value=minutes.value*60;startedAt=Date.now();step.value=0;stepDuration=remaining.value*1000/4;deadline=startedAt+remaining.value*1000;message.value="";timer=setInterval(()=>{step.value=Math.min(3,Math.floor((Date.now()-startedAt)/stepDuration));remaining.value=Math.max(0,Math.ceil((deadline-Date.now())/1000));if(!remaining.value){clearInterval(timer);message.value="这段放松已结束，可以继续休息，也可以给今夜留一颗种子。"}},250)}
-function finish(){stop();router.push("/dream/cues")}
+function finish(){stop();router.push("/dream/sleep-plan")}
 onBeforeUnmount(()=>clearInterval(timer))
 </script>
 <template>

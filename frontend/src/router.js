@@ -2,7 +2,6 @@ import { dreamNavigation } from './dream-navigation'
 import { redirectToSetupIfNeeded } from './ai-status'
 import { createRouter, createWebHistory } from 'vue-router'
 import HomeView from './views/HomeView.vue'
-import CaptureView from './views/CaptureView.vue'
 import DreamsView from './views/DreamsView.vue'
 import AskView from './views/AskView.vue'
 import SmartConsultView from './views/SmartConsultView.vue'
@@ -16,18 +15,19 @@ const PsychologyView = () => import('./views/PsychologyView.vue')
 
 export const tabs = [
   { path: '/home', label: '首页', component: HomeView, order: 0 },
-  { path: '/capture', label: '捕梦', component: CaptureView, order: 1 },
   { path: '/dreams', label: '漂流瓶', component: DreamsView, order: 2 },
   { path: '/ask', label: '先知', component: AskView, order: 3 },
   { path: '/me', label: '我的', component: MeView, order: 4 }
 ]
 
 const routes = [
+  { path: '/dream/wind-down', redirect: '/dream/sleep-plan' },
+  { path: '/capture', redirect: { path: '/dream/studio', query: { section: 'record' } } },
   { path: '/settings/ai', component: () => import('./views/AiSettingsView.vue'), meta: { label: 'AI 服务设置', workspace: 'dream', healthPage: true } },
   { path: '/safety', component: () => import('./views/SafetyWorkspaceView.vue'), meta: { workspace: 'safety', chrome: false, label: '安康守护' } },
   { path: '/dream', component: DreamWorkspaceView, meta: { workspace: 'dream', healthPage: true, label: '梦境总览' } },
   { path: '/dream/planet', redirect: '/dream', meta: { workspace: 'dream', healthPage: true, label: '梦境总览' } },
-  { path: '/dream/cues', component: HomeView, props: { sleepOnly: true }, meta: { workspace: 'dream', healthPage: true, label: '睡前线索' } },
+  { path: '/dream/cues', redirect: '/dream/sleep-plan' },
   { path: '/psychology/space', component: PsychologyView, props: { section: 'space' }, meta: { workspace: 'psychology', healthPage: true, label: '我的空间' } },
   { path: '/psychology', component: PsychologyView, meta: { workspace: 'psychology', healthPage: true, label: '心理总览' } },
   { path: '/psychology/analysis', component: PsychologyView, props: { section: 'analysis' }, meta: { workspace: 'psychology', healthPage: true, label: '心理分析' } },
@@ -91,13 +91,13 @@ for (const item of dreamNavigation.flatMap(group => group.items)) {
 
 // Keep existing toolbox links working after merging it into the tree hole.
 routes.unshift({path:'/dream/calm',redirect:'/dream/tree-hole#calm-tools'})
-routes.unshift({path:'/dream/space',component:()=>import('./views/SignalPagesView.vue'),meta:{workspace:'dream',healthPage:true,label:'我的空间',dreamIntro:'管理你的昼夜分身数据。'}})
+routes.unshift({path:'/dream/space',component:()=>import('./views/DreamSpaceView.vue'),meta:{workspace:'dream',healthPage:true,label:'我的空间',dreamIntro:'查看属于你的梦境、睡眠日记与故事收藏。'}})
 
 routes.unshift({path:'/dream/community',redirect:to=>({path:'/dream/studio',query:{...to.query,section:'community'},hash:to.hash})})
 
 routes.unshift({path:'/dream/relax',redirect:to=>({path:'/dream/sleep-plan',query:to.query,hash:'#bedtime-relax'})})
 
-routes.unshift({path:'/dream/bedtime-stories',redirect:to=>({path:'/dream/night-talk',query:{...to.query,section:'stories'},hash:to.hash})},{path:'/dream/tree-hole',redirect:to=>({path:'/dream/night-talk',query:{...to.query,section:'tree-hole'},hash:to.hash})})
+routes.unshift({path:'/dream/bedtime-stories',redirect:to=>({path:'/dream/night-talk',query:{...to.query,section:'stories'},hash:to.hash})},{path:'/dream/tree-hole',redirect:to=>({path:'/dream/night-talk',query:{...to.query,section:'favorites'}})})
 
 export const router = createRouter({
   history: createWebHistory(),

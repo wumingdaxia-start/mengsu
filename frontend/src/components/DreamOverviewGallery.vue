@@ -2,12 +2,13 @@
 import { computed, nextTick, onMounted, ref, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { computed as accountComputed } from 'vue'
-import { readDream, writeDream } from '../dream-account'
+import { dreamOwner, dreamReady, readDream, writeDream } from '../dream-account'
+import { dreamMetadata } from '../dream-metadata'
 import DreamExplorationScene from './DreamExplorationScene.vue'
 import { isLoggedIn } from '../auth'
 import { dreamSceneCopy } from '../data/dream-scene-copy'
 import { demoDreams } from '../composables/useDreamJourney'
-const router=useRouter(), route=useRoute(), personal=accountComputed(()=>readDream('snapshots',[])), active=ref(0), modal=ref(null), mode=ref(''), selected=ref(null), notice=ref(''), loading=ref(true)
+const router=useRouter(), route=useRoute(), personal=accountComputed(()=>{const materials=readDream('materials',[]);return readDream('snapshots',[]).map(record=>({...record,...dreamMetadata(record,materials.find(m=>String(m.id)===String(record.sourceId))||{})}))}), active=ref(0), modal=ref(null), mode=ref(''), selected=ref(null), notice=ref(''), loading=ref(true)
 // Preview cards never enter the user's saved snapshot collection.
 const examples=[
  {id:'example-castle',title:'云顶之上',date:'2026-10-26',image:'/dream-overview/cloud-moon.jpg',place:'云顶之上',people:'我、神秘少女、父亲',signal:'我站在城堡的阳台上，他告诉我一个秘密，但风把声音吹散了。',feeling:'失重',motif:'城堡'},
@@ -16,7 +17,8 @@ const examples=[
  {id:'example-home',title:'旧屋灯光',date:'2026-10-20',image:'/dream-overview/old-room.jpg',place:'旧屋',people:'熟悉的身影',signal:'窗帘轻轻晃动，桌上那盏灯，和记忆里的光一样温暖。',feeling:'怀旧',motif:'灯光'},
  {id:'example-school',title:'回到教室',date:'2026-10-18',image:'/dream-overview/classroom.jpg',place:'高中教室',people:'我、同桌',signal:'我们在讨论一道题，他笑着递来笔，窗外的树叶沙沙作响。',feeling:'平静',motif:'旧屋'}
 ]
-const libraryMode=ref('全部梦库')
+const libraryMode=ref(personal.value.length?'我的记录':'示例梦库')
+watch([dreamOwner,dreamReady,()=>personal.value.length>0],([,ready,hasOwn])=>{if(ready)libraryMode.value=hasOwn?'我的记录':'示例梦库'},{immediate:true})
 const cards=computed(()=>{
  const own=personal.value.map(c=>({...c,demo:false}))
  const demo=demoDreams.map(c=>({...c,demo:true}))
@@ -29,8 +31,8 @@ const places=computed(()=>{const groups=new Map();cards.value.forEach(c=>{const 
 const links=computed(()=>{const pairs=[];cards.value.forEach((a,i)=>cards.value.slice(i+1).forEach(b=>{const signals=[a.feeling||a.emotion,a.motif].filter(Boolean).filter(x=>[b.feeling||b.emotion,b.motif].includes(x));if(signals.length)pairs.push({a,b,signal:signals.join(' / ')})}));return pairs})
 const sceneCopy=computed(()=>dreamSceneCopy[selected.value?.id]||{tags:['梦里的一幕','留下的声音','此刻的感受'],placeholder:'写下你愿意留下的画面、声音或感受……',pauseTitle:'给此刻留一点空间',pauseText:'不必立刻弄懂这个梦。你可以只写下一点记得的东西，也可以先停在这里。',caption:'这段记忆，由你决定怎样留下。'})
 const text=c=>dreamSceneCopy[c.id]?.description||c.signal||c.text||c.summary||c.title||'醒来时留下的一束意识碎片。'
-const people=c=>Array.isArray(c.people)?c.people.join('、'):c.people||'尚未留下人物线索'
-const place=c=>Array.isArray(c.place||c.location)?(c.place||c.location).join(' / '):c.place||c.location||'尚未标记'
+const people=c=>(Array.isArray(c.people)?c.people.join('、'):c.people)||'尚未留下人物线索'
+const place=c=>(Array.isArray(c.place||c.location)?(c.place||c.location).join(' / '):c.place||c.location)||'尚未标记'
 function move(n){if(!cards.value.length)return;active.value=(active.value+n+cards.value.length)%cards.value.length}
 function fallback(e){e.target.onerror=null;e.target.src='/dream-overview/cloud-moon.jpg'}
 async function open(type,card){mode.value=type;selected.value=card;await nextTick();if(!modal.value.open)modal.value.showModal()}
@@ -80,7 +82,7 @@ onMounted(async()=>{
    <button class="gallery-feature map-feature" @click="open('map')"><h2>梦境地图</h2><p>探索梦里去过的地方</p><img class="feature-art" src="/dream-overview/city-map.jpg" alt="云海环绕的城堡与梦境地点"></button>
    <button class="gallery-feature network-feature" @click="open('network')"><h2>丝线网络</h2><p>发现梦境之间的联系</p><img class="feature-art" src="/dream-overview/signal-map.jpg" alt="以梦境意象和感受连接的地图"></button>
   </section>
-  <div class="gallery-login"><p>{{isLoggedIn()?'把醒来时的片段，轻轻留下':'登录 / 注册，留存你的梦境'}}</p><button @click="login">{{isLoggedIn()?'捕捉昨夜快照':'登录 / 注册'}}</button></div>
+  <div v-if="!isLoggedIn()" class="gallery-login"><p>登录 / 注册，留存你的梦境</p><button @click="login">登录 / 注册</button></div>
   <dialog ref="modal" :class="['gallery-dialog', {'scene-dialog':mode==='map'||mode==='network', 'reflection-dialog':mode==='scene-detail'}]" aria-label="梦境探索详情" @click="($event.target===modal)&&modal.close()"><div class="gallery-dialog-body"><button v-if="mode!=='map'&&mode!=='network'&&mode!=='scene-detail'" class="dialog-close icon-close" aria-label="关闭" @click="modal.close()"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg></button>
    <template v-if="mode==='detail'&&selected"><small>{{selected.demo?'示例梦境':'我的意识快照'}} · {{selected.feeling||selected.emotion||'醒来时的感受'}}</small><h2>{{selected.title||'意识快照'}}</h2><img class="detail-image" :src="selected.image||'/dream-overview/cloud-moon.jpg'" alt="梦境画面" @error="fallback"><p>{{text(selected)}}</p><template v-if="selected.coreReport"><h3>梦境内核测试报告</h3><p>{{selected.coreReport.primary}} × {{selected.coreReport.secondary}}</p><p>{{selected.coreReport.inner}}</p><p>{{selected.coreReport.gravity}}</p></template></template>
    <section v-else-if="mode==='scene-detail'&&selected" class="reflection-page">
@@ -147,4 +149,11 @@ onMounted(async()=>{
 
 <style scoped>
 .gallery-library-controls{display:flex;align-items:center;justify-content:center;gap:18px;flex-wrap:wrap;margin:12px 0;font-size:13px;color:#81758e}.gallery-library-controls select,.gallery-library-controls button{font:inherit;color:inherit;background:#faf7fc;border:1px solid #ded5e8;border-radius:12px;padding:8px 12px}.gallery-library-controls select{margin-left:8px}
+.gallery-library-controls{gap:16px;margin:20px 0 28px}
+.gallery-library-controls label{display:flex;align-items:center;gap:12px;margin:0;line-height:1.5}
+.gallery-library-controls select{box-sizing:border-box;margin:0;min-width:160px;height:44px;padding:8px 34px 8px 14px}
+.gallery-library-controls button{box-sizing:border-box;height:44px;padding:8px 16px;line-height:1.5}
+.gallery-library-controls>span{white-space:nowrap;line-height:1.5;min-width:48px;text-align:center}
+@media(max-width:600px){.gallery-library-controls{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;width:100%;max-width:360px;margin:20px auto 24px}.gallery-library-controls label{grid-column:1/-1;justify-content:space-between}.gallery-library-controls select{min-width:0;flex:1}.gallery-library-controls>span{text-align:left}.gallery-library-controls button{justify-self:end}}
+
 </style>

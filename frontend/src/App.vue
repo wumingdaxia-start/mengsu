@@ -47,6 +47,8 @@ const flowerPointer = { id: null, startX: 0, startY: 0, originX: 0, originY: 0 }
 const touch = { x: 0, y: 0, active: false }
 const weatherCity = ref('beijing')
 const weatherBusy = ref(false)
+const locatingWeather = ref(false)
+const weatherLocationError = ref('')
 const weatherRequest = ref(0)
 const weather = ref({
   label: '北京',
@@ -342,27 +344,41 @@ async function loadWeather(latitude, longitude, label) {
 }
 
 function chooseWeatherCity() {
+  if (!weatherCity.value) { void locateWeather(); return }
+  weatherLocationError.value = ''
   const city = weatherCities[weatherCity.value]
   if (city) loadWeather(city[0], city[1], city[2])
 }
 
-function locateWeather() {
-  if (!navigator.geolocation) {
-    weatherUnavailable('此浏览器不支持定位，请手动选择城市')
+async function locateWeather() {
+  if (locatingWeather.value) return
+  weatherLocationError.value = ''
+  if (!window.isSecureContext) {
+    weatherLocationError.value = '手机定位需要 HTTPS 安全网址，请使用 HTTPS 打开网站，或手动选择城市。'
     return
   }
-  weatherBusy.value = true
-  navigator.geolocation.getCurrentPosition(
-    (position) => {
-      weatherCity.value = ''
-      loadWeather(position.coords.latitude, position.coords.longitude, '当前位置')
-    },
-    () => {
-      weatherBusy.value = false
-      weatherUnavailable('未获得定位权限，请手动选择城市')
-    },
-    { timeout: 8000, maximumAge: 600000 }
-  )
+  if (!navigator.geolocation) {
+    weatherLocationError.value = '当前浏览器不支持定位，请在系统浏览器打开，或手动选择城市。'
+    return
+  }
+  locatingWeather.value = true
+  const position = options => new Promise((resolve, reject) => navigator.geolocation.getCurrentPosition(resolve, reject, options))
+  try {
+    let result
+    try { result = await position({ enableHighAccuracy: false, timeout: 15000, maximumAge: 300000 }) }
+    catch (error) {
+      if (error.code === 1) throw error
+      result = await position({ enableHighAccuracy: true, timeout: 15000, maximumAge: 300000 })
+    }
+    weatherCity.value = ''
+    await loadWeather(result.coords.latitude, result.coords.longitude, '当前位置')
+  } catch (error) {
+    weatherLocationError.value = error.code === 1
+      ? '定位权限未开启，请在浏览器的网站权限及手机系统设置中允许位置访问，再重试。也可以手动选择城市。'
+      : error.code === 3
+        ? '定位等待超时，请确认手机定位已开启、网络正常后重试，或手动选择城市。'
+        : '暂时无法获取位置，请开启手机定位；微信等内置浏览器可改用系统浏览器打开，或手动选择城市。'
+  } finally { locatingWeather.value = false }
 }
 
 onMounted(() => {
@@ -430,15 +446,15 @@ onBeforeUnmount(() => {
               <span>城市天气</span>
               <label class="weather-city-select">
                 <span class="sr-only">选择城市</span>
-                <select v-model="weatherCity" :disabled="weatherBusy" aria-label="选择城市" @change="chooseWeatherCity">
+                <select v-model="weatherCity" :disabled="weatherBusy || locatingWeather" aria-label="选择城市" @change="chooseWeatherCity">
                   <option value="">当前位置</option>
                   <option v-for="(city, key) in weatherCities" :key="key" :value="key">{{ city[2] }}</option>
                 </select>
               </label>
-              <button type="button" class="header-weather-location" :disabled="weatherBusy" @click="locateWeather">定位</button>
+              <button type="button" class="header-weather-location" :disabled="weatherBusy || locatingWeather" @click="locateWeather">{{ locatingWeather ? '定位中…' : '定位' }}</button>
             </div>
             <div class="header-weather-main"><strong>{{ weather.temperature }}</strong><b>{{ weather.condition }}</b><span>{{ weather.forecast }}</span></div>
-            <p>{{ weather.tip }}</p>
+            <p :role="weatherLocationError ? 'status' : undefined">{{ weatherLocationError || weather.tip }}</p>
           </div>
         </section>
         <div class="app-head-right">
@@ -456,7 +472,7 @@ onBeforeUnmount(() => {
       </section>
       <RouterView v-else :key="workspaceKey === 'dream' ? dreamOwner : workspaceKey" v-slot="{ Component }">
         <Transition :name="direction === 'forward' ? 'push-left' : 'push-right'" mode="out-in">
-          <div :key="route.path" class="route-surface"><section v-if="route.meta.dreamIntro && route.path !== '/dream'" class="dream-page-intro"><h1>{{ route.meta.label }}</h1><p>{{ route.meta.dreamIntro }}</p></section><component :is="Component" :go="go" /><p v-if="workspaceKey === 'dream'" style="margin:28px 0;text-align:center;color:#9298a6;font-size:11px;line-height:1.8">本工具仅用于个人感受观察，不具备医疗、心理诊疗、解梦占卜功能。</p></div>
+          <div :key="route.path" class="route-surface"><section v-if="route.meta.dreamIntro && route.path !== '/dream'" class="dream-page-intro"><h1>{{ route.meta.label }}</h1><p>{{ route.meta.dreamIntro }}</p></section><component :is="Component" :go="go" /><p v-if="workspaceKey === 'dream' && !['/dream/night-talk','/dream/bedtime-stories'].includes(route.path)" style="margin:28px 0;text-align:center;color:#9298a6;font-size:11px;line-height:1.8">本工具仅用于个人感受观察，不具备医疗、心理诊疗、解梦占卜功能。</p></div>
         </Transition>
       </RouterView>
     </main>
@@ -522,8 +538,8 @@ onBeforeUnmount(() => {
           <span>{{ item.label }}</span>
         </button>
       </div>
-      <button class="health-nav-profile" :class="{ active: spaceOpen || route.path === '/psychology/space' }" :aria-expanded="workspaceKey === 'psychology' ? undefined : spaceOpen" :aria-current="route.path === '/psychology/space' ? 'page' : undefined" @click="openMySpace">
-        <span class="profile-seal">{{ workspaceKey === 'psychology' ? '心' : '梦' }}</span><span><strong>我的空间</strong><small v-if="workspaceKey === 'dream'">账号设置、记录导出、个人偏好管理</small></span><b aria-hidden="true">{{ workspaceKey === 'psychology' ? '›' : spaceOpen ? '⌃' : '···' }}</b>
+      <button class="health-nav-profile" :class="{ active: spaceOpen || ['/psychology/space','/dream/space'].includes(route.path) }" :aria-expanded="['psychology','dream'].includes(workspaceKey) ? undefined : spaceOpen" :aria-current="['/psychology/space','/dream/space'].includes(route.path) ? 'page' : undefined" @click="openMySpace">
+        <span class="profile-seal">{{ workspaceKey === 'psychology' ? '心' : '梦' }}</span><span><strong>我的空间</strong><small v-if="workspaceKey === 'dream'">个人信息、梦境记录与故事收藏</small></span><b aria-hidden="true">{{ ['psychology','dream'].includes(workspaceKey) ? '›' : spaceOpen ? '⌃' : '···' }}</b>
       </button>
       <div v-if="spaceOpen && workspaceKey !== 'psychology'" class="health-nav-space-menu">
         <button type="button" @click="router.push('/settings/ai');spaceOpen=false"><span>AI 服务设置</span><b aria-hidden="true">↗</b></button>

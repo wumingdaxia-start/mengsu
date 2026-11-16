@@ -1,4 +1,5 @@
 <script setup>
+import PsychDatePicker from '../components/PsychDatePicker.vue'
 import { useStablePageScroll } from '../composables/useStablePageScroll'
 const stablePage = useStablePageScroll()
 import { computed, onMounted, onBeforeUnmount, ref, watch } from 'vue'
@@ -186,7 +187,7 @@ onBeforeUnmount(() => { testVersion++; pauseBreathing(); window.removeEventListe
       <small>测试记录保存在当前账号，仅供娱乐与自我探索。</small>
     </section>
     <div v-if="!['overview', 'space', 'support'].includes(section)" class="psych-content-grid" :class="{ 'single-panel': section !== 'overview' }">
-      <section v-if="['overview', 'journal'].includes(section)" class="psych-panel mood-editor"><div class="psych-panel-heading"><div><span class="psych-eyebrow">此刻的心情</span><h2>哪一个，更接近现在的你？</h2></div><label class="psych-date-label">记录日期<input v-model="day" type="date" :max="today()" required /></label></div>
+      <section v-if="['overview', 'journal'].includes(section)" class="psych-panel mood-editor"><div class="psych-panel-heading"><div><span class="psych-eyebrow">此刻的心情</span><h2>哪一个，更接近现在的你？</h2></div><div class="psych-date-label">记录日期<PsychDatePicker v-model="day" :max="today()" /></div></div>
         <form @submit.prevent="save"><fieldset class="mood-selector"><legend class="visually-hidden">选择心情</legend><button v-for="item in moods" :key="item.value" type="button" :class="{ selected: mood === item.value }" :aria-pressed="mood === item.value" :style="{ '--mood-color': item.color }" @click="mood = item.value"><span aria-hidden="true">{{ item.symbol }}</span><b>{{ item.value }}</b></button></fieldset>
         <label class="psych-field">发生了什么，或者有什么想说的？<textarea v-model="note" rows="4" maxlength="2000" placeholder="今天有一点累，也有一件让自己开心的小事……（可不填）" /><small>{{ note.length }} / 2000</small></label><fieldset class="psych-trigger-field"><legend>可能与什么有关？<span>（可多选）</span></legend><div><button v-for="item in triggers" :key="item" type="button" :class="{ selected: selectedTriggers.includes(item) }" :aria-pressed="selectedTriggers.includes(item)" @click="toggleTrigger(item)">{{ item }}</button></div></fieldset><div class="psych-save-row"><span>只保存在当前浏览器，按登录标记分开存放。</span><button class="psych-primary" type="submit">保存这份心情 ↗</button></div></form>
       </section>
