@@ -333,7 +333,7 @@ async function loadWeather(latitude, longitude, label) {
       temperature: `${Math.round(temperature)}°`,
       condition: `${label} · ${condition}`,
       forecast: `今日 ${Math.round(daily.temperature_2m_min[0])}–${Math.round(daily.temperature_2m_max[0])}° · 明日最高 ${Math.round(daily.temperature_2m_max[1] ?? daily.temperature_2m_max[0])}°`,
-      tip: weatherAdvice(temperature, rain),
+      tip: (data.stale ? '天气暂未更新，显示最近缓存 · ' : '') + weatherAdvice(temperature, rain),
       kind
     }
   } catch (error) {

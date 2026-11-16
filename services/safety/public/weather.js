@@ -61,7 +61,7 @@
       find('weatherTemp').textContent = Math.round(now.temperature_2m) + '°';
       find('weatherCondition').textContent = label + ' · ' + description;
       find('weatherForecast').textContent = '今日 ' + Math.round(daily.temperature_2m_min[0]) + '–' + Math.round(daily.temperature_2m_max[0]) + '° · 明日最高 ' + Math.round(daily.temperature_2m_max[1] ?? daily.temperature_2m_max[0]) + '°';
-      find('weatherTip').textContent = advice(now.temperature_2m, rain);
+      find('weatherTip').textContent = (data.stale ? '天气暂未更新，显示最近缓存 · ' : '') + advice(now.temperature_2m, rain);
       find('weatherCard').classList.remove('is-loading');
     } catch (error) { if (currentRequest === requestNumber) unavailable(error.message || '请稍后重试'); }
   }
