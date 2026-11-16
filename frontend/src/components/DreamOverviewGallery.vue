@@ -1,5 +1,5 @@
 <script setup>
-import { computed, nextTick, onMounted, ref } from 'vue'
+import { computed, nextTick, onMounted, ref, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { computed as accountComputed } from 'vue'
 import { readDream, writeDream } from '../dream-account'
@@ -16,25 +16,22 @@ const examples=[
  {id:'example-home',title:'旧屋灯光',date:'2026-10-20',image:'/dream-overview/old-room.jpg',place:'旧屋',people:'熟悉的身影',signal:'窗帘轻轻晃动，桌上那盏灯，和记忆里的光一样温暖。',feeling:'怀旧',motif:'灯光'},
  {id:'example-school',title:'回到教室',date:'2026-10-18',image:'/dream-overview/classroom.jpg',place:'高中教室',people:'我、同桌',signal:'我们在讨论一道题，他笑着递来笔，窗外的树叶沙沙作响。',feeling:'平静',motif:'旧屋'}
 ]
-const addedExamples = ['library-example-19','library-example-20','library-example-01','library-example-02'].map(id => {
- const dream = demoDreams.find(item => item.id === id)
- const details = {
-  'library-example-19': { place:'雪地木屋', people:'我、久未见面的朋友' },
-  'library-example-20': { place:'收藏风的阁楼', people:'我' },
-  'library-example-01': { place:'银河边、山顶邮筒', people:'我' },
-  'library-example-02': { place:'海底琴房', people:'我、海龟' }
- }
- return dream ? { ...dream, ...details[id] } : null
-}).filter(Boolean)
-const cards=computed(()=>personal.value.length?personal.value:[...examples,...addedExamples])
-const visible=computed(()=>[-1,0,1].map(offset=>({offset,card:cards.value[(active.value+offset+cards.value.length)%cards.value.length]})))
+const libraryMode=ref('全部梦库')
+const cards=computed(()=>{
+ const own=personal.value.map(c=>({...c,demo:false}))
+ const demo=demoDreams.map(c=>({...c,demo:true}))
+ const collection=libraryMode.value==='我的记录'?own:libraryMode.value==='示例梦库'?demo:[...own,...demo]
+ return [...new Map(collection.map(c=>[String(c.id),c])).values()].sort((a,b)=>Number(b.id==='library-example-16')-Number(a.id==='library-example-16'))
+})
+watch(cards,()=>{active.value=0})
+const visible=computed(()=>(cards.value.length?[-1,0,1]:[]).map(offset=>({offset,card:cards.value[(active.value+offset+cards.value.length)%cards.value.length]})))
 const places=computed(()=>{const groups=new Map();cards.value.forEach(c=>{const name=c.place||c.location;if(name){const key=String(name);if(groups.has(key))groups.get(key).count++;else groups.set(key,{name:key,count:1,card:c})}});return [...groups.values()]})
 const links=computed(()=>{const pairs=[];cards.value.forEach((a,i)=>cards.value.slice(i+1).forEach(b=>{const signals=[a.feeling||a.emotion,a.motif].filter(Boolean).filter(x=>[b.feeling||b.emotion,b.motif].includes(x));if(signals.length)pairs.push({a,b,signal:signals.join(' / ')})}));return pairs})
 const sceneCopy=computed(()=>dreamSceneCopy[selected.value?.id]||{tags:['梦里的一幕','留下的声音','此刻的感受'],placeholder:'写下你愿意留下的画面、声音或感受……',pauseTitle:'给此刻留一点空间',pauseText:'不必立刻弄懂这个梦。你可以只写下一点记得的东西，也可以先停在这里。',caption:'这段记忆，由你决定怎样留下。'})
 const text=c=>dreamSceneCopy[c.id]?.description||c.signal||c.text||c.summary||c.title||'醒来时留下的一束意识碎片。'
 const people=c=>Array.isArray(c.people)?c.people.join('、'):c.people||'尚未留下人物线索'
 const place=c=>Array.isArray(c.place||c.location)?(c.place||c.location).join(' / '):c.place||c.location||'尚未标记'
-function move(n){active.value=(active.value+n+cards.value.length)%cards.value.length}
+function move(n){if(!cards.value.length)return;active.value=(active.value+n+cards.value.length)%cards.value.length}
 function fallback(e){e.target.onerror=null;e.target.src='/dream-overview/cloud-moon.jpg'}
 async function open(type,card){mode.value=type;selected.value=card;await nextTick();if(!modal.value.open)modal.value.showModal()}
 function login(){router.push(isLoggedIn()?'/capture':'/login?next=/dream')}
@@ -66,10 +63,11 @@ onMounted(async()=>{
 <template>
  <section class="overview-gallery">
   <header class="gallery-heading"><h1>花屿星 <span>梦境空间</span></h1><p>记录每一个梦境，连接每一段记忆</p><small lang="en">Record Every Dream, Connect Every Memory</small></header>
-  <p class="gallery-notice" aria-live="polite">{{loading?'正在迎接你的梦境…':notice|| (personal.length?'你的意识快照':'示例梦境 · 不代表个人记录')}}</p>
-  <section class="gallery-carousel" aria-label="梦境快照轮播" aria-roledescription="轮播" tabindex="0" @keydown.left.prevent="move(-1)" @keydown.right.prevent="move(1)" @touchstart.passive="touchX=$event.touches[0].clientX" @touchend.passive="swipe">
+  <p class="gallery-notice" aria-live="polite">{{loading?'正在迎接你的梦境…':notice|| ('梦库共 '+cards.length+' 条 · 示例与个人记录分别标注')}}</p>
+  <div class="gallery-library-controls"><label>浏览范围 <select v-model="libraryMode"><option>全部梦库</option><option>我的记录</option><option>示例梦库</option></select></label><span aria-live="polite">{{cards.length?active+1:0}} / {{cards.length}}</span><button @click="router.push('/dream/library')">打开完整梦库</button></div><p v-if="!cards.length" class="gallery-notice">这里还没有个人记录，可以先记一场梦，或切换到示例梦库。</p>
+  <section v-if="cards.length" class="gallery-carousel" aria-label="梦境快照轮播" aria-roledescription="轮播" tabindex="0" @keydown.left.prevent="move(-1)" @keydown.right.prevent="move(1)" @touchstart.passive="touchX=$event.touches[0].clientX" @touchend.passive="swipe">
    <article v-for="item in visible" :key="item.offset" class="dream-slide" :class="'position-'+item.offset" :aria-hidden="item.offset!==0">
-    <div class="slide-meta"><strong>梦境 <small>Dream</small></strong><time>{{String(item.card.date||item.card.created_at||'').slice(0,10).replaceAll('-','.')}}</time><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 1v3m0 16v3M1 12h3m16 0h3M4 4l2 2m12 12 2 2M4 20l2-2M18 6l2-2"/></svg></div>
+    <div class="slide-meta"><strong>{{item.card.demo?'示例梦境':'我的梦境'}} <small>Dream</small></strong><time>{{String(item.card.date||item.card.created_at||'').slice(0,10).replaceAll('-','.')}}</time><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 1v3m0 16v3M1 12h3m16 0h3M4 4l2 2m12 12 2 2M4 20l2-2M18 6l2-2"/></svg></div>
     <button class="slide-picture" :tabindex="item.offset===0?0:-1" :aria-label="'查看'+(item.card.title||'意识快照')" @click="open('detail',item.card)"><img :src="item.card.image||'/dream-overview/cloud-moon.jpg'" :alt="item.card.title||'梦境画面'" @error="fallback"><span>{{item.card.title||'一场夜里的梦'}}</span></button>
     <p class="slide-line"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 10c0 5-7 11-7 11S5 15 5 10a7 7 0 1 1 14 0Z"/><circle cx="12" cy="10" r="2"/></svg>地点：{{place(item.card)}}</p>
     <p class="slide-line"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="7" r="3"/><path d="M3 21v-3a6 6 0 0 1 12 0v3m1-17a3 3 0 0 1 0 6m3 11v-3a6 6 0 0 0-2-4"/></svg>人物：{{people(item.card)}}</p>
@@ -84,7 +82,7 @@ onMounted(async()=>{
   </section>
   <div class="gallery-login"><p>{{isLoggedIn()?'把醒来时的片段，轻轻留下':'登录 / 注册，留存你的梦境'}}</p><button @click="login">{{isLoggedIn()?'捕捉昨夜快照':'登录 / 注册'}}</button></div>
   <dialog ref="modal" :class="['gallery-dialog', {'scene-dialog':mode==='map'||mode==='network', 'reflection-dialog':mode==='scene-detail'}]" aria-label="梦境探索详情" @click="($event.target===modal)&&modal.close()"><div class="gallery-dialog-body"><button v-if="mode!=='map'&&mode!=='network'&&mode!=='scene-detail'" class="dialog-close icon-close" aria-label="关闭" @click="modal.close()"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg></button>
-   <template v-if="mode==='detail'&&selected"><small>{{personal.length?'我的意识快照':'示例梦境'}} · {{selected.feeling||selected.emotion||'醒来时的感受'}}</small><h2>{{selected.title||'意识快照'}}</h2><img class="detail-image" :src="selected.image||'/dream-overview/cloud-moon.jpg'" alt="梦境画面" @error="fallback"><p>{{text(selected)}}</p><template v-if="selected.coreReport"><h3>梦境内核测试报告</h3><p>{{selected.coreReport.primary}} × {{selected.coreReport.secondary}}</p><p>{{selected.coreReport.inner}}</p><p>{{selected.coreReport.gravity}}</p></template></template>
+   <template v-if="mode==='detail'&&selected"><small>{{selected.demo?'示例梦境':'我的意识快照'}} · {{selected.feeling||selected.emotion||'醒来时的感受'}}</small><h2>{{selected.title||'意识快照'}}</h2><img class="detail-image" :src="selected.image||'/dream-overview/cloud-moon.jpg'" alt="梦境画面" @error="fallback"><p>{{text(selected)}}</p><template v-if="selected.coreReport"><h3>梦境内核测试报告</h3><p>{{selected.coreReport.primary}} × {{selected.coreReport.secondary}}</p><p>{{selected.coreReport.inner}}</p><p>{{selected.coreReport.gravity}}</p></template></template>
    <section v-else-if="mode==='scene-detail'&&selected" class="reflection-page">
     <nav class="reflection-nav"><button @click="returnToScene">‹ {{sceneOrigin==='network'?'丝线网络':'梦境地图'}}</button><span>{{selected.title}}</span></nav>
     <article class="reflection-card">
@@ -145,4 +143,8 @@ onMounted(async()=>{
 .reflection-dialog .gallery-dialog-body{padding:24px 36px}.reflection-nav{display:flex;align-items:center;gap:24px;color:#7c6d95;margin-bottom:20px}.reflection-nav button{border:0;background:none;color:inherit;font-family:SimSun,serif;font-size:22px}.reflection-nav>span{margin:auto;padding-right:120px;font-family:SimSun,serif;font-size:25px}.reflection-card{background:#fffdfef2;border:1px solid white;border-radius:30px;box-shadow:0 8px 28px #80729c15;overflow:hidden}.reflection-card>header{display:flex;align-items:center;justify-content:space-between;padding:24px 32px;border-bottom:1px solid #f3eff6}.reflection-card>header h2{margin:0;font-family:SimSun,serif;font-size:28px;font-weight:400}.reflection-close{width:38px;height:38px;border:0;border-radius:50%;background:#f1edf9;color:#8b7b9c;font-size:28px}.reflection-columns{display:grid;grid-template-columns:1fr 1.1fr;gap:32px;padding:30px 32px}.reflection-copy{min-width:0}.reflection-copy h3{font-family:SimSun,serif;font-size:19px;font-weight:400;margin:0 0 16px;padding-bottom:14px;border-bottom:1px solid #eeeaf2}.reflection-copy p{font-size:15px;line-height:1.9}.reflection-copy textarea{display:block;box-sizing:border-box;width:100%;min-height:130px;resize:vertical;border:1px solid #e3dce8;border-radius:14px;padding:14px;background:#fff;color:#625969;font:inherit;font-size:15px;line-height:1.7}.reflection-copy textarea:focus-visible{outline:2px solid #b7a3cf;outline-offset:3px}.reflection-tags{display:flex;flex-wrap:wrap;gap:14px;margin:20px 0 24px}.reflection-tags span{padding:6px 16px;border:1px solid #ece0d4;border-radius:30px;background:#fcf2e6;font-size:14px}.reflection-tags span:nth-child(2){background:#e9f1fc;border-color:#d7e0ed}.reflection-tags span:nth-child(3){background:#eee9fc;border-color:#e0d9ee}.reflection-pause{padding:22px;border-radius:24px;background:linear-gradient(130deg,#f8f5fc,#f3effa)}.reflection-actions{display:flex;flex-wrap:wrap;gap:14px;padding-top:18px;border-top:1px dashed #e7e0ed}.reflection-actions button{flex:1;min-width:140px;border:1px solid #dfd4df;border-radius:24px;padding:10px 12px;background:#fbf8f2;color:#70617d}.reflection-actions button+button{background:#ddd5ed;border-color:#cbc0df}.reflection-actions button:disabled{opacity:.65;cursor:default}.reflection-columns figure{margin:0;min-width:0}.reflection-columns figure img{width:100%;height:460px;display:block;object-fit:cover;border-radius:22px}.reflection-columns figcaption{text-align:center;font-size:13px;color:#857b89;margin:22px 0}.reflection-page footer{text-align:center;font-size:13px;color:#81768c;margin-top:22px}.reflection-copy .reflection-status{font-size:13px;margin-bottom:0}.reflection-page button{transition:transform 180ms cubic-bezier(.2,.8,.2,1)}.reflection-page button:hover:not(:disabled){transform:translateY(-1px)}
 @media(max-width:700px){.reflection-dialog .gallery-dialog-body{padding:16px 12px}.reflection-nav>span{display:none}.reflection-card>header{padding:20px}.reflection-columns{grid-template-columns:1fr;padding:20px;gap:24px}.reflection-columns figure img{height:300px}.reflection-tags{gap:8px}.reflection-tags span{padding:6px 10px}.reflection-pause{padding:16px}.reflection-actions button{min-width:120px}.reflection-page footer{line-height:1.7}.gallery-dialog.reflection-dialog{width:calc(100vw - 16px)}}
 @media(prefers-reduced-motion:reduce){.reflection-page button{transition:none}}
+</style>
+
+<style scoped>
+.gallery-library-controls{display:flex;align-items:center;justify-content:center;gap:18px;flex-wrap:wrap;margin:12px 0;font-size:13px;color:#81758e}.gallery-library-controls select,.gallery-library-controls button{font:inherit;color:inherit;background:#faf7fc;border:1px solid #ded5e8;border-radius:12px;padding:8px 12px}.gallery-library-controls select{margin-left:8px}
 </style>

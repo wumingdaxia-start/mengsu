@@ -184,6 +184,30 @@ async function handler(req,res){const url=new URL(req.url,'http://localhost');
  const aggregate=(field,weight)=>{const total=details.reduce((n,d)=>n+d[weight],0);return total?Math.round(details.reduce((n,d)=>n+(d[field]||0)*d[weight],0)/total*10)/10:null};
  return json(res,200,{updated:today(),users:details,summary:{registeredUsers:users.length,usersWithData:details.filter(d=>d.exerciseCount+d.dietCount+d.sleepCount+d.visionCount>0).length,exerciseRecords:details.reduce((n,d)=>n+d.exerciseCount,0),dietRecords:details.reduce((n,d)=>n+d.dietCount,0),sleepRecords:details.reduce((n,d)=>n+d.sleepCount,0),visionRecords:details.reduce((n,d)=>n+d.visionCount,0),averageSleepHours:aggregate('averageSleepHours','sleepCount'),averageSleepQuality:aggregate('averageSleepQuality','qualityResponseCount'),qualityResponseCount,averageMealCalories:aggregate('averageMealCalories','dietCount'),averageMealProtein:aggregate('averageMealProtein','dietCount'),challengeParticipants:details.filter(d=>d.challengeScore>0).length}});
  }
+ if(url.pathname==='/api/community'||url.pathname.startsWith('/api/community/')){
+  const session=getSession(req),user=session&&(await readUsers()).find(x=>x.id===session.userId);
+  const file=options.communityFile||path.join(__dirname,'../../data/safety/community.json');
+  const load=()=>{try{return JSON.parse(fs.readFileSync(file,'utf8'))}catch(e){if(e.code==='ENOENT')return [];throw e}};
+  const publicPost=p=>({id:p.id,date:p.date,title:p.title,text:p.text,image:p.image,author:p.author,topic:p.topic,mine:String(user?.id)===p.owner,liked:p.likes.includes(String(user?.id)),likeCount:p.likes.length,comments:p.comments.map(c=>({id:c.id,date:c.date,text:c.text,author:c.author}))});
+  if(req.method==='GET')return json(res,200,{posts:load().map(publicPost)});
+  if(!user||isAdmin(user))return json(res,401,{message:'请先登录个人账号后分享'});
+  let input;try{input=await readBody(req,16*1024*1024)}catch{return json(res,400,{message:'分享内容格式不正确'})}
+  const posts=load(),id=url.pathname.split('/')[3],post=posts.find(p=>p.id===id),owner=String(user.id);
+  const author='梦游者 '+crypto.createHash('sha256').update(owner).digest('hex').slice(0,6).toUpperCase();
+  if(req.method==='POST'&&!id){
+   const title=String(input.title||'').trim(),text=String(input.text||'').trim(),image=String(input.image||'');
+   if(!title||title.length>60||!text||text.length>2000||image.length>12*1024*1024||image&&!/^(data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+|\/(?!\/)[^\s]*)$/.test(image))return json(res,400,{message:'请检查标题、正文和图片内容'});
+   posts.unshift({id:crypto.randomUUID(),owner,author,date:today(),title,text,image,topic:['轻盈的梦','温暖的梦','未说完的梦'].includes(input.topic)?input.topic:'温暖的梦',likes:[],comments:[]});
+  }else{
+   if(!post)return json(res,404,{message:'这条分享已被移除'});
+   if(req.method==='DELETE'){if(post.owner!==owner)return json(res,403,{message:'只能删除自己的分享'});posts.splice(posts.indexOf(post),1)}
+   else if(req.method==='POST'&&url.pathname.endsWith('/like')){post.likes=post.likes.includes(owner)?post.likes.filter(x=>x!==owner):[...post.likes,owner]}
+   else if(req.method==='POST'&&url.pathname.endsWith('/comments')){const text=String(input.text||'').trim();if(!text||text.length>300)return json(res,400,{message:'回应请保持在1至300字'});if(post.comments.length>=500)return json(res,400,{message:'这条分享的回应已满'});post.comments.push({id:crypto.randomUUID(),date:today(),text,author})}
+   else return json(res,405,{message:'请求方式不支持'});
+  }
+  fs.mkdirSync(path.dirname(file),{recursive:true});fs.writeFileSync(file+'.tmp',JSON.stringify(posts));fs.renameSync(file+'.tmp',file);
+  return json(res,200,{posts:posts.map(publicPost)});
+ }
  if(url.pathname==='/api/dream-data'){
   const session=getSession(req),user=session&&(await readUsers()).find(x=>x.id===session.userId);
   if(!user)return json(res,401,{message:'请先登录后保存或查看梦境记录'});
