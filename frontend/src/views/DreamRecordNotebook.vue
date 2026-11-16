@@ -1,4 +1,5 @@
 <script setup>
+import { recordId } from '../record-id'
 import { computed, ref, onBeforeUnmount } from 'vue'
 import { dreamMetadata } from '../dream-metadata'
 import DreamLibraryArchive from './DreamLibraryView.vue'
@@ -21,7 +22,7 @@ function speak(){
  recognition.onend=()=>listening.value=false
  try{recognition.start();listening.value=true}catch{message.value='麦克风未能启动，请稍后重试。'}
 }
-async function save(){if(!text.value.trim()||busy.value)return;busy.value=true;message.value='';recognition?.stop();try{await commit('materials',[{id:crypto.randomUUID(),date:today(),title:text.value.slice(0,18),signal:text.value,...dreamMetadata({tags:selected.value}),kind:'dream-material'},...materials.value]);message.value='素材已保存，可在创作工坊的「查看素材」中找到。'}catch(e){message.value=e.message||'保存失败，请稍后再试。'}finally{busy.value=false}}
+async function save(){if(!text.value.trim()||busy.value)return;busy.value=true;message.value='';recognition?.stop();try{await commit('materials',[{id:recordId(),date:today(),title:text.value.slice(0,18),signal:text.value,...dreamMetadata({tags:selected.value}),kind:'dream-material'},...materials.value]);message.value='素材已保存，可在创作工坊的「查看素材」中找到。'}catch(e){message.value=e.message||'保存失败，请稍后再试。'}finally{busy.value=false}}
 onBeforeUnmount(()=>recognition?.stop())
 </script>
 <template>

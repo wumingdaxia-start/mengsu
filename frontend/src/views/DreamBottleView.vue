@@ -1,4 +1,5 @@
 <script setup>
+import { recordId } from '../record-id'
 import { dreamOwner, dreamReady, readDream, writeDream } from '../dream-account'
 import { computed, ref, watch, onMounted, onBeforeUnmount } from 'vue'
 import { safetyRequest } from '../auth'
@@ -38,8 +39,8 @@ const bottles=computed(()=>[...sharedSent.value,...privateBottles.value])
 const favorites=computed(()=>[...sharedFavorites.value,...privateFavorites.value])
 const sending=ref(false),picking=ref(false),replying=ref(false),replyText=ref(''),requestError=ref('')
 let generation=0,mailRequest=0,poll
-const submissionId=ref(crypto.randomUUID())
-watch(draft,()=>{submissionId.value=crypto.randomUUID()})
+const submissionId=ref(recordId())
+watch(draft,()=>{submissionId.value=recordId()})
 watch(()=>readDream('drift',{}),data=>{privateBottles.value=Array.isArray(data.bottles)?data.bottles:[];privateFavorites.value=Array.isArray(data.favorites)?data.favorites:[];stars.value=Array.isArray(data.stars)?data.stars:[];shell.value=data.shell||null},{immediate:true})
 watch([dreamOwner,dreamReady],()=>{generation++;sharedSent.value=[];sharedFavorites.value=[];picked.value=[];opened.value=null;draft.value='';replyText.value='';stage.value='home';sending.value=false;picking.value=false;replying.value=false;requestError.value='';if(dreamOwner.value&&dreamReady.value)void loadMailbox()},{immediate:true})
 watch(()=>opened.value?.id,()=>{replyText.value=''})

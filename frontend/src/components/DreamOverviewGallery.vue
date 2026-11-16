@@ -1,4 +1,5 @@
 <script setup>
+import { recordId } from '../record-id'
 import { computed, nextTick, onMounted, ref, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { computed as accountComputed } from 'vue'
@@ -49,7 +50,7 @@ async function saveSceneNote(){
  if(!sceneNote.value.trim()){saveMessage.value='写下一点此刻的感受就好，不想写也可以先返回。';return}
  if(!isLoggedIn()){saveMessage.value='登录后才能保存到账号。你写的内容会暂留在这里，可以继续浏览。';return}
  saving.value=true
- try{await writeDream('snapshots',[{id:crypto.randomUUID(),title:selected.value.title,image:selected.value.image,signal:sceneNote.value.trim(),date:new Date().toISOString().slice(0,10),feeling:selected.value.feeling||'平静'},...readDream('snapshots',[])]);saved.value=true;saveMessage.value='已记在你的梦境快照里。'}
+ try{await writeDream('snapshots',[{id:recordId(),title:selected.value.title,image:selected.value.image,signal:sceneNote.value.trim(),date:new Date().toISOString().slice(0,10),feeling:selected.value.feeling||'平静'},...readDream('snapshots',[])]);saved.value=true;saveMessage.value='已记在你的梦境快照里。'}
  catch(error){saveMessage.value=error.message||'暂时没能保存，文字仍在这里，请稍后重试。'}
  finally{saving.value=false}
 }
