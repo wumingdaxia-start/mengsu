@@ -1,11 +1,12 @@
 <script setup>
+import { recordId } from '../record-id'
 import { ref, watch, onMounted, onBeforeUnmount } from 'vue'
 import { safetyRequest } from '../auth'
 import { testAccount } from '../test-results'
 const props = defineProps({ record: Object })
 const busy=ref(false), saved=ref(false), message=ref(''), stale=ref(false)
-let owner=testAccount(), generation=0, id=crypto.randomUUID()
-watch(()=>props.record,()=>{ generation++; id=crypto.randomUUID(); saved.value=false; message.value=''; stale.value=false; owner=testAccount(); save() })
+let owner=testAccount(), generation=0, id=recordId()
+watch(()=>props.record,()=>{ generation++; id=recordId(); saved.value=false; message.value=''; stale.value=false; owner=testAccount(); save() })
 function accountChanged(){ if(owner!==testAccount()){generation++;stale.value=true;saved.value=false;message.value='账号已变化，请重新完成测试后保存。'} }
 onMounted(()=>{window.addEventListener('mengsu:auth-change',accountChanged);save()})
 onBeforeUnmount(()=>{generation++;window.removeEventListener('mengsu:auth-change',accountChanged)})

@@ -1,4 +1,5 @@
 <script setup>
+import { recordId } from '../record-id'
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { bedtimeStories } from '../data/bedtime-content'
@@ -12,7 +13,7 @@ const story=ref(bedtimeStories[0]),genre=ref('星空远行'),role=ref('朋友般
 const favoriteBusy=ref(false),expandedFavorite=ref(null),readingFavorite=ref(null)
 const favoriteStories=computed(()=>{const items=readDream('notes',{}).storyFavorites;return Array.isArray(items)?items:[]})
 const isStorySaved=computed(()=>!!customStory.value&&favoriteStories.value.some(item=>item.text===customStory.value))
-async function collectStory(){if(favoriteBusy.value||!customStory.value||isStorySaved.value)return;favoriteBusy.value=true;const item={id:crypto.randomUUID(),title:generatedTheme.value||genre.value.trim()||'今夜故事',text:customStory.value,createdAt:new Date().toISOString()};try{await save(commit,'notes',{...readDream('notes',{}),storyFavorites:[item,...favoriteStories.value]},'已收藏到当前账号的故事收藏')}finally{favoriteBusy.value=false}}
+async function collectStory(){if(favoriteBusy.value||!customStory.value||isStorySaved.value)return;favoriteBusy.value=true;const item={id:recordId(),title:generatedTheme.value||genre.value.trim()||'今夜故事',text:customStory.value,createdAt:new Date().toISOString()};try{await save(commit,'notes',{...readDream('notes',{}),storyFavorites:[item,...favoriteStories.value]},'已收藏到当前账号的故事收藏')}finally{favoriteBusy.value=false}}
 async function removeStory(item){if(favoriteBusy.value)return;favoriteBusy.value=true;try{if(await save(commit,'notes',{...readDream('notes',{}),storyFavorites:favoriteStories.value.filter(s=>s.id!==item.id)},'已取消收藏')){if(readingFavorite.value===item.id)stopVoice();if(expandedFavorite.value===item.id)expandedFavorite.value=null}}finally{favoriteBusy.value=false}}
 function readFavorite(item){if(readingFavorite.value===item.id&&(playing.value||ttsLoading.value)){stopVoice();return}stopVoice();void speak(false,item.text,item.id)}
 function openStories(){router.replace({path:'/dream/night-talk',query:{...route.query,section:'stories'}})}

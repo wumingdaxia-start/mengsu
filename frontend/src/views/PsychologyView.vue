@@ -1,4 +1,5 @@
 <script setup>
+import { recordId } from '../record-id'
 import PsychDatePicker from '../components/PsychDatePicker.vue'
 import { useStablePageScroll } from '../composables/useStablePageScroll'
 const stablePage = useStablePageScroll()
@@ -99,7 +100,7 @@ function save() {
   if (!isLoggedIn()) { message.value = '请先登录后保存，当前填写内容会留在这里。'; return }
   if (!mood.value) { message.value = '先选一个接近此刻感受的心情吧。'; return }
   if (!day.value || day.value > today()) { message.value = '请选择今天或之前的日期。'; return }
-  const record = { id: crypto.randomUUID(), date: day.value, mood: mood.value, note: note.value.trim(), triggers: [...selectedTriggers.value], createdAt: new Date().toISOString() }
+  const record = { id: recordId(), date: day.value, mood: mood.value, note: note.value.trim(), triggers: [...selectedTriggers.value], createdAt: new Date().toISOString() }
   if (persist([record, ...records.value])) { message.value = '这份心情已保存在当前浏览器。'; mood.value = ''; note.value = ''; selectedTriggers.value = [] }
 }
 function removeRecord(record) {
