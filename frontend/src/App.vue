@@ -462,7 +462,7 @@ onBeforeUnmount(() => {
     </main>
 
     <button
-      v-if="!chromeless && route.path !== '/ask'"
+      v-if="!chromeless && workspaceKey !== 'psychology' && route.path !== '/ask'"
       class="ai-fab flower-fab"
       :class="{ dragging: flowerDragging }"
       :style="flowerPosition"

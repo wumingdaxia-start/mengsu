@@ -30,7 +30,7 @@ function analysisWithInsight(){return analysis()+insightPanel()}
 function personalSpace(){
  const name=user?currentDisplayName():'欢迎来到你的安康空间';
  const total=user?data.exercise.length+data.diet.length+data.sleep.length+visionRecords().length:0;
- const summary=user?'<p>当前账号：'+escapeHtml(user.account||user.name)+'</p>':'<p>登录后，可在这里查看自己的健康档案和记录。</p><a class="primary login-link" href="'+loginUrl()+'">登录账号 →</a>';
+ const summary=user?'':'<p>登录后，可在这里查看自己的健康档案和记录。</p><a class="primary login-link" href="'+loginUrl()+'">登录账号 →</a>';
  const stats='<dl class="space-statistics"><div><dt>健康记录</dt><dd>'+total+'<small> 条</small></dd></div><div><dt>档案完整度</dt><dd>'+(user?profileCompletion(data.profile||{}):0)+'<small> %</small></dd></div><div><dt>运动 / 饮食 / 睡眠</dt><dd>'+(user?[data.exercise.length,data.diet.length,data.sleep.length].join(' / '):'0 / 0 / 0')+'</dd></div></dl>';
  return '<section class="card personal-space"><div class="section-head"><h2>'+escapeHtml(name)+'</h2><span>'+(user?'已登录':'游客模式')+'</span></div>'+summary+stats+'<p class="space-privacy-note">健康档案和记录按账号分别保存。</p><div class="space-shortcuts"><a href="#profile">个人档案 →</a><a href="#exercise">锻炼记录 →</a><a href="#diet">饮食记录 →</a><a href="#sleep">睡眠记录 →</a><a href="#analysis">健康分析 →</a></div></section>';
 }

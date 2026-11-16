@@ -50,6 +50,7 @@ function createMysqlPersistence(config,{pool:injectedPool}={}){
  };
  const psychologyTests={
   async read(id){await ready;const [rows]=await pool.execute('SELECT result_json,created_at FROM psychology_tests WHERE user_id=? ORDER BY created_at DESC,id DESC LIMIT 60',[String(id)]);return rows.map(row=>({...parsed(row.result_json),createdAt:new Date(row.created_at).toISOString()}))},
+  async remove(userId,id){await ready;const [result]=await pool.execute('DELETE FROM psychology_tests WHERE user_id=? AND id=?',[String(userId),id]);return result.affectedRows===1},
   async write(userId,record){await ready;await pool.execute('INSERT IGNORE INTO psychology_tests (user_id,id,result_json) VALUES (?,?,?)',[String(userId),record.id,JSON.stringify(record)])}
  };
  const afterReady=async()=>{await ready};

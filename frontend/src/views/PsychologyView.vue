@@ -16,6 +16,18 @@ async function loadTests(){
  catch(e){if(version===testVersion)testsError.value=e.message}
  finally{if(version===testVersion)testsLoading.value=false}
 }
+const deletingTest=ref(''),deleteTestError=ref('')
+async function removeTest(record){
+ if(deletingTest.value||!window.confirm('删除这次测试及其完整解读？删除后无法恢复。'))return
+ const owner=testAccount();if(!owner)return
+ deletingTest.value=record.id;deleteTestError.value=''
+ try{
+  await safetyRequest('/api/psychology-tests',{method:'DELETE',headers:{'Content-Type':'application/json','X-Health-User':owner},body:JSON.stringify({id:record.id})})
+  if(owner!==testAccount())return
+  testVersion++;testsLoading.value=false;testRecords.value=testRecords.value.filter(item=>item.id!==record.id)
+ }catch(error){if(owner===testAccount())deleteTestError.value=error.message||'删除失败，请重试。'}
+ finally{deletingTest.value=''}
+}
 const latestTest=type=>testRecords.value.find(r=>r.type===type)
 const resultDate=value=>new Date(value).toLocaleString('zh-CN',{hour12:false})
 const props = defineProps({ section: { type: String, default: 'overview' } })
@@ -154,7 +166,7 @@ onBeforeUnmount(() => { testVersion++; pauseBreathing(); window.removeEventListe
     <p v-if="storageError" role="alert">{{ storageError }}</p>
     <section v-if="section === 'space'" class="psych-panel psych-space-account">
       <div class="psych-panel-heading"><div><span class="psych-eyebrow">心灵 / 我的账号</span><h2>{{ loggedIn ? (spaceAccount?.name || '我的账号') : '欢迎来到你的心灵空间' }}</h2></div><span>{{ loggedIn ? '已登录' : '游客模式' }}</span></div>
-      <p v-if="loggedIn">账号：{{ spaceAccount?.account || spaceAccount?.email }}</p><p v-else>登录后，这里会显示属于你的测试结果和心情记录。</p>
+      <p v-if="!loggedIn">登录后，这里会显示属于你的测试结果和心情记录。</p>
       <dl class="psych-space-stats"><div><dt>已保存测试</dt><dd>{{ testsLoading ? '读取中…' : testsError ? '读取失败' : testRecords.length }}<small v-if="!testsLoading && !testsError"> 次</small></dd></div><div><dt>心情记录</dt><dd>{{ records.length }}<small> 次</small></dd></div><div><dt>最近的感受</dt><dd>{{ latest?.mood || '还没有记录' }}</dd></div></dl>
       <p class="psych-space-note">测试结果保存在当前账号；心情记录保存在当前浏览器，并按账号区分。</p>
       <div class="psych-space-links"><RouterLink to="/psychology/journal">记录心情 →</RouterLink><RouterLink to="/psychology/history">查看情绪回顾 →</RouterLink></div>
@@ -167,8 +179,10 @@ onBeforeUnmount(() => { testVersion++; pauseBreathing(); window.removeEventListe
     <section v-if="['overview', 'analysis', 'space'].includes(section)" class="psych-panel saved-tests">
       <div class="psych-panel-heading"><div><span class="psych-eyebrow">心绪活动 / 我的测试</span><h2>留下探索自己的片段</h2></div><button :disabled="testsLoading" @click="loadTests">{{ testsLoading?'读取中…':'刷新记录' }}</button></div>
       <p v-if="testsError" role="alert">{{ testsError }} <button @click="loadTests">重试</button></p>
+      <div class="saved-test-grid">
       <article v-for="kind in testKinds" :key="kind.type" class="saved-test-row"><div><h3>{{ kind.name }} <small>{{ latestTest(kind.type)?'已保存':testsLoading?'读取中':'尚未保存' }}</small></h3><template v-if="latestTest(kind.type)"><strong>{{ latestTest(kind.type).title }}</strong><p>{{ latestTest(kind.type).summary }}</p><time>{{ resultDate(latestTest(kind.type).createdAt) }}</time></template><p v-else>{{ testsLoading?'正在读取你的测试结果…':loggedIn?'登录后完成测试，结果会自动保存并显示在这里。':'登录后可保存并查看自己的测试结果。' }}</p></div><RouterLink :to="kind.path">{{ latestTest(kind.type)?'再测一次':'开始测试' }} →</RouterLink></article>
-      <details v-if="testRecords.length" class="test-archive"><summary>查看已保存的测试与完整解读（最近 {{ testRecords.length }} 次）</summary><details v-for="record in testRecords" :key="record.id" class="test-detail"><summary>{{ testKinds.find(k=>k.type===record.type)?.name }} · {{ record.title }} <time>{{ resultDate(record.createdAt) }}</time></summary><p>{{ record.summary }}</p><section v-for="(part,i) in record.sections" :key="i"><h4>{{ part.title }}</h4><p v-for="(line,j) in part.lines" :key="j">{{ line }}</p></section></details></details>
+      </div>
+      <p v-if="deleteTestError" class="support-error" role="alert">{{ deleteTestError }}</p><details v-if="testRecords.length" class="test-archive"><summary><span class="archive-label">查看已保存的测试与完整解读 <small>最近 {{ testRecords.length }} 次</small></span><span class="archive-toggle"><span class="archive-open">展开查看</span><span class="archive-close">收起记录</span><span aria-hidden="true">⌄</span></span></summary><details v-for="record in testRecords" :key="record.id" class="test-detail"><summary>{{ testKinds.find(k=>k.type===record.type)?.name }} · {{ record.title }} <time>{{ resultDate(record.createdAt) }}</time></summary><div class="test-record-actions"><button type="button" :disabled="!!deletingTest" :aria-label="'删除测试：' + record.title" @click="removeTest(record)">{{ deletingTest === record.id ? '删除中…' : '删除这条记录' }}</button></div><p>{{ record.summary }}</p><section v-for="(part,i) in record.sections" :key="i"><h4>{{ part.title }}</h4><p v-for="(line,j) in part.lines" :key="j">{{ line }}</p></section></details></details>
       <small>测试记录保存在当前账号，仅供娱乐与自我探索。</small>
     </section>
     <div v-if="!['overview', 'space', 'support'].includes(section)" class="psych-content-grid" :class="{ 'single-panel': section !== 'overview' }">
@@ -189,9 +203,9 @@ onBeforeUnmount(() => { testVersion++; pauseBreathing(); window.removeEventListe
       </div>
       <form class="support-form" @submit.prevent="sendSupport">
         <label class="psych-field" for="support-text">此刻你想说什么？<textarea id="support-text" v-model="supportText" rows="3" maxlength="1600" placeholder="不用组织得很完整，想到什么就写什么。" /></label>
-        <label class="support-consent"><input v-model="supportConsent" type="checkbox" /><span>我同意将本次输入和本次对话上下文发送给 AI 服务。</span></label>
+        <label class="support-consent"><input v-model="supportConsent" type="checkbox" /><span>我同意将本次输入发送，倾听询问内心</span></label>
         <p v-if="supportError" class="support-error" role="alert">{{ supportError }}</p>
-        <div class="support-submit"><small>对话只保留在当前页面，不会保存到账号。AI 不是心理咨询师；如有即时危险，请联系身边可信任的人及当地急救服务。</small><button class="psych-primary" type="submit" :disabled="supportBusy||!supportText.trim()">{{ supportBusy?'正在回应…':'发送给 AI' }}</button></div>
+        <div class="support-submit"><button class="psych-primary" type="submit" :disabled="supportBusy||!supportText.trim()">{{ supportBusy?'正在回应…':'发送给 AI' }}</button></div>
       </form>
     </section>
     <footer class="psych-footer">这里提供心情记录与日常放松练习，不作心理诊断。如果持续感到困扰，可以向信任的人或专业心理工作者寻求支持。</footer>

@@ -14,7 +14,11 @@ function atomicWrite(file, value) {
 function createTests(directory) {
   const file = id => path.join(directory, crypto.createHash('sha256').update(String(id)).digest('hex') + '.json');
   const read = id => readUsers(file(id));
-  return { read, write(id, record) {
+  return { read, remove(id, recordId) {
+    const records = read(id), next = records.filter(item => item.id !== recordId);
+    if (next.length === records.length) return false;
+    atomicWrite(file(id), next); return true;
+  }, write(id, record) {
     const records = read(id);
     if (!records.some(item => item.id === record.id)) {
       records.unshift({ ...record, createdAt: new Date().toISOString() });

@@ -16,7 +16,8 @@ function sendPoint(event) {
 onMounted(() => window.addEventListener('pointermove', sendPoint, { passive: true }))
 onBeforeUnmount(() => { window.removeEventListener('pointermove', sendPoint); cancelAnimationFrame(pending) })
 </script>
-<template><div class="health-scene-background" aria-hidden="true"><iframe :key="scene" ref="frame" :src="source" title="健康空间动态背景" tabindex="-1" sandbox="allow-scripts allow-same-origin" /><div class="reading-veil" /></div></template>
+<template><div class="health-scene-background" :class="{ 'static-night': scene === 2 }" aria-hidden="true"><iframe v-if="scene !== 2" :key="scene" ref="frame" :src="source" title="健康空间动态背景" tabindex="-1" sandbox="allow-scripts allow-same-origin" /><div class="reading-veil" /></div></template>
 <style scoped>
 .health-scene-background{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden;background:#f8f5fb}.health-scene-background iframe{display:block;width:100%;height:100%;border:0;opacity:.35}.reading-veil{position:absolute;inset:0;background:linear-gradient(110deg,rgba(250,248,252,.57),rgba(250,248,252,.28))}
+.health-scene-background.static-night{background:radial-gradient(ellipse at 62% 38%,rgba(87,99,139,.23),transparent 44%),radial-gradient(ellipse at 24% 76%,rgba(61,70,108,.2),transparent 48%),#070a16}
 </style>

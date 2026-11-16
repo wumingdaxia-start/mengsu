@@ -229,6 +229,13 @@ async function handler(req,res){const url=new URL(req.url,'http://localhost');
   if(req.headers['x-health-user']!==String(user.id))return json(res,409,{message:'账号已切换，请刷新页面后重试'});
   const tests=persistence?.psychologyTests||testStore;
   if(req.method==='GET')return json(res,200,{records:await tests.read(user.id)});
+  if(req.method==='DELETE'){
+   let input;try{input=await readBody(req)}catch{return json(res,400,{message:'请求格式不正确'})}
+   if(typeof input.id!=='string'||input.id.length>80||!/^[a-zA-Z0-9-]+$/.test(input.id))return json(res,400,{message:'测试记录编号无效'});
+   const removed=await tests.remove(user.id,input.id);
+   if(!removed)return json(res,404,{message:'这条测试记录不存在或已删除'});
+   return json(res,200,{ok:true});
+  }
   if(req.method==='POST'){
    let record;try{record=require('./psychology-tests').validateResult(await readBody(req))}catch(e){return json(res,400,{message:e.message})}
    await tests.write(user.id,record);

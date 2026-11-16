@@ -133,7 +133,7 @@ function continueGuest() {
 .login-submit:disabled { cursor: wait; opacity: .7; }
 .login-page.workspace-safety { --login-accent:#4d806d; --login-accent-strong:#376653; --login-soft:#e7f2eb; --login-ink:#31594c; }
 .login-page.workspace-dream { --login-accent:#6689a5; --login-accent-strong:#4d708e; --login-soft:#e8f0f6; --login-ink:#3e5a70; }
-.login-page.workspace-psychology { --login-accent:#a66a4e; --login-accent-strong:#895138; --login-soft:#f5e4d2; --login-ink:#654536; }
+.login-page.workspace-psychology { --login-accent:#7895c2; --login-accent-strong:#adc7ee; --login-soft:#182338; --login-ink:#e6edfa; }
 .login-page[class*='workspace-']::before { background:linear-gradient(110deg, color-mix(in srgb, var(--login-soft) 88%, white), rgba(255,255,255,.72) 55%, color-mix(in srgb, var(--login-soft) 60%, white)); }
 .login-page[class*='workspace-'] .login-form-heading p,.login-page[class*='workspace-'] .login-destination { color:var(--login-accent); }
 .login-page[class*='workspace-'] .login-form-heading h2,.login-page[class*='workspace-'] .login-brand strong { color:var(--login-ink); }
@@ -145,21 +145,29 @@ function continueGuest() {
 .login-page[class*='workspace-'] .login-wash { background:var(--login-soft); }
 .login-page[class*='workspace-'] .login-return { color:var(--login-accent-strong); }
 
-/* Warm palette for the psychology sign-in destination. */
-.login-page.workspace-psychology { color:#765c4d;background-color:#f6eadc; }
-.login-page.workspace-psychology::before { background:linear-gradient(110deg,rgba(247,229,207,.94),rgba(255,247,236,.86) 55%,rgba(245,220,204,.81)); }
-.login-page.workspace-psychology .login-form { background:rgba(255,250,242,.94);border-color:#fff6e8;box-shadow:0 24px 70px rgba(119,78,46,.1); }
+/* Match the quiet night palette of the psychology workspace. */
+.login-page.workspace-psychology { color:#d5deef;background:#070a16;color-scheme:dark; }
+.login-page.workspace-psychology::before { background:radial-gradient(ellipse at 25% 15%,rgba(47,65,96,.28),transparent 60%); }
+.login-page.workspace-psychology .login-wash { display:none; }
+.login-page.workspace-psychology .login-form { background:#141d30;border:1px solid #334059;border-radius:18px;box-shadow:none;backdrop-filter:none; }
+.login-page.workspace-psychology .login-form-heading p,
+.login-page.workspace-psychology .login-destination { color:#afc7eb; }
 .login-page.workspace-psychology .login-form-heading span,
 .login-page.workspace-psychology .login-form>label,
 .login-page.workspace-psychology .remember,
-.login-page.workspace-psychology .forgot { color:#82624e; }
-.login-page.workspace-psychology .forgot:hover { color:#895138; }
-.login-page.workspace-psychology .login-form input:not([type='checkbox']) { color:#654536;background:rgba(255,253,248,.9);border-color:#d9c3ad; }
-.login-page.workspace-psychology .login-form input::placeholder { color:#9b8370;opacity:1; }
-.login-page.workspace-psychology .login-guest { background:#fffaf1;border-color:#d9c3ad;color:#82604a; }
-.login-page.workspace-psychology .login-divider { color:#927763; }
+.login-page.workspace-psychology .forgot { color:#afbdd3; }
+.login-page.workspace-psychology .forgot:hover { color:#e6edfa; }
+.login-page.workspace-psychology .login-form input:not([type='checkbox']) { color:#e0e9f8;background:#0e1728;border-color:#3c4c69;border-radius:10px; }
+.login-page.workspace-psychology .login-form input::placeholder { color:#8e9db5;opacity:1; }
+.login-page.workspace-psychology .login-submit { color:#0b1323;border-radius:10px; }
+.login-page.workspace-psychology .login-submit:hover { box-shadow:none; }
+.login-page.workspace-psychology .login-guest { background:#24334d;border-color:#465b7d;color:#dae6f8;border-radius:10px; }
+.login-page.workspace-psychology .login-guest:hover { background:#2c4061;color:#e6edfa; }
+.login-page.workspace-psychology .login-divider { color:#9aabc5; }
 .login-page.workspace-psychology .login-divider::before,
-.login-page.workspace-psychology .login-divider::after { background:#e4d2be; }
-.login-page.workspace-psychology .login-note { color:#927b68; }
+.login-page.workspace-psychology .login-divider::after { background:#33435c; }
+.login-page.workspace-psychology .login-note { color:#afbdd3; }
+.login-page.workspace-psychology .login-message { color:#f0b8bd; }
+.login-page.workspace-psychology :focus-visible { outline:2px solid #b4cef5;outline-offset:3px; }
 
 </style>
