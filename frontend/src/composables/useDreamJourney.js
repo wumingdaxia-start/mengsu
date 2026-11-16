@@ -1,7 +1,7 @@
 import { computed } from 'vue'
 import { readDream, writeDream, refreshHealthSleep } from '../dream-account'
 
-const defaults={snapshots:[],journals:[],plan:{bedtime:'22:30',wake:'07:00',started:'',completed:[]},rituals:{},holes:[],posts:[],creations:[]}
+const defaults={snapshots:[],materials:[],journals:[],plan:{bedtime:'22:30',wake:'07:00',started:'',completed:[]},rituals:{},holes:[],posts:[],creations:[]}
 const state=Object.fromEntries(Object.entries(defaults).map(([key,fallback])=>[key,computed(()=>readDream(key,fallback))]))
 state.journals=computed(()=>{
  const diaries=readDream('journals',[]), merged=new Map(diaries.map(j=>[j.date,j]))

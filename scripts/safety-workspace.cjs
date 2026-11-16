@@ -52,12 +52,18 @@ function integrateServer(server, { parentPort = 8000 } = {}) {
 
 async function start() {
   if (!fs.existsSync(path.join(SAFETY_ROOT, 'server.js'))) throw Error('Safety app missing. Set MENGSU_SAFETY_ROOT to its folder.');
-  for (const name of ['HEALTH_AI_API_KEY', 'HEALTH_AI_MODEL', 'HEALTH_AI_BASE_URL']) {
-    // Existing safety environment settings are inherited; never copy credentials into source.
-    if (process.env[name] === '') delete process.env[name];
-  }
+  // All bundled health AI features share the project's Qwen configuration.
+  // Ignore stale HEALTH_AI_* values inherited from unrelated applications.
+  const qwenKey = (process.env.QWEN_API_KEY || process.env.DASHSCOPE_API_KEY || '').trim();
+  const aiEnv = {
+    ...process.env,
+    HEALTH_AI_API_KEY: qwenKey,
+    HEALTH_AI_MODEL: (process.env.QWEN_MODEL || '').trim() || 'qwen-plus',
+    HEALTH_AI_BASE_URL: (process.env.QWEN_BASE_URL || '').trim() || 'https://dashscope.aliyuncs.com/compatible-mode/v1'
+  };
   const { createServer } = require(path.join(SAFETY_ROOT, 'server.js'));
-  const server = integrateServer(createServer(), { parentPort: Number(process.env.MENGSU_PARENT_PORT || 8000) });
+  const mysql = require(path.join(SAFETY_ROOT, 'mysql-store')).loadMysqlConfig();
+  const server = integrateServer(createServer({ mysql: mysql || false, aiEnv }), { parentPort: Number(process.env.MENGSU_PARENT_PORT || 8000) });
   await server.ready;
   const port = Number(process.env.MENGSU_SAFETY_PORT || 3001);
   server.on('error', error => { console.error('[mengsu] Safety service: ' + error.code); process.exitCode = 1; });

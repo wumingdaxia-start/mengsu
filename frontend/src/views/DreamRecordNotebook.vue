@@ -1,8 +1,9 @@
 <script setup>
 import { computed, ref, onBeforeUnmount } from 'vue'
+import { dreamMetadata } from '../dream-metadata'
 import DreamLibraryArchive from './DreamLibraryView.vue'
 import { useDreamJourney, today } from '../composables/useDreamJourney'
-const { snapshots, commit } = useDreamJourney()
+const { materials, commit } = useDreamJourney()
 const archive = ref(false), report = ref(false), busy = ref(false), message = ref(''), listening = ref(false)
 const sample = '梦见我在一间卧室里收拾衣服，床上和地上都是衣服。我刚叠好一摞，转过身它们又散开了。桌子刚收干净，又多出很多东西。我把衣服往柜子里塞，柜门关上后又弹开。房间里只有我，没有人催，但我一直觉得要快一点，收完才能休息。我很累，想坐到床边，看到脚边还有一堆没收的衣服，又蹲下去继续叠，后来就醒了。'
 const text = ref(sample), selected = ref(['熟悉地方','家里','室内','自己'])
@@ -20,7 +21,7 @@ function speak(){
  recognition.onend=()=>listening.value=false
  try{recognition.start();listening.value=true}catch{message.value='麦克风未能启动，请稍后重试。'}
 }
-async function save(){if(!text.value.trim()||busy.value)return;busy.value=true;message.value='';recognition?.stop();try{await commit('snapshots',[{id:crypto.randomUUID(),date:today(),title:text.value.slice(0,18),signal:text.value,tags:[...selected.value],kind:'dream-record'},...snapshots.value]);report.value=true;window.scrollTo({top:0,behavior:'smooth'})}catch(e){message.value=e.message||'保存失败，请稍后再试。'}finally{busy.value=false}}
+async function save(){if(!text.value.trim()||busy.value)return;busy.value=true;message.value='';recognition?.stop();try{await commit('materials',[{id:crypto.randomUUID(),date:today(),title:text.value.slice(0,18),signal:text.value,...dreamMetadata({tags:selected.value}),kind:'dream-material'},...materials.value]);message.value='素材已保存，可在创作工坊的「查看素材」中找到。'}catch(e){message.value=e.message||'保存失败，请稍后再试。'}finally{busy.value=false}}
 onBeforeUnmount(()=>recognition?.stop())
 </script>
 <template>
@@ -30,7 +31,7 @@ onBeforeUnmount(()=>recognition?.stop())
   <template v-else-if="!report">
    <section class="dream-paper"><div class="paper-holes" aria-hidden="true"><i v-for="n in 13" :key="n" /></div><textarea v-model="text" maxlength="500" aria-label="梦境内容" placeholder="记下你还记得的梦境……" /><div class="selected-tags"><button v-for="tag in selected" :key="tag" @click="toggle(tag)">{{tag}}</button></div><div class="word-count">{{text.length}}/500</div><button class="speak-dream" :aria-pressed="listening" @click="speak"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="2" width="6" height="13" rx="3"/><path d="M6 10v3a6 6 0 0012 0v-3M12 19v3m-4 0h8"/></svg>{{listening?'结束说梦':'说梦'}}</button><p class="speech-help">可分几次说，文字会按顺序接在后面</p></section>
    <section class="dream-selector"><header><h2>🔎 梦境选择器</h2><small>标签可多选</small></header><div v-for="group in groups" :key="group.name" class="tag-group"><span class="group-label">{{group.name}}</span><button v-for="tag in group.items" :key="tag" :class="{chosen:selected.includes(tag)}" :aria-pressed="selected.includes(tag)" @click="toggle(tag)">{{tag}}</button></div></section>
-   <p v-if="message" class="notebook-message" role="status">{{message}}</p><footer class="record-actions"><button @click="text='';selected=[];message=''">取消记录</button><button :disabled="busy||!text.trim()" @click="save">{{busy?'正在保存…':'保存梦境'}}</button></footer>
+   <p v-if="message" class="notebook-message" role="status">{{message}}</p><footer class="record-actions"><button :disabled="busy||!text.trim()" @click="save">{{busy?'正在保存…':'保存素材'}}</button></footer>
   </template>
   <section v-else class="dream-report">
    <div class="report-banner"><span aria-hidden="true">🐱</span><h2>快速解梦报告</h2><span aria-hidden="true">📌</span></div>

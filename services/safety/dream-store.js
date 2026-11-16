@@ -1,7 +1,7 @@
 'use strict';
 const path=require('node:path'),crypto=require('node:crypto');
 const {atomicWrite}=require('./local-persistence');
-const keys=new Set(['snapshots','journals','plan','rituals','holes','posts','creations','seeds','receipts','notes','prefs','clusters','conversations','drift']);
+const keys=new Set(['snapshots','materials','journals','plan','rituals','holes','posts','creations','seeds','receipts','notes','prefs','clusters','conversations','drift']);
 function validate(input){
  if(!input||!keys.has(input.key)||!Number.isSafeInteger(input.revision)||input.revision<0||input.value===undefined||input.value===null||typeof input.value!=='object')throw Error('梦境记录格式不正确');
  const text=JSON.stringify(input.value);

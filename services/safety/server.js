@@ -13,6 +13,7 @@ const {createConsultStore}=require('./consult-store');
 const consultService=require('./consult-service');
 const healthInsight=require('./health-insight');
 const healthKnowledge=require('./health-knowledge');
+const psychologySupport=require('./psychology-support');
 const foodRecognition=require('./food-recognition');
 const {loadMysqlConfig,createMysqlPersistence}=require('./mysql-store');
 const adminRoot=path.join(__dirname,'admin');
@@ -23,13 +24,16 @@ const sessions=new Map();
 const weatherCache=new Map();
 const mysql=options.mysql===false?null:options.mysql||(Object.keys(options).length===0&&loadMysqlConfig());
 const persistence=mysql?createMysqlPersistence(mysql,{pool:options.mysqlPool}):null;
+const register=require('./registration').createRegistrar({readUsers,persistence,usersFile:options.usersFile||usersFile});
 const store=persistence?.health||createStore(options.dataDir||path.join(__dirname,'../../data/safety/health'));
 const consultStore=persistence?.consult||createConsultStore(options.consultDir||path.join(__dirname,'../../data/safety/consult'));
 const testStore=require('./local-persistence').createTests(options.testsDir||path.join(__dirname,'../../data/safety/tests'));
 const dreamStore=persistence?.dream||require('./dream-store').createDreamStore(options.dreamDir||path.join(__dirname,'../../data/safety/dream'));
+const driftStore=require('./drift-store').createDriftStore(options.driftFile||path.join(__dirname,'../../data/safety/drift.json'));
 const foodBusy=new Set(),foodQuota=new Map();
 const consultBusy=new Set();
 const insightBusy=new Set();
+const supportBusy=new Set(),supportQuota=new Map();
 const knowledgeBusy=new Set(),knowledgeQuota=new Map();
 const types={'.html':'text/html; charset=utf-8','.css':'text/css; charset=utf-8','.js':'text/javascript; charset=utf-8','.svg':'image/svg+xml'};
 function json(res,status,value,headers={}){res.writeHead(status,{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store',...headers});res.end(JSON.stringify(value))}
@@ -64,8 +68,9 @@ async function handler(req,res){const url=new URL(req.url,'http://localhost');
   return json(res,200,safe);
  }catch{return json(res,503,{message:'天气服务暂时不可用，请稍后重试'})}
  }
+ if(req.method==='POST'&&url.pathname==='/api/register'){const result=await register(await readBody(req,8192));return json(res,result.status,{message:result.message});}
  if(req.method==='POST'&&url.pathname==='/api/login'){try{const input=await readBody(req),account=String(input.account||'').trim(),password=String(input.password||''),mode=input.mode||'user';if(!account||!password||!['user','admin'].includes(mode))return json(res,400,{message:'请输入账号和密码'});const user=(await readUsers()).find(x=>x.account.toLowerCase()===account.toLowerCase());if(!user||isAdmin(user)!==(mode==='admin')||!validPassword(password,user))return json(res,401,{message:'账号或密码不正确'});const id=crypto.randomBytes(32).toString('base64url'),maxAge=input.remember?604800:28800;sessions.set(id,{userId:user.id,expires:Date.now()+maxAge*1000});return json(res,200,{ok:true},{'Set-Cookie':'health_session='+encodeURIComponent(id+'.'+sign(id))+'; HttpOnly; SameSite=Strict; Path=/; Max-Age='+maxAge})}catch(e){return json(res,e.message==='请求格式错误'?400:500,{message:e.message==='请求格式错误'?e.message:'登录暂时不可用，请稍后重试'})}}
- if(req.method==='GET'&&url.pathname==='/api/me'){const s=getSession(req);if(!s)return json(res,401,{message:'请先登录'});const user=(await readUsers()).find(x=>x.id===s.userId);if(!user)return json(res,401,{message:'账号不存在'});return json(res,200,{user:{id:user.id,name:user.name,account:user.account,role:user.role,phone:user.phone}})}
+ if(req.method==='GET'&&url.pathname==='/api/me'){const s=getSession(req);if(!s)return json(res,401,{message:'请先登录'});const user=(await readUsers()).find(x=>x.id===s.userId);if(!user)return json(res,401,{message:'账号不存在'});const profile=isAdmin(user)?null:(await store.read(user.id)).data.profile;return json(res,200,{user:{id:user.id,name:profile?.displayName||user.name,account:user.account,role:user.role,phone:user.phone}})}
  if(req.method==='POST'&&url.pathname==='/api/logout'){const s=getSession(req);if(s)sessions.delete(s.id);return json(res,200,{ok:true},{'Set-Cookie':'health_session=; HttpOnly; SameSite=Strict; Path=/; Max-Age=0'})}
  if(url.pathname==='/api/health-knowledge/search'){
   if(req.method!=='GET')return json(res,405,{message:'请求方式不支持'});
@@ -149,12 +154,17 @@ async function handler(req,res){const url=new URL(req.url,'http://localhost');
   if(url.pathname==='/api/consult'&&req.method==='GET')return json(res,200,{messages:await consultStore.read(user.id)});
   if(url.pathname==='/api/consult'&&req.method==='POST'){
    if(consultBusy.has(user.id))return json(res,409,{message:'上一条消息尚未完成，请稍候'});
-   const input=await readBody(req),message=typeof input.message==='string'?input.message.trim():'';
-   if(!message||message.length>1500)return json(res,400,{message:'请输入 1～1500 字的问诊内容'});
+   let input;try{input=await readBody(req,3*1024*1024)}catch{return json(res,400,{message:'请求格式错误'})}
+   const hasPhoto=input.image!==undefined;
+   if(hasPhoto){try{foodRecognition.validateImage(input.image)}catch{return json(res,400,{message:'图片无效，请上传不超过 2MB 的 JPEG 或 PNG 照片'})}if(input.photoConsent!==true)return json(res,400,{message:'请先同意发送照片进行解读'})}
+   const message=typeof input.message==='string'?input.message.trim():(hasPhoto?'请结合照片说明可见情况、还需补充的信息与就医建议。':'');
+   const question=message||(hasPhoto?'请结合照片说明可见情况、还需补充的信息与就医建议。':'');
+   if(!question||message.length>1500)return json(res,400,{message:'请输入 1～1500 字的问题或附加照片'});
    consultBusy.add(user.id);
    try{
-    const previous=await consultStore.read(user.id),resultMessages=[...previous,{role:'user',content:message,createdAt:new Date().toISOString()}];
-    const result=await consultService.reply(resultMessages,{env:requestAiEnv,request:options.aiFetch||fetch});
+    const previous=await consultStore.read(user.id),resultMessages=[...previous,{role:'user',content:question,...(hasPhoto?{hasPhoto:true}:{}),createdAt:new Date().toISOString()}];
+    const urgentText=/胸痛|胸口痛|喘不过气|呼吸困难|昏厥|晕厥|意识不清|一侧无力|半身不遂|口齿不清|严重出血|大出血|自杀|自残|过敏性休克/.test(question);
+    const result=hasPhoto&&!urgentText?await require('./consult-photo').replyPhoto(resultMessages,input.image,{env:requestAiEnv,request:options.aiFetch||fetch}):await consultService.reply(resultMessages,{env:requestAiEnv,request:options.aiFetch||fetch});
     if(result.error)return json(res,result.status||503,{message:result.error});
     resultMessages.push({role:'assistant',content:result.answer,createdAt:new Date().toISOString(),urgent:!!result.urgent});
     await consultStore.write(user.id,resultMessages);
@@ -175,11 +185,25 @@ async function handler(req,res){const url=new URL(req.url,'http://localhost');
  const aggregate=(field,weight)=>{const total=details.reduce((n,d)=>n+d[weight],0);return total?Math.round(details.reduce((n,d)=>n+(d[field]||0)*d[weight],0)/total*10)/10:null};
  return json(res,200,{updated:today(),users:details,summary:{registeredUsers:users.length,usersWithData:details.filter(d=>d.exerciseCount+d.dietCount+d.sleepCount+d.visionCount>0).length,exerciseRecords:details.reduce((n,d)=>n+d.exerciseCount,0),dietRecords:details.reduce((n,d)=>n+d.dietCount,0),sleepRecords:details.reduce((n,d)=>n+d.sleepCount,0),visionRecords:details.reduce((n,d)=>n+d.visionCount,0),averageSleepHours:aggregate('averageSleepHours','sleepCount'),averageSleepQuality:aggregate('averageSleepQuality','qualityResponseCount'),qualityResponseCount,averageMealCalories:aggregate('averageMealCalories','dietCount'),averageMealProtein:aggregate('averageMealProtein','dietCount'),challengeParticipants:details.filter(d=>d.challengeScore>0).length}});
  }
+ if(url.pathname==='/api/drift'||url.pathname.startsWith('/api/drift/')){
+  const session=getSession(req),user=session&&(await readUsers()).find(x=>x.id===session.userId);
+  if(!user||isAdmin(user))return json(res,401,{message:'请先登录个人账号后使用漂流瓶'});
+  if(req.headers['x-health-user']!==String(user.id))return json(res,409,{message:'账号已切换，请刷新页面'});
+  const owner=String(user.id),parts=url.pathname.split('/').filter(Boolean);
+  try{
+   if(req.method==='GET'&&parts.length===3&&parts[2]==='mine')return json(res,200,driftStore.mine(owner));
+   if(req.method==='GET'&&parts.length===3&&parts[2]==='pick')return json(res,200,driftStore.pick(owner));
+   if(req.method==='POST'&&parts.length===2)return json(res,200,driftStore.send(owner,await readBody(req,8192)));
+   if(req.method==='POST'&&parts.length===4&&['favorite','reply'].includes(parts[3]))return json(res,200,driftStore.update(owner,parts[2],parts[3],await readBody(req,8192)));
+   if(req.method==='DELETE'&&parts.length===3)return json(res,200,driftStore.update(owner,parts[2],'delete',{}));
+   return json(res,405,{message:'请求方式不支持'});
+  }catch(e){if(e.status)return json(res,e.status,{message:e.message});throw e}
+ }
  if(url.pathname==='/api/community'||url.pathname.startsWith('/api/community/')){
   const session=getSession(req),user=session&&(await readUsers()).find(x=>x.id===session.userId);
   const file=options.communityFile||path.join(__dirname,'../../data/safety/community.json');
   const load=()=>{try{return JSON.parse(fs.readFileSync(file,'utf8'))}catch(e){if(e.code==='ENOENT')return [];throw e}};
-  const publicPost=p=>({id:p.id,date:p.date,title:p.title,text:p.text,image:p.image,author:p.author,topic:p.topic,mine:String(user?.id)===p.owner,liked:p.likes.includes(String(user?.id)),likeCount:p.likes.length,comments:p.comments.map(c=>({id:c.id,date:c.date,text:c.text,author:c.author}))});
+  const publicPost=p=>({id:p.id,date:p.date,title:p.title,text:p.text,image:p.image,tags:Array.isArray(p.tags)?p.tags:[],author:p.author,topic:p.topic,mine:String(user?.id)===p.owner,liked:p.likes.includes(String(user?.id)),likeCount:p.likes.length,comments:p.comments.map(c=>({id:c.id,date:c.date,text:c.text,author:c.author}))});
   if(req.method==='GET')return json(res,200,{posts:load().map(publicPost)});
   if(!user||isAdmin(user))return json(res,401,{message:'请先登录个人账号后分享'});
   let input;try{input=await readBody(req,16*1024*1024)}catch{return json(res,400,{message:'分享内容格式不正确'})}
@@ -187,8 +211,10 @@ async function handler(req,res){const url=new URL(req.url,'http://localhost');
   const author='梦游者 '+crypto.createHash('sha256').update(owner).digest('hex').slice(0,6).toUpperCase();
   if(req.method==='POST'&&!id){
    const title=String(input.title||'').trim(),text=String(input.text||'').trim(),image=String(input.image||'');
+   if(input.tags!==undefined&&(!Array.isArray(input.tags)||input.tags.length>64||input.tags.some(t=>typeof t!=='string'||!t.trim()||t.length>40)))return json(res,400,{message:'标签格式不正确'});
+   const tags=[...new Set((input.tags||[]).map(t=>t.trim()))];
    if(!title||title.length>60||!text||text.length>2000||image.length>12*1024*1024||image&&!/^(data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+|\/(?!\/)[^\s]*)$/.test(image))return json(res,400,{message:'请检查标题、正文和图片内容'});
-   posts.unshift({id:crypto.randomUUID(),owner,author,date:today(),title,text,image,topic:['轻盈的梦','温暖的梦','未说完的梦'].includes(input.topic)?input.topic:'温暖的梦',likes:[],comments:[]});
+   posts.unshift({id:crypto.randomUUID(),owner,author,date:today(),title,text,image,tags,topic:['轻盈的梦','温暖的梦','未说完的梦'].includes(input.topic)?input.topic:'温暖的梦',likes:[],comments:[]});
   }else{
    if(!post)return json(res,404,{message:'这条分享已被移除'});
    if(req.method==='DELETE'){if(post.owner!==owner)return json(res,403,{message:'只能删除自己的分享'});posts.splice(posts.indexOf(post),1)}
@@ -220,12 +246,37 @@ async function handler(req,res){const url=new URL(req.url,'http://localhost');
   if(req.headers['x-health-user']!==String(user.id))return json(res,409,{message:'账号已切换，请刷新页面后重试'});
   const tests=persistence?.psychologyTests||testStore;
   if(req.method==='GET')return json(res,200,{records:await tests.read(user.id)});
+  if(req.method==='DELETE'){
+   let input;try{input=await readBody(req)}catch{return json(res,400,{message:'请求格式不正确'})}
+   if(typeof input.id!=='string'||input.id.length>80||!/^[a-zA-Z0-9-]+$/.test(input.id))return json(res,400,{message:'测试记录编号无效'});
+   const removed=await tests.remove(user.id,input.id);
+   if(!removed)return json(res,404,{message:'这条测试记录不存在或已删除'});
+   return json(res,200,{ok:true});
+  }
   if(req.method==='POST'){
    let record;try{record=require('./psychology-tests').validateResult(await readBody(req))}catch(e){return json(res,400,{message:e.message})}
    await tests.write(user.id,record);
    return json(res,200,{ok:true});
   }
   return json(res,405,{message:'请求方式不支持'});
+ }
+ if(url.pathname==='/api/psychology-support'){
+  if(req.method!=='POST')return json(res,405,{message:'请求方式不支持'});
+  const session=getSession(req),user=session&&(await readUsers()).find(x=>x.id===session.userId);
+  if(!user)return json(res,401,{message:'请先登录后使用心理倾诉'});
+  if(isAdmin(user))return json(res,403,{message:'请使用个人账号'});
+  if(req.headers['x-health-user']!==String(user.id))return json(res,409,{message:'账号已切换，请刷新页面'});
+  let input;try{input=await readBody(req,24000)}catch{return json(res,400,{message:'请求内容无效'})}
+  if(input.consent!==true)return json(res,400,{message:'请先同意将本次对话发送给 AI 服务'});
+  if(supportBusy.has(user.id))return json(res,409,{message:'上一条回应还没完成，请稍候'});
+  const now=Date.now(),old=supportQuota.get(user.id),quota=old&&now-old.start<600000?old:{start:now,count:0};
+  if(quota.count>=8)return json(res,429,{message:'发送太频繁了，请休息一会儿再试'});
+  quota.count++;supportQuota.set(user.id,quota);supportBusy.add(user.id);
+  try{
+   const result=await psychologySupport.reply(input.message,input.history,{env:requestAiEnv,request:options.aiFetch||fetch});
+   if(result.error)return json(res,result.status||503,{message:result.error});
+   return json(res,200,{answer:result.answer,urgent:!!result.urgent});
+  }finally{supportBusy.delete(user.id)}
  }
  if(url.pathname==='/api/health-data'){
  const s=getSession(req),user=s&&(await readUsers()).find(x=>x.id===s.userId);

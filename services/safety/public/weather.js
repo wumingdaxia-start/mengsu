@@ -71,12 +71,23 @@
     const [lat, lon, name] = cities[selected];
     loadWeather(lat, lon, name);
   });
-  find('weatherLocate').addEventListener('click', () => {
-    if (!navigator.geolocation) { unavailable('此浏览器不支持定位，请手动选择城市'); return; }
-    navigator.geolocation.getCurrentPosition(position => {
+  find('weatherLocate').addEventListener('click', async () => {
+    const button = find('weatherLocate');
+    const tip = message => { find('weatherTip').textContent = message; find('weatherTip').setAttribute('role', 'status'); };
+    if (!window.isSecureContext) { tip('手机定位需要 HTTPS 安全网址，请使用 HTTPS 打开网站，或手动选择城市。'); return; }
+    if (!navigator.geolocation) { tip('当前浏览器不支持定位，请使用系统浏览器打开，或手动选择城市。'); return; }
+    if (button.disabled) return;
+    button.disabled = true; select.disabled = true; button.textContent = '定位中…';
+    const position = options => new Promise((resolve, reject) => navigator.geolocation.getCurrentPosition(resolve, reject, options));
+    try {
+      let result;
+      try { result = await position({enableHighAccuracy:false, timeout:15000, maximumAge:300000}); }
+      catch (error) { if (error.code === 1) throw error; result = await position({enableHighAccuracy:true, timeout:15000, maximumAge:300000}); }
       select.selectedIndex = -1;
-      loadWeather(position.coords.latitude, position.coords.longitude, '当前位置');
-    }, () => unavailable('未获得定位权限，请手动选择城市'), {timeout: 8000, maximumAge: 600000});
+      await loadWeather(result.coords.latitude, result.coords.longitude, '当前位置');
+    } catch (error) {
+      tip(error.code === 1 ? '请在浏览器网站权限和手机系统设置中允许位置访问，再重试；也可以手动选择城市。' : error.code === 3 ? '定位等待超时，请开启手机定位、检查网络后重试，或手动选择城市。' : '暂时无法获取位置，请开启手机定位，或改用系统浏览器打开；也可以手动选择城市。');
+    } finally { button.disabled = false; select.disabled = false; button.textContent = '定位'; }
   });
   const [lat, lon, name] = cities[selected];
   loadWeather(lat, lon, name);

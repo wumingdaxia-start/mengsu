@@ -12,7 +12,7 @@ function select(value){router.replace({path:"/dream/studio",query:{...route.quer
  <div class="creative-community">
   <div role="group" class="creative-sections" aria-label="梦境创作社区功能">
    <button :aria-pressed="section==='record'" @click="select('record')">记录梦境<span>说梦 · 标签 · 梦境报告</span></button>
-   <button :aria-pressed="section==='studio'" @click="select('studio')">创作工坊<span>绘图 · 故事 · 海报</span></button>
+   <button :aria-pressed="section==='studio'" @click="select('studio')">创作工坊<span>梦境绘图 · 查看素材</span></button>
    <button :aria-pressed="section==='community'" @click="select('community')">社区分享<span>浏览片段 · 留下回响</span></button>
   </div>
   <DreamRecordNotebook v-if="section==='record'" />

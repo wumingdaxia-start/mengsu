@@ -7,13 +7,6 @@ function exerciseFeedback(){
  if(recent.filter(x=>x.feeling==='太累').length>=2)return {reduce:true,message:'最近多次反馈太累，建议下次计划减少时长，留出恢复日。'};
  return {reduce:false,message:recent.length?'最近运动感受会作为下一次制定计划的参考。请按当前体力选择训练时长。':'记录运动和感受后，制定计划时可参考你的反馈。'};
 }
-function exerciseOverview(){
- const start=new Date(todayKey()+'T12:00:00');start.setDate(start.getDate()-(start.getDay()+6)%7);
- const key=[start.getFullYear(),String(start.getMonth()+1).padStart(2,'0'),String(start.getDate()).padStart(2,'0')].join('-');
- const days=new Set(data.exercise.filter(x=>x.date>=key&&x.date<=todayKey()).map(x=>x.date)).size;
- const plan=data.exercisePlan,elapsed=plan?.items.filter(x=>x.label<=todayKey()&&x.minutes>0)||[],done=elapsed.filter(x=>(data.exerciseCheckins||[]).some(c=>c.date===x.label&&c.status==='completed')).length;
- return '<article class="card exercise-overview"><h2>运动完成情况</h2><p>'+(!user?'登录后查看自己的运动记录':daily(data.exercise).length?'今天已运动 '+sum(daily(data.exercise),'minutes')+' 分钟':'今天还没有运动记录，可以记录运动或为计划打卡')+'</p><div class="exercise-summary"><span>本周运动 <b>'+(user?days:'—')+'</b> 天</span><span>已到期训练 <b>'+(user&&plan?done+' / '+elapsed.length:'—')+'</b> 完成</span><a href="#exercise">查看日常锻炼 →</a></div></article>';
-}
 function exerciseCheckButtons(row){return row.label>todayKey()?'':(row.minutes?'<button type="button" class="plan-secondary" data-exercise-check="completed" data-date="'+row.label+'">完成</button><button type="button" class="plan-secondary" data-exercise-check="partial" data-date="'+row.label+'">部分完成</button>':'')+'<button type="button" class="plan-secondary" data-exercise-check="rest" data-date="'+row.label+'">今天休息</button>'}
 function exerciseToday(){
  const row=data.exercisePlan?.items.find(x=>x.label===todayKey()),check=(data.exerciseCheckins||[]).find(x=>x.date===todayKey());

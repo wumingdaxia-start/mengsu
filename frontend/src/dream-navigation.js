@@ -19,7 +19,6 @@ const entry = (label, path, intro, glyph, surface) => ({ label, path, intro, ico
 export const dreamNavigation = [
   { label: '梦境空间', items: [
     entry('梦境总览', '/dream', '昼夜信号在此相遇，看看白天的分身，和夜里的意识如何相互回响。', 'moon'),
-    entry('✦ 记梦', '/capture', '趁意识还未消散，捕捉昨夜的碎片。', 'pen'),
     entry('梦库', '/dream/library', '把旧日梦境一一珍藏，让每一束微光都有归处。', 'book', 'library'),
     entry('漂流瓶', '/dreams', '把心事交给星海，让温柔在此靠岸。', 'bottle', 'bottle'),
   ] },
@@ -35,8 +34,7 @@ export const dreamNavigation = [
   ] },
   { label: '夜的陪伴', items: [
     entry('睡眠日记', '/dream/sleep-diary', '不为夜晚打分，只轻轻留下身体真实的感受。', 'calendar', 'sleep'),
-    entry('睡眠改善计划', '/dream/sleep-plan', '从一个小习惯开始，慢慢找到适合自己的节律。', 'path', 'sleep'),
-    entry('睡前流程', '/dream/wind-down', '把睡前的时间留给自己，一步一步安静下来。', 'clock', 'sleep'),
+    entry('睡眠计划', '/dream/sleep-plan', '定好作息，跟着今晚三步，慢慢准备休息。', 'path', 'sleep'),
     entry('星夜叙语', '/dream/night-talk', '听一段故事，或留下一句心事，让夜晚多一点陪伴。', 'book', 'companion'),
   ] },
 ]

@@ -1,4 +1,6 @@
 <script setup>
+import { useStablePageScroll } from '../composables/useStablePageScroll'
+const stablePage = useStablePageScroll()
 import { computed, nextTick, ref } from 'vue'
 import TestResultSave from '../components/TestResultSave.vue'
 import PersonalityCard from '../components/PersonalityCard.vue'
@@ -7,7 +9,7 @@ import { axes, createQuestions, scorePersonality } from '../data/personality'
 const questions = createQuestions(), answers = ref({}), index = ref(0), started = ref(false), result = ref(null), heading = ref(null)
 const galleryOpen=ref(false), selectedCard=ref(null)
 const resultCards=computed(()=>cardsForResult(result.value))
-function browse(card=null) {galleryOpen.value=true; selectedCard.value=card; nextTick(()=>document.getElementById('personality-card-library')?.scrollIntoView({block:'start',behavior:'instant'}))}
+function browse(card=null) {galleryOpen.value=true; selectedCard.value=card; nextTick(()=>document.querySelector('#personality-card-library h2')?.focus({preventScroll:true}))}
 const current = computed(() => questions[index.value])
 const answered = computed(() => questions.filter(q => answers.value[q.id] !== undefined).length)
 const savedResult = computed(() => result.value ? {type:'personality',title:`心绪行迹 · ${result.value.title}`,summary:result.value.summary,sections:[
@@ -16,13 +18,13 @@ const savedResult = computed(() => result.value ? {type:'personality',title:`心
   {title:'下一步小尝试',lines:result.value.actions},
   {title:'阅读说明',lines:['花屿星自行编写的生活偏好问卷；未经心理测量学验证，不用于诊断、能力评价或固定人格分类。分数表示本次选项的位置，不是准确率或人群百分位。']}
 ]} : null)
-async function focus() { await nextTick(); heading.value?.focus() }
+async function focus() { await nextTick(); heading.value?.focus({ preventScroll: true }) }
 function start() { answers.value={}; index.value=0; result.value=null; galleryOpen.value=false; selectedCard.value=null; started.value=true; focus() }
 function next() { if(answers.value[current.value.id] === undefined) return; if(index.value < questions.length-1) index.value++; else {result.value=scorePersonality(answers.value);started.value=false} focus() }
 function previous() { if(index.value) index.value--; focus() }
 </script>
 <template>
-  <div class="personality-page">
+  <div ref="stablePage" class="personality-page">
     <header><p class="eyebrow">星栈 / 心绪活动</p><h1>人格测试</h1><p>心绪行迹 · 从日常选择认识此刻的自己</p></header>
     <section v-if="!started && !result" class="panel intro intro-layout"><div>
       <p class="eyebrow">花屿星问卷 · 24 道题 / 六条生活偏好轴</p>

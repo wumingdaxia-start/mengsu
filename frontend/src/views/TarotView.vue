@@ -1,4 +1,6 @@
 <script setup>
+import { useStablePageScroll } from '../composables/useStablePageScroll'
+const stablePage = useStablePageScroll()
 import { computed, ref, nextTick, onBeforeUnmount } from 'vue'
 import TarotTable from '../components/TarotTable.vue'
 import TestResultSave from '../components/TestResultSave.vue'
@@ -21,16 +23,16 @@ const messages=computed(()=>{
   return list
 })
 const record=computed(()=>phase.value==='reading'?{type:'tarot',title:'星栈映照 · '+spread.value.name,summary:question.value.trim()||'一次牌面自我观察',sections:[{title:'牌面解读（模拟）',lines:readings.value.map(c=>c.position+' · '+c.name+'（'+c.orientation+'）：'+c.theme+'。'+c.observation+' '+c.guidance+' '+c.prompt)},{title:'带回生活',lines:['选一件可以在本周完成的小行动。解读是模拟提示，不是预测。']}] }:null)
-async function start(){phase.value='select';deck.value=createMockDeck();selected.value=[];focused.value=-1;current.value=0;session.value++;await nextTick();title.value?.focus();voice.speak(`先放松一下，我们慢慢来。桌上有十二张牌，请选出${spread.value.positions.length}张。不用急，先选一张让你愿意停留的牌。`)}
+async function start(){phase.value='select';deck.value=createMockDeck();selected.value=[];focused.value=-1;current.value=0;session.value++;await nextTick();title.value?.focus({ preventScroll: true });voice.speak(`先放松一下，我们慢慢来。桌上有十二张牌，请选出${spread.value.positions.length}张。不用急，先选一张让你愿意停留的牌。`)}
 function pick(index){if(phase.value!=='select'||full.value||selected.value.includes(index))return;selected.value=[...selected.value,index];voice.speak(full.value?'你的牌已经选齐了。准备好后，我们一起看看它们带来的线索。':`好，这张牌已经为你留下了。下一张，看看${spread.value.positions[selected.value.length]}。`)}
-async function read(){if(!full.value)return;phase.value='reading';current.value=0;await nextTick();title.value?.focus();chooseReading(0)}
+async function read(){if(!full.value)return;phase.value='reading';current.value=0;await nextTick();title.value?.focus({ preventScroll: true });chooseReading(0)}
 function reset(){voice.clear();phase.value='prepare';selected.value=[];deck.value=[];journal.value='';focused.value=-1}
 function authChanged(){reset()}
 window.addEventListener('mengsu:auth-change',authChanged)
 onBeforeUnmount(()=>window.removeEventListener('mengsu:auth-change',authChanged))
 </script>
 <template>
-  <div class="tarot-sanctum">
+  <div ref="stablePage" class="tarot-sanctum">
     <header class="sanctum-header"><div><p class="overline">心绪活动 / STELLAR TAROT</p><h1>塔罗 · 星栈映照</h1></div><span class="edition"><i></i> AI 引导 · 模拟体验</span></header>
     <nav class="ritual-steps" aria-label="占卜进度"><span :class="{active:phase==='prepare'}">01 写下问题</span><span :class="{active:phase==='select'}">02 与牌相遇</span><span :class="{active:phase==='reading'}">03 解读与回看</span></nav>
     <div class="sanctum-layout">

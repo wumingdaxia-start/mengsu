@@ -262,3 +262,130 @@
 .app.app[data-workspace='psychology'] .health-navigation button:focus-visible {outline-color:#a66a4e}
 .app.app[data-workspace='psychology'] .psych-panel,.app.app[data-workspace='psychology'] .psych-guest-note {background:#fffaf2;border-color:#e4d2be}
 .app.app[data-workspace='psychology'] .psych-summary {background:#f5e4d2;border-color:#e4d2be}
+
+/* Static soft blue-grey palette for the psychology workspace. */
+.app.app[data-workspace='psychology'] {
+ --workspace-ink:#e1e6f2;--workspace-muted:#aeb9d0;--workspace-accent:#b8c9ef;
+ --workspace-soft:#465971;--workspace-line:#5c6e86;--workspace-sidebar:rgba(43,57,77,.97);
+ --accent:#a8bce5;--accent-bright:#d7e3ff;
+ background:transparent;
+}
+.app.app[data-workspace='psychology'] .app-main { background:transparent!important; }
+.app.app[data-workspace='psychology'] .health-scene-background { background:radial-gradient(ellipse at 62% 38%,rgba(87,99,139,.23),transparent 44%),radial-gradient(ellipse at 24% 76%,rgba(61,70,108,.2),transparent 48%),#263247; }
+.app.app[data-workspace='psychology'] .health-scene-background iframe { opacity:1; }
+.app.app[data-workspace='psychology'] .health-scene-background .reading-veil { background:rgba(192,208,229,.025)!important; }
+.app.app[data-workspace='psychology'] .app-head { background:rgba(46,60,81,.97)!important;border-color:#4c607b!important; }
+.app.app[data-workspace='psychology'] .health-navigation { background:rgba(43,57,77,.97)!important; }
+.app.app[data-workspace='psychology'] .health-navigation .health-nav-group { background:rgba(60,77,101,.84)!important;border-color:#4c607b!important; }
+.app.app[data-workspace='psychology'] .health-navigation .health-nav-group>p { color:#bdc9e1!important;border-bottom-color:#4c607b; }
+.app.app[data-workspace='psychology'] .health-navigation .health-nav-group>p>span { background:#4a5f7b!important;color:#ccdbf9!important; }
+.app.app[data-workspace='psychology'] .health-navigation .health-nav-group button { color:#c2cde3!important; }
+.app.app[data-workspace='psychology'] .health-navigation .health-nav-group button.active { background:#576e8e!important;color:#f0f4ff!important;box-shadow:inset 3px 0 0 #a8bce5!important; }
+.app.app[data-workspace='psychology'] .health-navigation .health-nav-group button:hover { background:#425773!important; }
+.app.app[data-workspace='psychology'] .health-navigation .psych-nav-icon { background:#4b607b;color:#b8c9ef; }
+.app.app[data-workspace='psychology'] .health-navigation button.active .psych-nav-icon { background:#647d9e;color:#e1ebff; }
+.app.app[data-workspace='psychology'] .health-navigation button:hover .psych-nav-icon { background:#526b89; }
+.app.app[data-workspace='psychology'] .health-navigation button:focus-visible { outline-color:#b8c9ef; }
+.app.app[data-workspace='psychology'] .header-weather { background:rgba(64,82,107,.94)!important; }
+.app.app[data-workspace='psychology'] .header-account-menu { background:#354359;border-color:#5c6e86; }
+.app.app[data-workspace='psychology'] .header-account-menu button { color:#e1e6f2; }
+.app.app[data-workspace='psychology'] .psych-page-heading h1 { color:#edf1fc; }
+.app.app[data-workspace='psychology'] .psych-page-heading>p,
+.app.app[data-workspace='psychology'] .psych-page-heading>span,
+.app.app[data-workspace='psychology'] .psych-footer { color:#c1cce1; }
+.app.app[data-workspace='psychology'] .psych-overview-card { background:rgba(255,250,242,.95);border-color:#ddd7d0; }
+.app.app[data-workspace='psychology'] .psychology-home .saved-tests>.psych-panel-heading .psych-eyebrow { color:#dde6fa; }
+.app.app[data-workspace='psychology'] .psychology-home .saved-tests>.psych-panel-heading button { color:#dde6fa; }
+.app.app[data-workspace='psychology'] .psychology-home .saved-tests>small { color:#bdc9e1; }
+/* Quiet blue-grey surfaces keep every psychology tool in the same night palette. */
+.app.app[data-workspace='psychology'] :is(.psychology-home,.personality-page,.views-test-page) { color:#d5deef; }
+.app.app[data-workspace='psychology'] :is(.psychology-home,.personality-page,.views-test-page) :is(h1,h2,h3,h4,legend,dt,strong,summary):not(.personality-card *) { color:#e6edfa; }
+.app.app[data-workspace='psychology'] :is(.psychology-home,.personality-page,.views-test-page) :is(p,small,time,dd,label,footer,.eyebrow,.psych-eyebrow,.note,.question-meta,.axis-ends,.axis-labels):not(.personality-card *) { color:#afbdd3; }
+.app.app[data-workspace='psychology'] :is(.psych-panel,.psych-guest-note,.psych-overview-card,.personality-page .panel,.views-test-page .test-panel) { background:#354359!important;border-color:#586b84!important;box-shadow:none; }
+.app.app[data-workspace='psychology'] .psych-today-card { background:#43546d!important; }
+.app.app[data-workspace='psychology'] .psych-today-card::after,.app.app[data-workspace='psychology'] .today-mark { color:#8097bc; }
+.app.app[data-workspace='psychology'] .week-chart { border-color:#304260;border-top-color:#8da9d6;border-right-color:#516b94; }
+.app.app[data-workspace='psychology'] .week-area { fill:#8da9d620; }
+.app.app[data-workspace='psychology'] .week-line { stroke:#a5bfeb; }
+.app.app[data-workspace='psychology'] .week-chart circle { fill:#b0c7ed; }
+.app.app[data-workspace='psychology'] .streak-ring { border-color:#293851;border-top-color:#a5bfeb;border-right-color:#617da7; }
+.app.app[data-workspace='psychology'] .psychology-home .saved-tests { background:transparent!important;border:0!important; }
+.app.app[data-workspace='psychology'] .psychology-home .saved-test-row { background:#3b4a61!important;border-color:#596d88!important;box-shadow:none; }
+.app.app[data-workspace='psychology'] .psychology-home .saved-test-row>a { background:#526a8b;color:#deebff;border-color:#526b94; }
+.app.app[data-workspace='psychology'] :is(.psychology-home,.personality-page,.views-test-page) a { color:#b8cff3; }
+.app.app[data-workspace='psychology'] .psychology-home button:not(.psych-primary) { color:#b9cceb; }
+.app.app[data-workspace='psychology'] :is(.psychology-home .psych-primary,.personality-page .primary,.views-test-page .primary) { background:#7895c2;border-color:#7895c2;color:#0b1323; }
+.app.app[data-workspace='psychology'] :is(.personality-page .secondary,.views-test-page .secondary) { background:#475e7b;border-color:#465b7d;color:#dae6f8; }
+.app.app[data-workspace='psychology'] :is(.psych-field textarea,.psych-date-label input) { background:#2d3b50;border-color:#3c4c69;color:#e0e9f8;color-scheme:dark; }
+.app.app[data-workspace='psychology'] .psych-field textarea::placeholder { color:#8e9db5; }
+.app.app[data-workspace='psychology'] :is(.psych-trigger-field button,.mood-selector button.selected) { background:#526c8a!important;border-color:#647fa8!important;color:#d8e6fc!important; }
+.app.app[data-workspace='psychology'] .support-chat { background:#2b394e;border-color:#303f59; }
+.app.app[data-workspace='psychology'] .support-turn { background:#3b4e66;border-color:#354963;box-shadow:none; }
+.app.app[data-workspace='psychology'] .support-turn.user { background:#506685;border-color:#4d668b; }
+.app.app[data-workspace='psychology'] .support-turn p { color:#d3dff1; }
+.app.app[data-workspace='psychology'] .support-turn>span { color:#9db4d7; }
+.app.app[data-workspace='psychology'] .support-consent span { color:#afbdd3; }
+.app.app[data-workspace='psychology'] :is(.support-consent input,.personality-page input,.views-test-page input,progress,meter) { accent-color:#91add9; }
+.app.app[data-workspace='psychology'] .breathing-circle { color:#dfebff; }
+.app.app[data-workspace='psychology'] .breathing-circle:before { background:#4a6380;border-color:#7899bf;box-shadow:0 0 0 12px #35475e,0 0 0 13px #354761; }
+.app.app[data-workspace='psychology'] .breathe-panel progress::-webkit-progress-bar { background:#465c79; }
+.app.app[data-workspace='psychology'] .breathe-panel progress::-webkit-progress-value { background:#91add9; }
+.app.app[data-workspace='psychology'] :is(.psych-save-row,.psych-record,.psych-space-stats,.support-form,.axis-result,.actions,.question-actions,.story-action,.library-invite,.test-archive,.domain-intro,.domain-explainer,.domain-reflection) { border-color:#596d87; }
+.app.app[data-workspace='psychology'] :is(.psych-record-tag,.psych-message,.test-detail,.axis-result h3>span) { background:#475e78;color:#c6d7f1;border-color:#435676; }
+.app.app[data-workspace='psychology'] :is(.personality-page fieldset label,.views-test-page .answer-options label) { background:#394b63;border-color:#657d97;color:#d6e1f2; }
+.app.app[data-workspace='psychology'] :is(.personality-page fieldset label.chosen,.views-test-page .answer-options label.chosen) { background:#2c4061;border-color:#a1bde6; }
+.app.app[data-workspace='psychology'] :is(.domain-explore-name,.domain-explore-action,.domain-explanation-angles dt,.domain-reflection>span) { color:#b7cff0; }
+.app.app[data-workspace='psychology'] .views-test-page .domain-explore-button { border-color:#35455f; }
+.app.app[data-workspace='psychology'] .views-test-page .domain-explore-button:is(:hover,.is-explored) { background:#475e7b; }
+.app.app[data-workspace='psychology'] .views-test-page .domain-explainer-close { color:#bdd0ed; }
+.app.app[data-workspace='psychology'] .domain-example { border-color:#6b85ae; }
+.app.app[data-workspace='psychology'] .axis-track { background:#5c7490; }
+.app.app[data-workspace='psychology'] .axis-track i { background:#a1bde6;border-color:#394c65; }
+.app.app[data-workspace='psychology'] :is(.psychology-home,.personality-page,.views-test-page) :focus-visible { outline-color:#b4cef5; }
+.app.app[data-workspace='psychology'] .psychology-home:has(> .psych-overview-cards) .psych-guest-note { margin:0 0 24px;max-width:none;border-radius:9px;justify-content:space-between; }
+.app.app[data-workspace='psychology'] .tarot-sanctum { --gold:#b5c9e9;--ink:#e0e8f7;--muted:#aab9cf;background:#2d3b51;border-color:#5e738d; }
+.app.app[data-workspace='psychology'] .tarot-sanctum :is(.ritual-main,.guide-panel,.guide-bubble,.guide-bubble.you,.question-form textarea) { background:#37485f;border-color:#657c98; }
+.app.app[data-workspace='psychology'] .tarot-sanctum .intro-emblem { background:#37485f; }
+.app.app[data-workspace='psychology'] { background:#263247; }
+.app.app[data-workspace='psychology'] :is(.psych-guest-note>span,.week-stat>span,.today-latest>span,.psych-space-account>span,.breathing-progress,.psych-date-label,.psych-save-row>span,.psych-field>small) { color:#b4c3db; }
+.app.app[data-workspace='psychology'] .mood-selector button b { color:#d2def1; }
+.app.app[data-workspace='psychology'] .mood-selector button.selected b { color:#e4efff; }
+/* Make the saved-results disclosure an obvious full-width action. */
+.app.app[data-workspace='psychology'] .psychology-home .test-archive { grid-column:1/-1;width:100%;box-sizing:border-box;padding:0;border:0;margin-top:8px; }
+.app.app[data-workspace='psychology'] .psychology-home .test-archive>summary { display:flex;align-items:center;justify-content:space-between;gap:18px;list-style:none;min-height:66px;padding:15px 20px;box-sizing:border-box;border:1px solid #7797c6;border-left:4px solid #b5d1fa;border-radius:10px;background:#526c8d;color:#f1f6ff;cursor:pointer; }
+.app.app[data-workspace='psychology'] .test-archive>summary::-webkit-details-marker { display:none; }
+.app.app[data-workspace='psychology'] .test-archive>summary:hover { background:#617e9e;border-color:#b5d1fa; }
+.app.app[data-workspace='psychology'] .test-archive>summary:focus-visible { outline:2px solid #d5e6ff;outline-offset:4px; }
+.app.app[data-workspace='psychology'] .archive-label { font-size:16px;font-weight:600;line-height:1.7; }
+.app.app[data-workspace='psychology'] .archive-label small { display:block;font-size:12px;font-weight:400;color:#c0d1eb; }
+.app.app[data-workspace='psychology'] .archive-toggle { display:flex;align-items:center;gap:10px;flex-shrink:0;font-size:13px;color:#e5efff; }
+.app.app[data-workspace='psychology'] .archive-toggle>span:last-child { font-size:22px; }
+.app.app[data-workspace='psychology'] .archive-close { display:none; }
+.app.app[data-workspace='psychology'] .test-archive[open]>.archive-toggle { display:flex; }
+.app.app[data-workspace='psychology'] .test-archive[open]>summary .archive-open { display:none; }
+.app.app[data-workspace='psychology'] .test-archive[open]>summary .archive-close { display:inline; }
+.app.app[data-workspace='psychology'] .test-archive[open]>summary .archive-toggle>span:last-child { transform:rotate(180deg); }
+.app.app[data-workspace='psychology'] .test-record-actions { display:flex;justify-content:flex-end;margin-top:10px; }
+.app.app[data-workspace='psychology'] .psychology-home .test-record-actions button { padding:7px 12px;border:1px solid #916678;border-radius:6px;background:#644658;color:#ffd0dc;font-size:12px; }
+.app.app[data-workspace='psychology'] .psychology-home .test-record-actions button:hover { background:#7a5267;border-color:#e3a1b5; }
+.app.app[data-workspace='psychology'] .test-record-actions button:disabled { opacity:.6;cursor:wait; }
+@media(max-width:600px){.app.app[data-workspace='psychology'] .psychology-home .test-archive>summary{align-items:flex-start;flex-direction:column;gap:8px;padding:14px 16px}.app.app[data-workspace='psychology'] .archive-label{font-size:15px}.app.app[data-workspace='psychology'] .archive-toggle{align-self:flex-end}}
+
+/* Saved tests: readable cards with actions beside their own result. */
+.app.app[data-workspace='psychology'] .psychology-home .saved-tests { display:block;padding:0;min-width:0; }
+.app.app[data-workspace='psychology'] .saved-tests>.psych-panel-heading { margin-bottom:18px;align-items:center; }
+.app.app[data-workspace='psychology'] .saved-tests>.psych-panel-heading h2 { margin-bottom:0; }
+.app.app[data-workspace='psychology'] .saved-test-grid { display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px; }
+.app.app[data-workspace='psychology'] .psychology-home .saved-test-row { display:flex;flex-direction:column;align-items:stretch;justify-content:space-between;gap:20px;margin:0;padding:22px;border:1px solid #596d88;border-radius:12px;min-width:0; }
+.app.app[data-workspace='psychology'] .saved-test-row>div { display:flex;flex-direction:column;flex:1;min-width:0; }
+.app.app[data-workspace='psychology'] .saved-test-row h3 { display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;margin:0 0 18px;font-size:17px;line-height:1.5; }
+.app.app[data-workspace='psychology'] .saved-test-row h3 small { display:inline-block;margin:0;padding:3px 8px;border:1px solid #4b607e;border-radius:4px;font:400 11px/1.5 var(--sans,sans-serif); }
+.app.app[data-workspace='psychology'] .saved-test-row strong { font-size:15px;line-height:1.7;overflow-wrap:anywhere; }
+.app.app[data-workspace='psychology'] .saved-test-row p { margin:10px 0 20px;font-size:14px;line-height:1.8; }
+.app.app[data-workspace='psychology'] .saved-test-row time { display:block;margin-top:auto;font-size:12px;line-height:1.6; }
+.app.app[data-workspace='psychology'] .psychology-home .saved-test-row>a { display:flex;align-items:center;justify-content:center;align-self:flex-start;min-height:40px;padding:8px 16px;box-sizing:border-box;border:1px solid #526b94;border-radius:7px;text-decoration:none;font-size:13px;line-height:1.5; }
+.app.app[data-workspace='psychology'] .saved-test-row>a:hover { background:#364f73; }
+.app.app[data-workspace='psychology'] .psychology-home .test-archive { margin-top:20px; }
+.app.app[data-workspace='psychology'] .saved-tests>small { display:block;margin-top:12px;line-height:1.7; }
+@media(max-width:1100px) { .app.app[data-workspace='psychology'] .saved-test-grid { grid-template-columns:1fr; } }
+@media(max-width:600px) { .app.app[data-workspace='psychology'] .psychology-home .saved-test-row { padding:18px;gap:16px; } }

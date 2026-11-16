@@ -928,6 +928,14 @@ if (new URLSearchParams(location.search).get('background') === '1') {
   });
 }
 
+// Restore the entrance used in this tab, without changing embedded backgrounds.
+if (new URLSearchParams(location.search).get('background') !== '1') {
+  let savedChapter = null;
+  try { savedChapter = sessionStorage.getItem('huayuxing-entry-chapter'); } catch {}
+  if (['0', '1', '2'].includes(savedChapter)) {
+    document.querySelector('[data-chapter="' + savedChapter + '"]').click();
+  }
+}
 })();
 </script>
 <a id="credit" href="https://pastel-lab.pages.dev/" target="_blank" rel="noopener">© konmari · pastel-lab</a>

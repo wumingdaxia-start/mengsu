@@ -34,6 +34,10 @@ export async function safetyRequest(path, options = {}) {
   return data
 }
 
+export async function registerAccount(account, password, name) {
+  return safetyRequest('/api/register', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ account, password, name }) })
+}
+
 export async function signIn(account, password, remember = true) {
   const version = ++revision
   refreshing = null

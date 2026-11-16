@@ -1,6 +1,6 @@
 <script setup>
 import { onMounted, onBeforeUnmount, ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { SAFETY_API_BASE } from '../auth'
 import HealthSceneBackground from '../components/HealthSceneBackground.vue'
 
@@ -9,6 +9,7 @@ const frame = ref(null)
 const loaded = ref(false)
 const timedOut = ref(false)
 const address = new URL(`${SAFETY_API_BASE}/?mengsu=1`, location.origin)
+if (useRoute().hash === '#profile') address.hash = '#profile'
 const source = address.href
 let timer
 function receive(event) {

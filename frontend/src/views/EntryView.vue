@@ -9,6 +9,9 @@ const frame = ref(null)
 const failed = ref(false)
 let loadingTimer = 0
 async function enter(path = '/safety') {
+  const chapter = ['/safety', '/dream', '/psychology'].indexOf(path)
+  if (chapter < 0) return
+  try { sessionStorage.setItem('huayuxing-entry-chapter', String(chapter)) } catch {}
   await refreshSession()
   const destination = entryDestination(path, isLoggedIn())
   if (!destination) return
@@ -31,7 +34,7 @@ onBeforeUnmount(() => { clearTimeout(loadingTimer); window.removeEventListener('
 
 <template>
   <section class="ripple-entry" aria-label="花屿星梦境入口">
-    <iframe ref="frame" src="/entry-ripples/index.html?v=crisp-star-flow-20261030-6" title="花屿星互动：花屿安康守护、鱼庭花屿星与星栈心灵"
+    <iframe ref="frame" src="/entry-ripples/index.html?v=return-chapter-20261108-1" title="花屿星互动：花屿安康守护、鱼庭花屿星与星栈心灵"
       sandbox="allow-scripts allow-same-origin allow-downloads allow-popups allow-popups-to-escape-sandbox"
       referrerpolicy="no-referrer" @error="failed = true" />
     <div v-if="failed" class="ripple-entry-fallback" role="status">

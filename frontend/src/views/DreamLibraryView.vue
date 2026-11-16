@@ -1,28 +1,34 @@
 <script setup>
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, onMounted, onBeforeUnmount, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import { demoDreams, downloadText, today, useDreamJourney } from '../composables/useDreamJourney'
+import { demoDreams, today, useDreamJourney } from '../composables/useDreamJourney'
+import { safetyRequest } from '../auth'
 import { useJourneyUi } from '../composables/useJourneyUi'
-import { dreamReady, dreamError, retryDreamAccount } from '../dream-account'
+import { dreamOwner, dreamReady, dreamError, retryDreamAccount } from '../dream-account'
 const router = useRouter(), { snapshots, refresh, commit } = useDreamJourney(), { toast, notify, save } = useJourneyUi()
-const query = ref(''), day = ref(''), kind = ref('全部'), demos = ref(true), selected = ref(null), pendingDelete = ref(null)
-const month = ref(demoDreams[0]?.date.slice(0, 7) || today().slice(0, 7))
+const query = ref(''), day = ref(''), kind = ref('全部'), demos = ref(false), selected = ref(null), pendingDelete = ref(null)
+const month = ref(today().slice(0, 7))
 const source = computed(() => demos.value ? demoDreams : snapshots.value)
+const communityFavorites=ref([])
+let favoriteLoadVersion=0
+function applyCommunityFavorites(posts){communityFavorites.value=posts.filter(p=>p.liked).map(p=>({id:'community-'+p.id,postId:p.id,tags:p.tags||[],title:p.title,signal:p.text,image:p.image,date:p.date,feeling:p.topic,author:p.author,community:true,favorite:true}))}
+async function loadCommunityFavorites(){const version=++favoriteLoadVersion,owner=dreamOwner.value;communityFavorites.value=[];if(!owner)return;try{const data=await safetyRequest('/api/community');if(version===favoriteLoadVersion&&owner===dreamOwner.value)applyCommunityFavorites(data.posts||[])}catch(e){if(version===favoriteLoadVersion)notify('社区收藏未能读取，请刷新重试。')}}
+watch(dreamOwner,loadCommunityFavorites,{immediate:true})
 const demoFavorites = ref([])
 const favoriteTimes = ref({})
-const favorites = computed(() => source.value.filter(s => s.favorite || demoFavorites.value.includes(s.id)))
+const favorites = computed(() => [...source.value.filter(s => s.favorite || demoFavorites.value.includes(s.id)),...(demos.value?[]:communityFavorites.value)])
 const recent = computed(() => favorites.value.slice().sort((a,b)=>(favoriteTimes.value[b.id] || b.favoritedAt || 0)-(favoriteTimes.value[a.id] || a.favoritedAt || 0)).slice(0,3))
 const tagsFor = s => [...new Set([s.feeling,s.motif,...(s.tags||[])].filter(Boolean))].slice(0,3)
 function shiftMonth(delta){const [y,m]=month.value.split('-').map(Number);const d=new Date(y,m-1+delta,1);month.value=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');day.value=''}
-async function favorite(s){favoriteTimes.value[s.id]=Date.now();if(s.demo){demoFavorites.value=demoFavorites.value.includes(s.id)?demoFavorites.value.filter(id=>id!==s.id):[s.id,...demoFavorites.value];return}await save(commit,'snapshots',snapshots.value.map(x=>x.id===s.id?{...x,favorite:!x.favorite,favoritedAt:!x.favorite?Date.now():null}:x),s.favorite?'已取消收藏':'已收藏这场梦')}
+async function favorite(s){if(s.community){try{const data=await safetyRequest('/api/community/'+s.postId+'/like',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});applyCommunityFavorites(data.posts||[]);notify('已取消收藏')}catch(e){notify(e.message)}return}favoriteTimes.value[s.id]=Date.now();if(s.demo){demoFavorites.value=demoFavorites.value.includes(s.id)?demoFavorites.value.filter(id=>id!==s.id):[s.id,...demoFavorites.value];return}await save(commit,'snapshots',snapshots.value.map(x=>x.id===s.id?{...x,favorite:!x.favorite,favoritedAt:!x.favorite?Date.now():null}:x),s.favorite?'已取消收藏':'已收藏这场梦')}
 // Category is shared by the results and calendar; search/date narrow only the results.
-const category = computed(() => source.value.filter(s => kind.value === '全部' || (kind.value === '内省笔记' ? s.kind === 'core-report' : kind.value === '情绪梦络' ? !!s.feeling : kind.value === '星愿收藏' ? favorites.value.some(f=>f.id===s.id) : s.kind !== 'core-report')))
+const category = computed(() => kind.value==='星愿收藏'?favorites.value:source.value.filter(s => kind.value === '全部' || (kind.value === '内省笔记' ? s.kind === 'core-report' : kind.value === '情绪梦络' ? !!s.feeling : kind.value === '星愿收藏' ? favorites.value.some(f=>f.id===s.id) : s.kind !== 'core-report')))
 const view = computed(() => ({
  '全部': {title:'所有夜晚的回响', intro:'手动留下的梦快照与保存的内核报告，在这里相遇。', empty:'梦库还在等待第一束微光', help:'记下一场梦，或完成梦境内核测试并保存报告，它们就会留在这里。'},
  '手绘梦境片段': {title:'你亲手留下的梦', intro:'回看梦里的画面、醒来体感，以及创作中留下的片段。', empty:'还没有留下梦快照', help:'趁醒来时的感受还清晰，留下一个画面或一句残留信号。'},
  '内省笔记': {title:'你的梦境内核回响', intro:'这里收起梦境内核测试中由你保存的报告，和梦快照分开展示。', empty:'还没有保存内核报告', help:'完成梦境内核测试后，点击“保存为本场意识快照”，报告就会出现在这里。'},
  '情绪梦络': {title:'顺着情绪，找回一场梦',empty:'还没有带情绪标签的梦',help:'记梦时留下一种感受，让相似的夜晚在这里相遇。'},
- '星愿收藏': {title:'舍不得散去的微光',empty:'还没有收藏梦境',help:'点击梦境卡片右上角的星星，把喜欢的梦留在这里。'}
+ '星愿收藏': {title:'舍不得散去的微光',empty:'还没有收藏梦境',help:'点击社区分享的爱心，或梦境卡片的星星，把喜欢的梦留在这里。'}
 }[kind.value]))
 const filtered = computed(() => category.value.filter(s => (!query.value.trim() || `${s.title || ''} ${s.signal || ''} ${s.feeling || ''} ${s.motif || ''} ${(s.tags || []).join(' ')} ${s.coreReport?.inner || ''}`.toLowerCase().includes(query.value.trim().toLowerCase())) && (!day.value || s.date?.slice(0, 10) === day.value)).slice().sort((a,b) => String(b.date).localeCompare(String(a.date))))
 const page = ref(1)
@@ -30,31 +36,33 @@ const pageCount = computed(() => Math.max(1, Math.ceil(filtered.value.length / 2
 const pageItems = computed(() => filtered.value.slice((page.value-1)*2,page.value*2))
 watch([query,day,kind,demos],()=>{page.value=1})
 watch(pageCount,n=>{page.value=Math.min(page.value,n)})
+function showOwnKind(mode){setDreamSource(false);selectKind(mode)}
 function selectKind(mode){kind.value=mode;day.value='';selected.value=null}
-function toggleDemos(){demos.value=!demos.value;day.value='';query.value='';if(demos.value)month.value=demoDreams[0].date.slice(0,7)}
+function setDreamSource(showDemos){demos.value=showDemos;day.value='';query.value='';selected.value=null}
 const calendar = computed(() => { const [y,m] = month.value.split('-').map(Number); if (!y || !m) return []; const offset = (new Date(y,m-1,1).getDay()+6)%7; return [...Array(offset).fill(null), ...Array.from({length:new Date(y,m,0).getDate()},(_,i)=>`${month.value}-${String(i+1).padStart(2,'0')}`)] })
 const has = date => category.value.some(s => s.date?.slice(0,10) === date)
+function selectDay(date){if(date>today())return;day.value=day.value===date?'':date}
 async function lock(s) { if(s.demo)return notify('示例快照不写入你的梦库'); await save(commit, 'snapshots', snapshots.value.map(x=>x.id===s.id?{...x,locked:!x.locked}:x), s.locked?'快照已解除锁定':'快照已锁定'); selected.value=null }
 async function remove() { const s=pendingDelete.value; if(s.locked)return notify('先解除锁定，再删除快照'); if(await save(commit,'snapshots',snapshots.value.filter(x=>x.id!==s.id),'快照已从当前账号删除')){pendingDelete.value=null;selected.value=null} }
-function exportLibrary(){downloadText('花屿星-梦库.json',JSON.stringify(snapshots.value,null,2),'application/json');notify('已导出当前账号梦库')}
 function open(s){selected.value=s}
-onMounted(refresh)
+onMounted(()=>{refresh();window.addEventListener('community-favorites-change',loadCommunityFavorites)})
+onBeforeUnmount(()=>{favoriteLoadVersion++;window.removeEventListener('community-favorites-change',loadCommunityFavorites)})
 </script>
 <template>
 <div class="journey library-page" @keydown.esc="selected=null;pendingDelete=null">
  <p class="j-notice library-account-note"><span class="j-dot"></span>你的梦库保存在当前账号，和记梦、梦境内核测试互通。</p>
- <div class="library-toolbar"><div class="j-row library-actions"><button @click="toggleDemos">{{demos?'回到我的梦岛':'浏览示例梦库'}}</button><button @click="exportLibrary">导出梦库</button><button class="j-primary" @click="router.push('/capture')">进入梦屿 ›</button></div></div>
+ <div class="library-toolbar"><div class="j-row library-actions" role="group" aria-label="选择梦库"><button type="button" :class="{'j-primary':!demos}" :aria-pressed="!demos" @click="setDreamSource(false)">回到我的梦岛</button><button type="button" :class="{'j-primary':demos}" :aria-pressed="demos" @click="setDreamSource(true)">查看示例梦库</button></div></div>
  <div class="library-layout">
-  <aside class="j-panel library-calendar-panel"><h2>{{kind==='内省笔记'?'在日历里找回报告':'在日历里找回梦'}}</h2><div class="calendar-nav"><button aria-label="上个月" @click="shiftMonth(-1)">‹ 上个月</button><button aria-label="下个月" @click="shiftMonth(1)">下个月 ›</button></div><label class="month-picker"><span class="j-sr">日历月份</span><input v-model="month" type="month" aria-label="日历月份"></label><div class="library-calendar"><small v-for="w in ['一','二','三','四','五','六','日']" :key="w">{{w}}</small><template v-for="(date,i) in calendar" :key="i"><button v-if="date" :class="{'j-selected':day===date,'has-dream':has(date)}" :aria-label="date+(has(date)?'，有快照':'')" @click="day=day===date?'':date">{{Number(date.slice(-2))}}</button><span v-else></span></template></div><small>小圆点代表那天留下了{{kind==='全部'?'快照或报告':kind}}。</small><div class="library-stats"><button @click="selectKind('手绘梦境片段')"><span>梦络记录</span><img src="/dream-roam/spirit.png" alt=""><small>{{source.filter(s=>s.kind!=='core-report').length}} 条梦境</small></button><button @click="selectKind('情绪梦络')"><span>情绪标签</span><div class="emotion-orbit" aria-hidden="true"><i></i><i></i><i></i></div><small>{{[...new Set(source.map(s=>s.feeling).filter(Boolean))].slice(0,3).join('、')||'等待一份感受'}}</small></button><button @click="selectKind('星愿收藏')"><span>星愿回响</span><img class="violet-spirit" src="/dream-roam/spirit.png" alt=""><small>{{favorites.length}} 条收藏</small></button></div><button v-if="day" class="j-small-action j-section-gap" @click="day=''">清除日期筛选</button><p class="library-source-note">{{demos?'示例梦境，收藏仅在本次浏览保留。':'记录与收藏保存在当前账号，可随时删除。'}}</p></aside>
+  <aside class="j-panel library-calendar-panel"><h2>{{kind==='内省笔记'?'在日历里找回报告':'在日历里找回梦'}}</h2><div class="calendar-nav"><button aria-label="上个月" @click="shiftMonth(-1)">‹ 上个月</button><button aria-label="下个月" @click="shiftMonth(1)">下个月 ›</button></div><label class="month-picker"><span class="j-sr">日历月份</span><input v-model="month" type="month" aria-label="日历月份"></label><div class="library-calendar"><small v-for="w in ['一','二','三','四','五','六','日']" :key="w">{{w}}</small><template v-for="(date,i) in calendar" :key="i"><button v-if="date" :class="{'j-selected':day===date,'has-dream':has(date)}" :disabled="date>today()" :aria-label="date+(date>today()?'，尚未到来':has(date)?'，有快照':'')" @click="selectDay(date)">{{Number(date.slice(-2))}}</button><span v-else></span></template></div><small>小圆点代表那天留下了{{kind==='全部'?'快照或报告':kind}}。</small><div class="library-stats"><button @click="showOwnKind('手绘梦境片段')"><span>梦络记录</span><img src="/dream-roam/spirit.png" alt=""><small>{{snapshots.filter(s=>s.kind!=='core-report').length}} 条梦境</small></button><button @click="showOwnKind('内省笔记')" :aria-pressed="kind==='内省笔记' && !demos"><span>梦境内核</span><div class="emotion-orbit" aria-hidden="true"><i></i><i></i><i></i></div><small>{{snapshots.filter(s=>s.kind==='core-report').length}} 份测试报告</small></button><button @click="showOwnKind('星愿收藏')"><span>星愿回响</span><img class="violet-spirit" src="/dream-roam/spirit.png" alt=""><small>{{favorites.length}} 条收藏</small></button></div><button v-if="day" class="j-small-action j-section-gap" @click="day=''">清除日期筛选</button><p class="library-source-note">{{demos?'示例梦境，收藏仅在本次浏览保留。':'记录与收藏保存在当前账号，可随时删除。'}}</p></aside>
   <section class="j-stack library-results"><h2 aria-live="polite">{{view.title}}</h2><label class="library-search"><span class="j-sr">搜索梦境</span><input v-model="query" type="search" placeholder="搜索标题或残留信号"></label><div class="j-between"><small>{{demos?'示例梦库':'我的梦库'}} · {{kind}} · {{filtered.length}} {{kind==='内省笔记'?'份报告':'条回响'}}</small><small v-if="day">{{day}}</small></div>
    <div v-if="!demos && dreamError" class="j-empty" role="status"><h3>梦库暂时未能载入</h3><p>重新连接后，再查看你的快照与报告。</p><button @click="retryDreamAccount">重新载入</button></div>
    <div v-else-if="!demos && !dreamReady" class="j-empty" role="status"><p>正在接回你的夜晚回响…</p></div>
    <div v-else-if="!filtered.length" class="j-empty library-empty" role="status">
     <h3>{{query.trim()||day?'没有找到对应的'+(kind==='内省笔记'?'报告':'回响'):view.empty}}</h3>
     <p>{{query.trim()||day?'试着换个词，或清除日期与搜索条件。':demos && kind==='内省笔记'?'示例梦库只提供梦快照，内核报告由你完成测试后保存。':view.help}}</p>
-    <div class="j-row"><button v-if="query.trim()||day" @click="query='';day=''">清除筛选</button><template v-else><button v-if="kind!=='内省笔记'" class="j-primary" @click="router.push('/capture')">记一场梦</button><button v-if="kind!=='手绘梦境片段'" :class="{'j-primary':kind==='内省笔记'}" @click="router.push('/dream/forgotten')">进入梦境内核测试</button></template></div>
+    <div class="j-row"><button v-if="query.trim()||day" @click="query='';day=''">清除筛选</button><button v-else-if="kind==='内省笔记'" class="j-primary" @click="router.push('/dream/forgotten')">进入梦境内核测试</button><button v-else-if="kind==='星愿收藏'" class="j-primary" @click="router.push('/dream/community')">去社区收藏梦境</button><button v-else class="j-primary" @click="router.push({path:'/dream/studio',query:{section:'record'}})">去记录梦境</button></div>
    </div>
-   <article v-for="s in pageItems" :key="s.id" class="j-panel library-card"><button class="library-cover" :aria-label="'打开'+s.title" @click="open(s)"><img :src="s.image||'/dream-rooms/pages.png'" :alt="s.image?'梦境画面':'纸页插画'"></button><div class="library-card-text"><div class="j-row"><small>{{s.date}}</small><span class="j-tag" :class="{'blue':s.kind==='core-report'}">{{s.kind==='core-report'?'梦境内核测试报告':s.feeling||'意识快照'}}</span><span v-if="s.locked" class="j-tag warm">已锁定</span></div><h3><button class="library-title" @click="open(s)">{{s.title}}</button></h3><p>{{s.signal||s.coreReport?.inner||'这幅快照以画面留下了回响。'}}</p><div class="library-tags"><button v-for="tag in tagsFor(s)" :key="tag" @click="query=tag">{{tag}}</button></div><div class="record-actions"><button class="j-small-action" @click="open(s)">展开快照</button><button v-if="!s.demo" class="j-small-action" @click="lock(s)">{{s.locked?'解除锁定':'锁定'}}</button><button v-if="!s.demo" class="j-small-action" @click="pendingDelete=s">删除</button></div></div><button class="favorite-button" :class="{'is-favorite':favorites.some(f=>f.id===s.id)}" :aria-label="(favorites.some(f=>f.id===s.id)?'取消收藏':'收藏')+s.title" :aria-pressed="favorites.some(f=>f.id===s.id)" @click="favorite(s)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2-5.6-3-5.6 3 1.1-6.2L3 9.6l6.2-.9Z"/></svg></button><span class="card-ribbon" aria-hidden="true"></span></article>
+   <article v-for="s in pageItems" :key="s.id" class="j-panel library-card"><button class="library-cover" :aria-label="'打开'+s.title" @click="open(s)"><img :src="s.image||'/dream-rooms/pages.png'" :alt="s.image?'梦境画面':'纸页插画'"></button><div class="library-card-text"><div class="j-row"><small>{{s.date}}</small><span class="j-tag" :class="{'blue':s.kind==='core-report'}">{{s.kind==='core-report'?'梦境内核测试报告':s.feeling||'意识快照'}}</span><span v-if="s.locked" class="j-tag warm">已锁定</span></div><h3><button class="library-title" @click="open(s)">{{s.title}}</button></h3><p>{{s.signal||s.coreReport?.inner||'这幅快照以画面留下了回响。'}}</p><div class="library-tags"><button v-for="tag in tagsFor(s)" :key="tag" @click="query=tag">{{tag}}</button></div><div class="record-actions"><button class="j-small-action" @click="open(s)">展开快照</button><button v-if="!s.demo && !s.community" class="j-small-action" @click="lock(s)">{{s.locked?'解除锁定':'锁定'}}</button><button v-if="!s.demo && !s.community" class="j-small-action" @click="pendingDelete=s">删除</button></div></div><button class="favorite-button" :class="{'is-favorite':favorites.some(f=>f.id===s.id)}" :aria-label="(favorites.some(f=>f.id===s.id)?'取消收藏':'收藏')+s.title" :aria-pressed="favorites.some(f=>f.id===s.id)" @click="favorite(s)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2-5.6-3-5.6 3 1.1-6.2L3 9.6l6.2-.9Z"/></svg></button><span class="card-ribbon" aria-hidden="true"></span></article>
    <nav v-if="pageCount>1" class="library-pagination" aria-label="梦境列表翻页"><button :disabled="page===1" @click="page--">上一页</button><span aria-live="polite">第 {{page}} / {{pageCount}} 页 · 共 {{filtered.length}} 条</span><button :disabled="page===pageCount" @click="page++">下一页</button></nav>
   </section>
  </div>
@@ -72,4 +80,11 @@ onMounted(refresh)
 
 .library-layout{grid-template-columns:minmax(240px,.8fr) minmax(0,1.8fr)}
 @media(max-width:760px){.library-layout{grid-template-columns:1fr}}
+.library-calendar button:disabled{opacity:.35;cursor:not-allowed;background:transparent;box-shadow:none}
+
+/* Tags and actions share the same three-column alignment. */
+.library-card .library-tags,.library-card .record-actions{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;align-items:stretch}
+.library-card .library-tags button,.library-card .record-actions button{width:100%;min-width:0;min-height:38px!important;margin:0;padding:7px 5px!important;border-radius:10px;font-size:12px!important;line-height:1.5;text-align:center;white-space:normal;overflow-wrap:anywhere}
+@media(max-width:760px){.library-card .library-tags,.library-card .record-actions{gap:6px}.library-card .library-tags button,.library-card .record-actions button{min-height:44px!important;font-size:11px!important;padding:6px 3px!important}}
+
 </style>

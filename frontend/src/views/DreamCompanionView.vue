@@ -1,61 +1,32 @@
 <script setup>
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { bedtimeStories, cloudFeelings, gentleActivities } from '../data/bedtime-content'
-import { today, useDreamJourney } from '../composables/useDreamJourney'
+import { bedtimeStories } from '../data/bedtime-content'
+import { useDreamJourney } from '../composables/useDreamJourney'
 import { useJourneyUi } from '../composables/useJourneyUi'
 import { needsSetup, openAiSetup } from '../ai-status'
-const route=useRoute(),router=useRouter(),{holes,refresh,commit}=useDreamJourney(),{toast,notify,save}=useJourneyUi()
-const path=computed(()=>route.path==='/dream/night-talk'?(route.query.section==='tree-hole'?'/dream/tree-hole':'/dream/bedtime-stories'):route.path),story=ref(bedtimeStories[0]),genre=ref('星空远行'),role=ref('朋友般的陪伴'),customStory=ref(''),busy=ref(false),error=ref(''),thought=ref(''),feeling=ref('焦虑与压力'),activity=ref(gentleActivities[0]),tool=ref('安放情绪'),sound=ref(false),soundVolume=ref(.08),seconds=ref(0)
-const calmTools = [
- {name:'安放情绪',preview:'先允许感受存在，不急着改变它',title:'先承认：我此刻确实不太轻松',text:'不急着赶走、改变这份情绪。试着给它起一个临时的名字，问问自己：我现在最需要的，是安静休息、一点陪伴，还是一段不被打扰的空间？',extra:'你可以在心里默念：我允许自己现在不舒服，不舒服不需要立刻消失。'},
- {name:'身体松一松',preview:'觉察身体的紧绷，做到哪里算哪里',title:'慢慢松开紧绷的身体',text:'从脚尖开始，一点点觉察：哪里是紧紧绷住的？不用强行放松，只是觉察它。吸气，保持觉察；呼气，试着让那一块软一点点。不用一次做完，做到哪里算哪里。',extra:'按舒服的节奏自然呼吸，不必憋气；如果不舒服，随时停下。'},
- {name:'给自己一句肯定',preview:'选一句此刻愿意听见的鼓励',title:'一句不苛刻的自我鼓励',text:'你已经在撑着了，这就足够了不起。不需要现在解决所有麻烦，你只需要照顾好此刻的自己。',extra:'我已经尽力了 ｜ 我可以慢慢休息 ｜ 难受是暂时的'},
- {name:'换个注意方向',preview:'用身边的感官线索，轻轻回到当下',title:'把注意力轻轻拉回身边',text:'54321 感官练习：说出你看见的 5 样东西、摸到的 4 样东西、听见的 3 种声音、闻到的 2 种气味、尝到的 1 种味道。把思绪从焦虑里轻轻带回来。',extra:'找不到某一种感觉也没关系，跳过就好，不需要凑齐。'},
- {name:'入睡前的三步',preview:'三个可选的小动作，不必全部完成',title:'睡前低负担三步',text:'① 放下手机，屏幕调暗或者放到远处。\n② 做 3 次绵长的呼吸，呼气比吸气更长。\n③ 告诉自己：今天的任务，到这里就结束了。',extra:'这些只是可选的小建议。保持自然、舒服的呼吸，不想做也可以直接休息。'}
-]
-const activeCalm = computed(()=>calmTools.find(item=>item.name===tool.value)||calmTools[0])
-const readingMode=ref('website'),voiceSettings=ref(false),thoughtInput=ref(null)
-let nativeSpeech
-function focusThought(){thoughtInput.value?.scrollIntoView({behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth',block:'center'});thoughtInput.value?.focus({preventScroll:true})}
-const deviceVoices=ref([]),deviceVoice=ref(localStorage.getItem('huayuxing-soft-voice')||'female')
-watch(deviceVoice,value=>localStorage.setItem('huayuxing-soft-voice',value))
-function voiceScore(voice,male){
- return (/Natural|Neural|Online/i.test(voice.name)?100:0)+(/zh[-_]CN/i.test(voice.lang)?30:0)+((male?/Yunxi/i:/Xiaoxiao/i).test(voice.name)?20:0)
-}
-function loadDeviceVoices(){deviceVoices.value=window.speechSynthesis?.getVoices().filter(v=>/^zh/i.test(v.lang))||[]}
-function readOnDevice(text){
- stopVoice()
- if(!('speechSynthesis' in window)){notify('这个浏览器暂时不能朗读，请用 Edge 或 Chrome 打开后再点一次。');return}
- loadDeviceVoices()
- const request=++voiceRequest
- nativeSpeech=new SpeechSynthesisUtterance(text)
- nativeSpeech.lang='zh-CN';nativeSpeech.rate=role.value==='缓慢疗愈陪伴'?.82:.9;nativeSpeech.pitch=1;nativeSpeech.volume=.9
- const male=deviceVoice.value==='male'
- const preferred=male?/Yunxi|Yunyang|Yunjian|Yunxia|Kangkang|YunJhe|WanLung/i:/Xiaoxiao|Xiaoyi|Xiaochen|Huihui|Yaoyao|Hsiao|HiuMaan/i
- const ranked=[...deviceVoices.value].filter(v=>preferred.test(v.name)).sort((a,b)=>voiceScore(b,male)-voiceScore(a,male))
- const voice=ranked[0]
- if(!voice){notify('这台设备暂时没有'+(male?'中文男声':'中文女声')+'，请用 Microsoft Edge 打开，可使用更自然的中文声音。');return}
- if(!/Natural|Online|Neural/i.test(voice.name))notify('当前设备仅提供基础音色；用 Microsoft Edge 打开可获得更自然的朗读。')
- if(voice)nativeSpeech.voice=voice
- nativeSpeech.onend=()=>{if(request===voiceRequest)playing.value=false}
- nativeSpeech.onerror=e=>{if(request===voiceRequest){playing.value=false;if(e.error!=='interrupted'&&e.error!=='canceled')notify('声音没有播放出来，请检查设备音量，再点一次“读给我听”。')}}
- playing.value=true;window.speechSynthesis.speak(nativeSpeech)
-}
-function readCalm(){
- if(playing.value||ttsLoading.value){stopVoice();return}
- void speak(false,[activeCalm.value.title,activeCalm.value.text,activeCalm.value.extra].join('。'))
-}
-watch(tool,()=>stopVoice())
+import { dreamOwner, dreamReady, dreamError, readDream, retryDreamAccount } from '../dream-account'
+const route=useRoute(),router=useRouter(),{refresh,commit}=useDreamJourney(),{toast,notify,save}=useJourneyUi()
+const path=computed(()=>route.path==='/dream/night-talk'?(['favorites','tree-hole'].includes(route.query.section)?'/dream/story-favorites':'/dream/bedtime-stories'):route.path)
+const story=ref(bedtimeStories[0]),genre=ref('星空远行'),role=ref('朋友般的陪伴'),customStory=ref(''),generatedTheme=ref(''),busy=ref(false),error=ref(''),sound=ref(false),soundVolume=ref(.08)
+const favoriteBusy=ref(false),expandedFavorite=ref(null),readingFavorite=ref(null)
+const favoriteStories=computed(()=>{const items=readDream('notes',{}).storyFavorites;return Array.isArray(items)?items:[]})
+const isStorySaved=computed(()=>!!customStory.value&&favoriteStories.value.some(item=>item.text===customStory.value))
+async function collectStory(){if(favoriteBusy.value||!customStory.value||isStorySaved.value)return;favoriteBusy.value=true;const item={id:crypto.randomUUID(),title:generatedTheme.value||genre.value.trim()||'今夜故事',text:customStory.value,createdAt:new Date().toISOString()};try{await save(commit,'notes',{...readDream('notes',{}),storyFavorites:[item,...favoriteStories.value]},'已收藏到当前账号的故事收藏')}finally{favoriteBusy.value=false}}
+async function removeStory(item){if(favoriteBusy.value)return;favoriteBusy.value=true;try{if(await save(commit,'notes',{...readDream('notes',{}),storyFavorites:favoriteStories.value.filter(s=>s.id!==item.id)},'已取消收藏')){if(readingFavorite.value===item.id)stopVoice();if(expandedFavorite.value===item.id)expandedFavorite.value=null}}finally{favoriteBusy.value=false}}
+function readFavorite(item){if(readingFavorite.value===item.id&&(playing.value||ttsLoading.value)){stopVoice();return}stopVoice();void speak(false,item.text,item.id)}
+function openStories(){router.replace({path:'/dream/night-talk',query:{...route.query,section:'stories'}})}
+watch(path,()=>{stopVoice();expandedFavorite.value=null})
 // 云端音色：qwen3-tts-flash 系统音色，选中后用于故事朗读。
-const cloudVoices=[
- {id:'Serena',name:'温柔女声'},
- {id:'Ethan',name:'清润男声'},
- {id:'Mochi',name:'少年音'},
- {id:'Eldric Sage',name:'低哑夜读音'},
- {id:'Momo',name:'柔和童音'},
-]
-const cloudVoice=ref('Serena'),ttsLoading=ref(false),playing=ref(false)
+const cloudVoices=[{id:'female',name:'柔和女声'},{id:'male',name:'柔和男声'}]
+const cloudVoice=ref('female'),ttsLoading=ref(false),playing=ref(false)
+const readingStyles={
+ '朋友般的陪伴':{rate:.98,volume:1},
+ '安静轻声陪伴':{rate:.9,volume:.72},
+ '缓慢疗愈陪伴':{rate:.82,volume:.86}
+}
+function applyReadingStyle(player){const style=readingStyles[role.value]||readingStyles['朋友般的陪伴'];player.preservesPitch=true;player.defaultPlaybackRate=style.rate;player.playbackRate=style.rate;player.volume=style.volume}
+watch(role,()=>{if(voiceAudio)applyReadingStyle(voiceAudio)})
 const musicTrack=ref('stars'),musicTracks=[
  {id:'stars',name:'星河轻琴',kind:'notes',notes:[261.63,329.63,392,523.25,440,392,329.63,293.66]},
  {id:'waves',name:'海浪白噪音',kind:'waves'},
@@ -66,34 +37,55 @@ const musicTrack=ref('stars'),musicTracks=[
 let abort,voiceAbort,voiceRequest=0,voiceAudio,audio,noise,gain,timer
 const currentText=computed(()=>customStory.value||story.value.text)
 function changeVoice(){stopVoice();notify('音色已切换，下次朗读使用新声音')}
-function stopVoice(){voiceRequest++;if(nativeSpeech){window.speechSynthesis?.cancel();nativeSpeech=null;}voiceAbort?.abort();voiceAbort=null;voiceAudio?.pause();voiceAudio=null;playing.value=false;ttsLoading.value=false}
-async function speak(sample=false,overrideText=''){
- if(readingMode.value==='browser'){readOnDevice(overrideText||(sample?'今晚，不用赶路。让自己慢慢安静下来，做个好梦。':currentText.value));return}
- if(ttsLoading.value)return
- stopVoice()
- const request=++voiceRequest,controller=new AbortController();voiceAbort=controller
- const text=overrideText||(sample?'今晚，不用赶路。让自己慢慢安静下来，做个好梦。':currentText.value)
- ttsLoading.value=true
- const timeout=setTimeout(()=>controller.abort(),180000)
- try{
-  const r=await fetch('/api/dream-studio/website-speech',{signal:controller.signal,method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text,voice:deviceVoice.value})})
-  const data=await r.json()
-  if(!r.ok)throw new Error(typeof data.detail==='string'?data.detail:'云端音色暂时没有回应')
-  if(request!==voiceRequest)return
-  const player=new Audio(data.url);voiceAudio=player
-  player.onerror=()=>{if(request===voiceRequest){playing.value=false;notify('音频暂时无法播放，请重新试听')}}
-  player.onended=()=>{if(request===voiceRequest)playing.value=false}
-  await player.play()
-  if(request!==voiceRequest){player.pause();return}
-  playing.value=true
- }catch(e){if(request===voiceRequest){playing.value=false;const text=e.name==='AbortError'?'声音加载超时，请稍后重试':e.message||'云端音色暂时不可用，可以先阅读故事';notify(text)}}
- finally{clearTimeout(timeout);if(request===voiceRequest){ttsLoading.value=false;voiceAbort=null}}
+function stopVoice(){voiceRequest++;voiceAbort?.abort();voiceAbort=null;voiceAudio?.pause();voiceAudio=null;playing.value=false;ttsLoading.value=false;readingFavorite.value=null}
+// Keep short audio clips in this page only; never persist conversation text in browser storage.
+const voiceCache=new Map()
+watch(dreamOwner,()=>{abort?.abort();busy.value=false;error.value='';stopVoice();voiceCache.clear();customStory.value='';generatedTheme.value='';expandedFavorite.value=null})
+function readingChunks(text){
+ const chunks=[];let rest=text.trim()
+ while(rest.length){const limit=chunks.length?260:90;let end=Math.min(limit,rest.length)
+  if(rest.length>limit){const marks=[...rest.slice(0,limit).matchAll(/[。！？；，、\n]/g)];const last=marks.at(-1);if(last&&last.index>=30)end=last.index+1}
+  chunks.push(rest.slice(0,end));rest=rest.slice(end)
+ }
+ return chunks
 }
-async function generateStory(){if(busy.value)return;busy.value=true;error.value='';abort=new AbortController();const timeout=setTimeout(()=>abort.abort(),85000);try{const r=await fetch('/api/dream-studio/create',{method:'POST',headers:{'Content-Type':'application/json'},signal:abort.signal,body:JSON.stringify({task:'story',text:'请创作一个'+genre.value+'主题的睡前故事。',style:role.value})});const data=await r.json();if(!r.ok)throw new Error(typeof data.detail==='string'?data.detail:'故事暂时没有生成');stopVoice();customStory.value=data.text;notify('千问故事已生成，可以阅读或用云端音色朗读')}catch(e){error.value=e.name==='AbortError'?'已停止等待，可以改读内置故事。':e.message;if(needsSetup(error.value))void openAiSetup(route.fullPath)}finally{clearTimeout(timeout);busy.value=false}}
+async function speak(sample=false,overrideText='',favoriteId=null){
+ if(ttsLoading.value||playing.value){stopVoice();return}
+ stopVoice()
+ readingFavorite.value=favoriteId
+ const request=++voiceRequest,controller=new AbortController();voiceAbort=controller
+ const voice=cloudVoice.value,owner=dreamOwner.value
+ const chunks=readingChunks(overrideText||(sample?'今晚，不用赶路。让自己慢慢安静下来，做个好梦。':currentText.value))
+ const prepared=new Map()
+ function fail(e){if(request!==voiceRequest)return;stopVoice();const message=e.name==='AbortError'?'声音加载超时，请稍后重试':e.message||'云端音色暂时不可用，可以先阅读故事';notify(message)}
+ function load(index){
+  if(prepared.has(index))return prepared.get(index)
+  const text=chunks[index],key=JSON.stringify([owner,voice,text]),cached=voiceCache.get(key)
+  const task=(async()=>{
+   if(cached&&Date.now()-cached.time<5*3600000)return {url:cached.url,key}
+   const timeout=setTimeout(()=>controller.abort(),90000)
+   try{const r=await fetch('/api/dream-studio/website-speech',{signal:controller.signal,method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text,voice})});const data=await r.json();if(!r.ok)throw new Error(typeof data.detail==='string'?data.detail:'云端音色暂时没有回应');if(!data.url)throw new Error('语音未生成，请重试');if(request!==voiceRequest)throw new DOMException('已停止','AbortError');voiceCache.set(key,{url:data.url,time:Date.now()});while(voiceCache.size>32)voiceCache.delete(voiceCache.keys().next().value);return {url:data.url,key}}finally{clearTimeout(timeout)}
+  })().catch(error=>({error}))
+  prepared.set(index,task);return task
+ }
+ async function play(index){
+  if(request!==voiceRequest)return
+  if(index>=chunks.length){playing.value=false;ttsLoading.value=false;voiceAudio=null;voiceAbort=null;readingFavorite.value=null;return}
+  ttsLoading.value=true;playing.value=false
+  const data=await load(index);if(request!==voiceRequest)return;if(data.error)throw data.error
+  const player=new Audio(data.url);applyReadingStyle(player);voiceAudio=player
+  player.onerror=()=>{voiceCache.delete(data.key);fail(new Error('音频暂时无法播放，请重新试听'))}
+  player.onended=()=>{if(request===voiceRequest)void play(index+1).catch(fail)}
+  await player.play();if(request!==voiceRequest){player.pause();return}
+  playing.value=true;ttsLoading.value=false
+  // Prepare just one following segment while the current segment is playing.
+  if(index+1<chunks.length)void load(index+1)
+ }
+ try{await play(0)}catch(e){fail(e)}
+}
+async function generateStory(){if(busy.value)return;if(!genre.value.trim())return notify('先输入一个想听的故事主题');const theme=genre.value.trim(),owner=dreamOwner.value;busy.value=true;error.value='';abort=new AbortController();const timeout=setTimeout(()=>abort.abort(),85000);try{const r=await fetch('/api/dream-studio/create',{method:'POST',headers:{'Content-Type':'application/json'},signal:abort.signal,body:JSON.stringify({task:'story',text:'请创作一个'+theme+'主题的睡前故事。',style:role.value})});const data=await r.json();if(!r.ok)throw new Error(typeof data.detail==='string'?data.detail:'故事暂时没有生成');if(owner!==dreamOwner.value)return;stopVoice();customStory.value=data.text;generatedTheme.value=theme;notify('今夜故事已生成，可以朗读或收藏')}catch(e){error.value=e.name==='AbortError'?'已停止等待，可以改读内置故事。':e.message;if(needsSetup(error.value))void openAiSetup(route.fullPath)}finally{clearTimeout(timeout);busy.value=false}}
 function changeStory(s){stopVoice();customStory.value='';story.value=s;genre.value=s.theme;error.value=''}
 function randomStory(){const candidates=bedtimeStories.filter(s=>s.name!==story.value.name);changeStory(candidates[Math.floor(Math.random()*candidates.length)]);notify('换了一个夜晚的世界')}
-async function leaveThought(){if(!thought.value.trim())return notify('留下一句话就好，不必写完整');const item={id:Date.now(),date:today(),feeling:feeling.value,text:thought.value.trim()};if(await save(commit,'holes',[item,...holes.value],'这句话已保存到当前账号，不会公开'))thought.value=''}
-function randomActivity(){const candidates=gentleActivities.filter(x=>x.title!==activity.value.title);activity.value=candidates[Math.floor(Math.random()*candidates.length)]}
 // Local synthesized ambient music: no external requests or autoplay.
 async function stopMusic(){sound.value=false;noise?.stop();noise=null;const previous=audio;audio=null;gain=null;await previous?.close()}
 function fillNotes(samples,track,rate,echo){
@@ -137,39 +129,36 @@ async function toggleSound(){
 }
 async function changeMusic(){const resume=sound.value;if(resume){await stopMusic();await toggleSound()}}
 function volume(e){soundVolume.value=Number(e.target.value);if(gain&&audio)gain.gain.setTargetAtTime(soundVolume.value,audio.currentTime,.2)}
-function startMinute(){clearInterval(timer);seconds.value=60;timer=setInterval(()=>{seconds.value--;if(seconds.value<=0){clearInterval(timer);notify('这一分钟结束了。你可以停下来，也可以继续按自己的节奏。')}},1000)}
-async function removeHole(id){await save(commit,'holes',holes.value.filter(x=>x.id!==id),'这句心事已从当前账号移除')}
-watch(path,()=>{stopVoice();if(sound.value)stopMusic()})
-onMounted(()=>{refresh();loadDeviceVoices();window.speechSynthesis?.addEventListener('voiceschanged',loadDeviceVoices)})
-onBeforeUnmount(()=>window.speechSynthesis?.removeEventListener('voiceschanged',loadDeviceVoices))
+onMounted(refresh)
 onBeforeUnmount(()=>{abort?.abort();stopVoice();if(sound.value){noise?.stop();audio?.close()}clearInterval(timer)})
 </script>
 <template>
 <div class="journey">
  <div class="j-tabs" role="group" aria-label="星夜叙语内容切换">
   <button :aria-pressed="path==='/dream/bedtime-stories'" :class="{'j-selected':path==='/dream/bedtime-stories'}" @click="router.replace({path:'/dream/night-talk',query:{...route.query,section:'stories'}})">睡前故事</button>
-  <button :aria-pressed="path==='/dream/tree-hole'" :class="{'j-selected':path==='/dream/tree-hole'}" @click="router.replace({path:'/dream/night-talk',query:{...route.query,section:'tree-hole'}})">情绪树洞</button>
+  <button :aria-pressed="path==='/dream/story-favorites'" :class="{'j-selected':path==='/dream/story-favorites'}" @click="router.replace({path:'/dream/night-talk',query:{...route.query,section:'favorites'}})">故事收藏</button>
  </div>
- <p class="j-notice"><span class="j-dot"></span>陪伴与日常放松，不替代心理或睡眠诊疗。{{path==='/dream/tree-hole'?'工具朗读默认使用浏览器声音，也可选择云端音色。':'人物朗读由 AI 云端音色提供。'}}</p>
  <template v-if="path==='/dream/bedtime-stories'">
-  <div class="j-wide-grid"><aside class="j-panel j-stack"><h2>今晚，听哪一种世界？</h2><button v-for="s in bedtimeStories" :key="s.name" :class="{'j-selected':story.name===s.name&&!customStory}" @click="changeStory(s)">{{s.name}}<small>{{s.theme}}</small></button><button class="j-glass" @click="randomStory">✧ 随机换一篇</button><div class="j-rule"></div><label>陪伴语气<select v-model="role" class="j-glass"><option>朋友般的陪伴</option><option>安静轻声陪伴</option><option>缓慢疗愈陪伴</option></select></label><label>朗读声音<select v-model="deviceVoice" class="j-glass" @change="stopVoice"><option value="female">柔和女声</option><option value="male">柔和男声</option></select></label><button class="j-voice-preview j-glass" @click="playing?stopVoice():speak(true)">{{ttsLoading?'✦ 正在准备声音…':playing?'停止朗读':'听听这个声音'}}</button><small>网站统一提供柔和男女声，换电脑也无需配置。联网后点一下，就能轻轻听故事。</small><label>背景音乐切换<select v-model="musicTrack" class="j-glass" @change="changeMusic"><option v-for="track in musicTracks" :key="track.id" :value="track.id">{{track.name}}</option></select></label><button :aria-pressed="sound" @click="toggleSound">{{sound?'暂停背景音乐':'播放背景音乐'}}</button><label>音乐音量<input type="range" min="0" max=".2" step=".01" :value="soundVolume" @input="volume"></label><small>氛围音乐在本机轻声合成，循环播放；人物朗读与背景音乐可独立开关。</small></aside>
-  <section class="j-stack"><div class="j-panel story-paper"><div class="j-between"><span class="j-tag">{{customStory?'AI 生成故事':'内置原创故事'}}</span><small>{{genre}}</small></div><h2>{{customStory?'今夜，专属的一段故事':story.name}}</h2><p class="j-prose">{{currentText}}</p><div class="j-row j-section-gap"><button class="j-primary" :disabled="ttsLoading" @click="playing?stopVoice():speak()"><span v-if="ttsLoading" class="j-star-load" aria-hidden="true"><i></i><i></i><i></i></span><span>{{ttsLoading?'正在点亮声音…':playing?'停止朗读':'读给我听'}}</span></button><button @click="toggleSound">{{sound?'暂停背景音乐':'播放背景音乐'}}</button></div><label v-if="sound" class="j-section-gap">音乐音量<input type="range" min="0" max=".2" step=".01" :value="soundVolume" @input="volume"></label></div><section class="j-panel"><h3>让千问为今夜写一段</h3><div class="j-row"><label style="flex:1">故事主题<select v-model="genre"><option v-for="s in bedtimeStories" :key="s.theme">{{s.theme}}</option></select></label><button :disabled="busy" @click="generateStory">{{busy?'故事正在慢慢展开…':'生成今夜故事'}}</button><button v-if="busy" @click="abort?.abort()">停止等待</button></div><p v-if="error" class="j-error" role="alert">{{error}}</p><RouterLink v-if="error" to="/settings/ai">打开 AI 服务设置，配置或测试连接 →</RouterLink></section><div class="j-row j-section-gap"><button @click="router.push('/dream?scene=map')">梦境地图 ↗</button><button @click="router.push('/dream?scene=network')">丝线网络 ↗</button></div><button @click="stopVoice();router.push('/dream/cues')">听到这里，给今夜留下一颗种子 ↗</button></section></div>
+  <div class="j-wide-grid"><aside class="j-panel j-stack"><h2>今晚，听哪一种世界？</h2><button v-for="s in bedtimeStories" :key="s.name" :class="{'j-selected':story.name===s.name&&!customStory}" @click="changeStory(s)">{{s.name}}<small>{{s.theme}}</small></button><button class="j-glass" @click="randomStory">✧ 随机换一篇</button><div class="j-rule"></div><label>陪伴语气<select v-model="role" class="j-glass"><option>朋友般的陪伴</option><option>安静轻声陪伴</option><option>缓慢疗愈陪伴</option></select></label><label>朗读声音<select v-model="cloudVoice" class="j-glass" @change="changeVoice"><option v-for="v in cloudVoices" :key="v.id" :value="v.id">{{v.name}}</option></select></label><button class="j-voice-preview j-glass" @click="speak(true)">{{ttsLoading?'取消加载':playing?'停止朗读':'听听这个声音'}}</button><small>网站统一提供柔和男女声，无需配置 API。陪伴语气会调整朗读节奏，试听和故事朗读同步生效。</small><label>背景音乐切换<select v-model="musicTrack" class="j-glass" @change="changeMusic"><option v-for="track in musicTracks" :key="track.id" :value="track.id">{{track.name}}</option></select></label><button :aria-pressed="sound" @click="toggleSound">{{sound?'暂停背景音乐':'播放背景音乐'}}</button><label>音乐音量<input type="range" min="0" max=".2" step=".01" :value="soundVolume" @input="volume"></label><small>氛围音乐在本机轻声合成，循环播放；人物朗读与背景音乐可独立开关。</small></aside>
+  <section class="j-stack"><div class="j-panel story-paper"><div class="j-between"><span class="j-tag">{{customStory?'AI 生成故事':'内置原创故事'}}</span><small>{{customStory?generatedTheme:genre}}</small></div><h2>{{customStory?'今夜，专属的一段故事':story.name}}</h2><p class="j-prose">{{currentText}}</p><div class="j-row j-section-gap"><button class="j-primary" @click="speak()"><span v-if="ttsLoading" class="j-star-load" aria-hidden="true"><i></i><i></i><i></i></span><span>{{ttsLoading?'取消加载':playing?'停止朗读':'读给我听'}}</span></button><button @click="toggleSound">{{sound?'暂停背景音乐':'播放背景音乐'}}</button><button v-if="customStory" :disabled="favoriteBusy||isStorySaved||!dreamReady" @click="collectStory">{{isStorySaved?'已收藏':favoriteBusy?'正在收藏…':'收藏故事'}}</button></div><label v-if="sound" class="j-section-gap">音乐音量<input type="range" min="0" max=".2" step=".01" :value="soundVolume" @input="volume"></label></div><section class="j-panel"><h3>为今夜写一段</h3><div class="j-row story-theme-row"><label style="flex:1;min-width:0">故事主题<input v-model="genre" maxlength="100" placeholder="输入你想听的故事主题"></label><button :disabled="busy||!genre.trim()" @click="generateStory">{{busy?'故事正在慢慢展开…':'生成今夜故事'}}</button><button v-if="busy" @click="abort?.abort()">停止等待</button></div><p v-if="error" class="j-error" role="alert">{{error}}</p><RouterLink v-if="error" to="/settings/ai">打开 AI 服务设置，配置或测试连接 →</RouterLink></section></section></div>
  </template>
- <template v-else-if="path==='/dream/tree-hole'">
-  <div class="tree-top j-section-gap"><section class="j-panel"><span class="j-tag">{{feeling}}</span><h2 class="j-section-gap">有一句话，想先放在这里吗？</h2><p class="tree-muted">不用强迫自己整理通顺，碎片词语、一句抱怨、模糊感受都可以。也不用现在就找到答案，只是先把它放下来。</p><label><span class="j-sr">留给树洞的一句话</span><textarea ref="thoughtInput" v-model="thought" rows="4" maxlength="500" placeholder="比如“我很担心今晚睡不着”“心里沉甸甸的”，不想写也可以直接跳过"></textarea></label><button class="j-primary j-section-gap" :disabled="!thought.trim()" @click="leaveThought">把这句话放下</button><p class="j-help">内容保存在当前账号，退出页面不会消失，下次登录可以继续回看；你随时可以删除这条记录。</p></section><section class="j-panel"><small>不必立刻睡着，先做一件轻松的小事</small><h2>{{activity.title}}</h2><p>{{activity.text}}</p><div class="j-row"><button @click="randomActivity">再给我一个小建议</button><button @click="router.replace('/dream/tree-hole#calm-tools')">查看下方安心小工具</button></div></section></div>
-
- </template>
- <template v-if="path==='/dream/tree-hole'">
-  <section id="calm-tools" class="j-panel j-section-gap" style="scroll-margin-top:110px"><h2>安心小工具・陪你照顾此刻</h2><p class="tree-muted">这些是照顾当下情绪的轻量练习，没有对错，随时可以停下、随时可以切换。</p><p class="j-help">不是医疗急救服务，如果持续难受，请寻求专业帮助。</p><div class="j-tabs calm-tabs" role="group" aria-label="安心小工具"><button v-for="t in calmTools" :key="t.name" :class="{'j-selected':tool===t.name}" :aria-label="t.name" :aria-pressed="tool===t.name" :aria-describedby="'preview-'+calmTools.indexOf(t)" @click="tool=t.name">{{t.name}}<span :id="'preview-'+calmTools.indexOf(t)" class="calm-tooltip" role="tooltip">{{t.preview}}</span></button></div></section>
-  <section class="j-panel calm-detail"><div class="calm-reading"><button :aria-expanded="voiceSettings" aria-controls="calm-voice-settings" @click="voiceSettings=!voiceSettings">换个声音</button><button :aria-pressed="playing" @click="readCalm">{{ttsLoading?'取消加载':playing?'停止朗读':'读给我听'}}</button></div>
-   <div v-if="voiceSettings" id="calm-voice-settings" class="calm-settings"><label>朗读声音<select v-model="deviceVoice" @change="stopVoice"><option value="female">柔和女声</option><option value="male">柔和男声</option></select></label><small>直接点“读给我听”即可，不用填写任何东西。</small></div>
-   <Transition name="calm-fade" mode="out-in"><div :key="tool" class="calm-copy"><img src="/dream-rooms/listening.png" alt="柔和梦境插画"><h2>{{activeCalm.title}}</h2><p>{{activeCalm.text}}</p><p class="tree-muted">{{activeCalm.extra}}</p><button @click="focusThought">把一句心事交给树洞</button></div></Transition>
+ <template v-else-if="path==='/dream/story-favorites'">
+  <section class="j-panel saved-stories">
+   <div class="saved-heading"><div><h2>收藏的今夜故事</h2><p>喜欢的故事，留着下次慢慢听。</p></div><span class="j-tag">{{favoriteStories.length}} 篇收藏</span></div>
+   <div v-if="dreamError" class="j-empty" role="alert"><p>故事收藏暂时未能载入。</p><button @click="retryDreamAccount">重新载入</button></div>
+   <p v-else-if="!dreamReady" role="status">正在读取你的故事收藏…</p>
+   <div v-else-if="!favoriteStories.length" class="j-empty"><h3>还没有收藏的故事</h3><p>生成今夜故事后，点击“收藏故事”，就能把喜欢的故事留在这里。</p><button class="j-primary" @click="openStories">去生成今夜故事</button></div>
+   <template v-else>
+    <div class="saved-voice-settings"><label>朗读声音<select v-model="cloudVoice" @change="changeVoice"><option v-for="v in cloudVoices" :key="v.id" :value="v.id">{{v.name}}</option></select></label><label>陪伴语气<select v-model="role"><option>朋友般的陪伴</option><option>安静轻声陪伴</option><option>缓慢疗愈陪伴</option></select></label></div>
+    <article v-for="item in favoriteStories" :key="item.id" class="saved-story"><small>{{new Date(item.createdAt).toLocaleDateString('zh-CN')}}</small><h3>{{item.title}}</h3><p :class="{'saved-preview':expandedFavorite!==item.id}" class="saved-story-text">{{item.text}}</p><div class="saved-actions"><button @click="expandedFavorite=expandedFavorite===item.id?null:item.id">{{expandedFavorite===item.id?'收起故事':'展开故事'}}</button><button class="j-primary" @click="readFavorite(item)">{{readingFavorite===item.id?(ttsLoading?'取消加载':playing?'停止朗读':'朗读故事'):'朗读故事'}}</button><button :disabled="favoriteBusy" @click="removeStory(item)">取消收藏</button></div></article>
+   </template>
   </section>
-  <section v-if="holes.length" class="j-panel j-section-gap"><h3>那些被安放的心事</h3><article v-for="h in holes.slice(0,10)" :key="h.id" class="hole-note"><div class="j-between"><small>{{h.date}} · {{h.feeling}}</small><button class="j-small-action" @click="removeHole(h.id)">移除</button></div><p>{{h.text}}</p></article></section>
  </template><div v-if="toast" class="j-toast" role="status">{{toast}}</div>
 </div>
 </template>
 <style scoped>
+.saved-stories{max-width:1000px;margin-inline:auto}.saved-heading{display:flex;justify-content:space-between;align-items:flex-start;gap:16px}.saved-heading h2{margin:0}.saved-heading p{font-size:14px;color:#877990}.saved-heading .j-tag{white-space:nowrap}.saved-voice-settings{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin:24px 0}.saved-story{padding:24px 0;border-top:1px solid #e6dfec;min-width:0}.saved-story small{color:#95879e;font-size:12px}.saved-story h3{font:500 23px/1.5 var(--display,serif);overflow-wrap:anywhere;margin:10px 0}.saved-story-text{white-space:pre-wrap;overflow-wrap:anywhere;font-size:15px;line-height:1.9}.saved-preview{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}.saved-actions{display:flex;flex-wrap:wrap;gap:12px;margin-top:18px}@media(max-width:600px){.saved-voice-settings{grid-template-columns:1fr;gap:14px}.saved-heading h2{font-size:21px}.saved-actions{gap:8px}.saved-actions button{padding-inline:12px}}
+
 .story-paper{background:#fffdf7}.story-paper h2{margin:26px 0}.story-paper .j-prose{font-size:16px;line-height:2.1}.cloud-garden{background:#f5f5fa}.cloud-field{display:flex;justify-content:center;gap:20px 24px;flex-wrap:wrap;padding:30px 0}.cloud-field button{border-radius:40px;padding:20px 25px;background:#fffdfbe0;transform:rotate(var(--tilt));box-shadow:0 8px 25px #86719908}.cloud-field button:nth-child(3n){background:#eaf1f5}.cloud-field button.j-selected{border-color:#a08bb8;background:#e8dfef}.hole-note{padding:18px 0;border-top:1px solid #e8e0ed}.hole-note p{white-space:pre-wrap;overflow-wrap:anywhere}.calm-content{max-width:850px;min-height:280px}.calm-content>img{width:135px;height:135px;border-radius:28px;object-fit:cover;float:right;margin:0 0 25px 25px}.calm-timer{font-family:var(--display,serif);font-size:32px;padding:25px;color:#9a86ad}.calm-content p{max-width:65ch;line-height:2}
 /* 声音模块：圆角毛玻璃 + 淡紫微光描边 */
 .j-glass{background:rgba(255,253,251,.55);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid rgba(160,139,184,.38);border-radius:18px;box-shadow:0 0 0 3px rgba(196,181,216,.1),0 6px 18px rgba(134,113,153,.08);transition:border-color .3s ease,box-shadow .3s ease}
@@ -185,6 +174,4 @@ onBeforeUnmount(()=>{abort?.abort();stopVoice();if(sound.value){noise?.stop();au
 @media(prefers-reduced-motion:reduce){.j-voice-preview::after{transition:none;transform:scale(1)}.j-star-load i{animation:none;opacity:.7}}
 @media(max-width:540px){.cloud-field{gap:12px}.cloud-field button{padding:15px 18px;font-size:13px}.calm-content>img{width:90px;height:90px;margin-left:15px}}
 
-.tree-top{display:grid;grid-template-columns:1fr 1fr;gap:24px}.tree-top>.j-panel{margin:0}.tree-top p,.calm-copy p{line-height:1.95}.tree-muted{color:#81758d}.tree-top .j-panel,.calm-detail,#calm-tools{border-radius:24px;box-shadow:0 5px 22px #81718f08}.calm-reading{display:flex;justify-content:flex-end;gap:10px;flex-wrap:wrap;margin-bottom:20px}.calm-settings{padding:18px;border:1px solid #e5dcea;border-radius:16px;margin-bottom:24px;display:grid;gap:16px}.calm-copy{min-height:250px}.calm-copy img{float:right;width:160px;height:180px;object-fit:cover;border-radius:24px;margin:0 0 24px 32px;opacity:.8}.calm-copy p{white-space:pre-line;max-width:68ch}.calm-tabs{overflow:visible;flex-wrap:wrap;gap:12px}.calm-tabs button{position:relative;min-height:44px}.calm-tooltip{visibility:hidden;position:absolute;bottom:calc(100% + 10px);left:0;width:190px;white-space:normal;padding:10px 14px;border:1px solid #dfd4e6;border-radius:12px;background:#fffcff;color:#756681;font-size:12px;opacity:0;pointer-events:none;z-index:5;transition:opacity .15s cubic-bezier(.23,1,.32,1)}.calm-tabs button:focus-visible .calm-tooltip{opacity:1;visibility:visible}.calm-fade-enter-active,.calm-fade-leave-active{transition:opacity .18s cubic-bezier(.23,1,.32,1)}.calm-fade-enter-from,.calm-fade-leave-to{opacity:0}@media(hover:hover) and (pointer:fine){.calm-tabs button:hover .calm-tooltip{opacity:1;visibility:visible}}@media(max-width:700px){.tree-top{grid-template-columns:1fr;gap:18px}.calm-copy img{width:100px;height:120px;margin-left:16px}.calm-tabs button:last-child .calm-tooltip{left:auto;right:0}}@media(prefers-reduced-motion:reduce){.calm-fade-enter-active,.calm-fade-leave-active,.calm-tooltip{transition:none}}
-@media(max-width:700px){.tree-top,.tree-top>.j-panel,.calm-detail{min-width:0}.calm-tabs{display:flex!important;white-space:normal}.calm-tooltip{position:static;display:none}.calm-tabs button:focus-visible .calm-tooltip{display:block;width:auto;max-width:180px}.calm-reading{justify-content:flex-start}}
 </style>

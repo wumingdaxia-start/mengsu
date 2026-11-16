@@ -1,4 +1,6 @@
 <script setup>
+import { useStablePageScroll } from '../composables/useStablePageScroll'
+const stablePage = useStablePageScroll()
 import TestResultSave from '../components/TestResultSave.vue'
 import DomainParticleScene from '../components/DomainParticleScene.vue'
 import { valuesExplanations } from '../data/values-explanations'
@@ -29,7 +31,7 @@ async function exploreDomain(i) {
   exploredDomain.value = exploredDomain.value === i ? null : i
   if (exploredDomain.value !== null) {
     await nextTick()
-    explanationPanel.value?.scrollIntoView({ block: 'nearest', behavior: 'auto' })
+    explanationPanel.value?.querySelector('h3')?.focus({ preventScroll: true })
   }
 }
 function closeExplanation() {
@@ -50,7 +52,7 @@ const results = computed(() => domains.map((domain, d) => ({ ...domain, axes: do
   return { ...axis, percent: Math.round((sum - 2) / 8 * 100), level, label: level === 'low' ? axis.left : level === 'high' ? axis.right : '两侧兼顾', text: level === 'low' ? axis.low : level === 'high' ? axis.high : `你的两次回答处在中间范围，可能会根据情境在「${axis.left}」和「${axis.right}」之间调整。这不代表没有立场，可以回想一个最近的真实选择，看看当时更看重哪一边。` }
 }) })))
 const savedResult = computed(() => finished.value ? {type:'views',title:'世界观 · 人生观 · 价值观',summary:results.value.map(d=>`${d.name}：${d.axes.map(a=>a.label).join('、')}`).join('；'),sections:results.value.map(d=>({title:d.name,lines:d.axes.map(a=>`${a.left} / ${a.right}：${a.label}。${a.text}`)}))} : null)
-async function focusHeading() { await nextTick(); heading.value?.focus({ preventScroll: true }); heading.value?.scrollIntoView({ block: 'center' }) }
+async function focusHeading() { await nextTick(); heading.value?.focus({ preventScroll: true }) }
 function start() { answers.value = {}; index.value = 0; finished.value = false; started.value = true; focusHeading() }
 function previous() { if (index.value > 0) { index.value--; focusHeading() } }
 function next() {
@@ -63,7 +65,7 @@ function review() { finished.value = false; index.value = 0; focusHeading() }
 </script>
 
 <template>
-  <div class="views-test-page">
+  <div ref="stablePage" class="views-test-page">
     <header><p class="eyebrow">心绪活动 / SELF EXPLORATION</p><h1>三观测试</h1><p>看看你如何理解世界、安排人生，以及做出选择。</p></header>
     <section v-if="!started" class="test-panel intro-panel">
       <h2>从生活中的选择，认识自己的三观</h2>
@@ -77,7 +79,7 @@ function review() { finished.value = false; index.value = 0; focusHeading() }
         <div class="domain-explainer-top"><p>{{ explanation.kicker }}</p><button type="button" class="domain-explainer-close" aria-label="收起详细解读" @click="closeExplanation">收起 <span aria-hidden="true">×</span></button></div>
         <div class="domain-explainer-layout">
           <DomainParticleScene :kind="exploredDomain" :title="domains[exploredDomain].name" />
-          <div class="domain-explainer-copy"><h3 id="domain-explainer-title">{{ explanation.title }}</h3><p>{{ explanation.intro }}</p><div class="domain-example"><h4>把它放进生活里</h4><p>{{ explanation.example }}</p></div><h4>本次测试会关注</h4><dl class="domain-explanation-angles"><div v-for="item in explanation.angles" :key="item.title"><dt>{{ item.title }}</dt><dd>{{ item.text }}</dd></div></dl></div>
+          <div class="domain-explainer-copy"><h3 id="domain-explainer-title" tabindex="-1">{{ explanation.title }}</h3><p>{{ explanation.intro }}</p><div class="domain-example"><h4>把它放进生活里</h4><p>{{ explanation.example }}</p></div><h4>本次测试会关注</h4><dl class="domain-explanation-angles"><div v-for="item in explanation.angles" :key="item.title"><dt>{{ item.title }}</dt><dd>{{ item.text }}</dd></div></dl></div>
         </div>
         <div class="domain-reflection"><span>留一个问题给自己</span><p>{{ explanation.question }}</p></div>
       </section>

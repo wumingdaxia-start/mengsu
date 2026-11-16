@@ -2,7 +2,7 @@
 import { computed, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { loginDestination, WORKSPACES } from '../workspaces'
-import { signIn } from '../auth'
+import { signIn, registerAccount } from '../auth'
 
 const router = useRouter()
 const route = useRoute()
@@ -12,6 +12,10 @@ const selectedSpaceKey = computed(() => Object.entries(WORKSPACES).find(([, spac
 const email = ref('')
 const password = ref('')
 const remember = ref(true)
+const registering = ref(false)
+const nickname = ref('')
+const confirmation = ref('')
+function toggleMode() { registering.value = !registering.value; message.value = ''; password.value = ''; confirmation.value = '' }
 const message = ref('')
 const busy = ref(false)
 
@@ -24,6 +28,15 @@ async function submit() {
   busy.value = true
   message.value = ''
   try {
+    if (registering.value) {
+      if (password.value !== confirmation.value) { message.value = '两次密码不一致'; return }
+      await registerAccount(email.value.trim(), password.value, nickname.value.trim() || email.value.trim().slice(0, 40))
+      registering.value = false
+      confirmation.value = ''
+      password.value = ''
+      message.value = '注册成功，请使用刚才的密码登录'
+      return
+    }
     await signIn(email.value.trim(), password.value, remember.value)
     sessionStorage.setItem('mengsu-entered', '1')
     router.push(destination())
@@ -60,21 +73,27 @@ function continueGuest() {
       <form class="login-form" @submit.prevent="submit">
         <p class="login-destination">{{ selectedSpace.subtitle }}</p>
         <button class="login-return" type="button" @click="router.push('/entry')">← 返回水波首页</button>
-        <div class="login-form-heading"><p>欢迎回来</p><h2>进入{{ selectedSpace.name }}</h2><span>登录后继续你的记录</span></div>
-        <label>账号<input v-model="email" type="text" autocomplete="username" placeholder="请输入花屿星账号、手机号或邮箱" :disabled="busy" /></label>
-        <label>密码<input v-model="password" type="password" autocomplete="current-password" placeholder="输入你的密码" /></label>
-        <div class="login-form-options"><label class="remember"><input v-model="remember" type="checkbox" /> <span>记住我</span></label><button type="button" class="forgot">忘记密码？</button></div>
+        <div class="login-form-heading"><p>{{ registering ? '在这里留下你的记录' : '欢迎回来' }}</p><h2>{{ registering ? '注册花屿星账号' : '进入' + selectedSpace.name }}</h2><span>{{ registering ? '一个账号，连接三个空间' : '登录后继续你的记录' }}</span></div>
+        <label v-if="registering">昵称<input v-model="nickname" type="text" autocomplete="nickname" maxlength="40" placeholder="选填，默认使用账号名" :disabled="busy" /></label>
+        <label>账号<input v-model="email" type="text" autocomplete="username" placeholder="请输入花屿星账号" maxlength="64" :disabled="busy" /></label>
+        <label>密码<input v-model="password" type="password" :autocomplete="registering ? 'new-password' : 'current-password'" :placeholder="registering ? '设置 8～128 位密码' : '输入你的密码'" maxlength="128" :disabled="busy" /></label>
+        <label v-if="registering">确认密码<input v-model="confirmation" type="password" autocomplete="new-password" maxlength="128" placeholder="再次输入密码" :disabled="busy" /></label>
+        <p v-if="registering" class="login-note">账号使用 3～64 位字母、数字或 _ @ . -，注册后可在三个空间登录。</p>
+        <div v-if="!registering" class="login-form-options"><label class="remember"><input v-model="remember" type="checkbox" /> <span>记住我</span></label><button type="button" class="forgot">忘记密码？</button></div>
         <p v-if="message" class="login-message" role="status">{{ message }}</p>
-        <button class="login-submit" type="submit" :disabled="busy">{{ busy ? '正在验证…' : '登录并进入' }} <span aria-hidden="true">→</span></button>
+        <button class="login-submit" type="submit" :disabled="busy">{{ busy ? (registering ? '正在创建…' : '正在验证…') : (registering ? '注册账号' : '登录并进入') }} <span aria-hidden="true">→</span></button>
+        <button class="login-register" type="button" :disabled="busy" @click="toggleMode">{{ registering ? '已有账号？返回登录' : '还没有账号？注册账号' }}</button>
         <div class="login-divider"><span>或</span></div>
         <button class="login-guest" type="button" @click="continueGuest">先以访客方式进入</button>
-        <p class="login-note">三个空间共用安康守护账号，登录后可在空间之间直接切换。</p>
+        <p class="login-note">三个空间共用花屿星账号，个人记录按账号保存。</p>
       </form>
     </section>
   </main>
 </template>
 
 <style scoped>
+.login-register { display:block;margin:20px auto 0;padding:8px;border:0;background:transparent;color:var(--login-accent-strong);font-size:16px; }
+.login-register:disabled { opacity:.6; }
 .login-page { position: relative; min-height: 100dvh; overflow: hidden; color: #42546a; background: #edf3f5 url('/entry-ripples/assets/water.jpg') center/cover no-repeat; }
 .login-page::before { content: ''; position: absolute; inset: 0; background: linear-gradient(110deg, rgba(235,242,243,.91), rgba(239,235,246,.78) 54%, rgba(237,246,244,.6)); pointer-events: none; }
 .login-wash { position: absolute; width: 38vw; height: 38vw; min-width: 280px; min-height: 280px; right: 4%; bottom: -15%; border-radius: 50%; background: rgba(207, 218, 243, .42); filter: blur(42px); animation: login-breathe 9s cubic-bezier(.77,0,.175,1) infinite; }
@@ -113,8 +132,8 @@ function continueGuest() {
 @media (prefers-reduced-motion: reduce) { .login-wash { animation: none; } }
 .login-submit:disabled { cursor: wait; opacity: .7; }
 .login-page.workspace-safety { --login-accent:#4d806d; --login-accent-strong:#376653; --login-soft:#e7f2eb; --login-ink:#31594c; }
-.login-page.workspace-dream { --login-accent:#6689a5; --login-accent-strong:#4d708e; --login-soft:#e8f0f6; --login-ink:#3e5a70; }
-.login-page.workspace-psychology { --login-accent:#a66a4e; --login-accent-strong:#895138; --login-soft:#f5e4d2; --login-ink:#654536; }
+.login-page.workspace-dream { --login-accent:#9a7aa5; --login-accent-strong:#85658f; --login-soft:#f0e5f2; --login-ink:#66566f; }
+.login-page.workspace-psychology { --login-accent:#7895c2; --login-accent-strong:#adc7ee; --login-soft:#3b4a61; --login-ink:#e6edfa; }
 .login-page[class*='workspace-']::before { background:linear-gradient(110deg, color-mix(in srgb, var(--login-soft) 88%, white), rgba(255,255,255,.72) 55%, color-mix(in srgb, var(--login-soft) 60%, white)); }
 .login-page[class*='workspace-'] .login-form-heading p,.login-page[class*='workspace-'] .login-destination { color:var(--login-accent); }
 .login-page[class*='workspace-'] .login-form-heading h2,.login-page[class*='workspace-'] .login-brand strong { color:var(--login-ink); }
@@ -126,21 +145,49 @@ function continueGuest() {
 .login-page[class*='workspace-'] .login-wash { background:var(--login-soft); }
 .login-page[class*='workspace-'] .login-return { color:var(--login-accent-strong); }
 
-/* Warm palette for the psychology sign-in destination. */
-.login-page.workspace-psychology { color:#765c4d;background-color:#f6eadc; }
-.login-page.workspace-psychology::before { background:linear-gradient(110deg,rgba(247,229,207,.94),rgba(255,247,236,.86) 55%,rgba(245,220,204,.81)); }
-.login-page.workspace-psychology .login-form { background:rgba(255,250,242,.94);border-color:#fff6e8;box-shadow:0 24px 70px rgba(119,78,46,.1); }
+/* Match the soft blue-grey palette of the psychology workspace. */
+.login-page.workspace-psychology { color:#d5deef;background:#263247;color-scheme:dark; }
+.login-page.workspace-psychology::before { background:radial-gradient(ellipse at 25% 15%,rgba(128,151,183,.13),transparent 60%); }
+.login-page.workspace-psychology .login-wash { display:none; }
+.login-page.workspace-psychology .login-form { background:#354359;border:1px solid #586b84;border-radius:18px;box-shadow:none;backdrop-filter:none; }
+.login-page.workspace-psychology .login-form-heading p,
+.login-page.workspace-psychology .login-destination { color:#afc7eb; }
 .login-page.workspace-psychology .login-form-heading span,
 .login-page.workspace-psychology .login-form>label,
 .login-page.workspace-psychology .remember,
-.login-page.workspace-psychology .forgot { color:#82624e; }
-.login-page.workspace-psychology .forgot:hover { color:#895138; }
-.login-page.workspace-psychology .login-form input:not([type='checkbox']) { color:#654536;background:rgba(255,253,248,.9);border-color:#d9c3ad; }
-.login-page.workspace-psychology .login-form input::placeholder { color:#9b8370;opacity:1; }
-.login-page.workspace-psychology .login-guest { background:#fffaf1;border-color:#d9c3ad;color:#82604a; }
-.login-page.workspace-psychology .login-divider { color:#927763; }
+.login-page.workspace-psychology .forgot { color:#afbdd3; }
+.login-page.workspace-psychology .forgot:hover { color:#e6edfa; }
+.login-page.workspace-psychology .login-form input:not([type='checkbox']) { color:#e0e9f8;background:#2d3b50;border-color:#60748f;border-radius:10px; }
+.login-page.workspace-psychology .login-form input::placeholder { color:#b2c0d5;opacity:1; }
+.login-page.workspace-psychology .login-submit { color:#0b1323;border-radius:10px; }
+.login-page.workspace-psychology .login-submit:hover { box-shadow:none; }
+.login-page.workspace-psychology .login-guest { background:#475e7b;border-color:#6a819e;color:#dae6f8;border-radius:10px; }
+.login-page.workspace-psychology .login-guest:hover { background:#576f90;color:#e6edfa; }
+.login-page.workspace-psychology .login-divider { color:#9aabc5; }
 .login-page.workspace-psychology .login-divider::before,
-.login-page.workspace-psychology .login-divider::after { background:#e4d2be; }
-.login-page.workspace-psychology .login-note { color:#927b68; }
+.login-page.workspace-psychology .login-divider::after { background:#596d87; }
+.login-page.workspace-psychology .login-note { color:#afbdd3; }
+.login-page.workspace-psychology .login-message { color:#f0b8bd; }
+.login-page.workspace-psychology :focus-visible { outline:2px solid #b4cef5;outline-offset:3px; }
+
+
+/* Dream sign-in shares the lavender surfaces of the dream workspace. */
+.login-page.workspace-dream {color:#66566f;background:#f5edf7;}
+.login-page.workspace-dream::before {background:linear-gradient(135deg,#fbf8fc 0%,#f5edf7 48%,#f8f2f8 100%);}
+.login-page.workspace-dream .login-wash {display:none;}
+.login-page.workspace-dream .login-form {background:#fffdfde8;border:1px solid #e8dce9;box-shadow:none;backdrop-filter:none;}
+.login-page.workspace-dream .login-form-heading span,
+.login-page.workspace-dream .login-form>label,
+.login-page.workspace-dream .remember,
+.login-page.workspace-dream .forgot {color:#85738e;}
+.login-page.workspace-dream .login-form input:not([type='checkbox']) {background:#fcf9fd;border-color:#e2d5e7;color:#66566f;}
+.login-page.workspace-dream .login-form input::placeholder {color:#a091a8;opacity:1;}
+.login-page.workspace-dream .login-guest {background:#f5eff8;border-color:#dfd1e5;color:#80648e;}
+.login-page.workspace-dream .login-guest:hover {background:#eee4f3;}
+.login-page.workspace-dream .login-divider {color:#9b8ba1;}
+.login-page.workspace-dream .login-divider::before,
+.login-page.workspace-dream .login-divider::after {background:#e8dce9;}
+.login-page.workspace-dream .login-note {color:#918098;}
+.login-page.workspace-dream :focus-visible {outline:2px solid #9a7aa5;outline-offset:3px;}
 
 </style>
