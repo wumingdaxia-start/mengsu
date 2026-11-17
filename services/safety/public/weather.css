@@ -14,3 +14,8 @@
 @media(max-width:760px){.topbar{padding-top:13px;padding-bottom:13px}.top-welcome{min-width:0}.weather-card{order:3;min-width:0;width:100%;padding:9px 12px}.main:after{right:12px;top:204px;width:95px;height:65px;background-size:34px 34px}}
 @media(max-width:480px){.weather-main small{display:none}.weather-art{flex-basis:44px;width:44px;height:44px}}
 .main:after{display:none}
+
+/* Keep forecast and provider credit readable in compact and embedded cards. */
+.weather-card .weather-main{flex-wrap:wrap;white-space:normal;overflow:visible;row-gap:3px}
+.weather-card .weather-main small,html[data-mengsu-embed='true'] .weather-card .weather-main small{display:block;flex:1 0 100%;white-space:normal;overflow:visible;line-height:1.5}
+.weather-card .weather-detail p,html[data-mengsu-embed='true'] .weather-card .weather-detail p{white-space:normal;overflow:visible;text-overflow:clip;overflow-wrap:anywhere;line-height:1.6}

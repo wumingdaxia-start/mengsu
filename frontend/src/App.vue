@@ -318,7 +318,7 @@ function weatherUnavailable(message) {
 async function loadWeather(latitude, longitude, label) {
   const request = ++weatherRequest.value
   weatherBusy.value = true
-  weather.value = { ...weather.value, label, condition: `正在获取${label}天气…`, tip: '天气数据仅作日常出行参考', kind: 'cloud' }
+  weather.value = { ...weather.value, label, temperature: '--°', forecast: '', condition: `正在获取${label}天气…`, tip: '天气数据仅作日常出行参考', kind: 'cloud' }
   try {
     const data = await api.weather(latitude, longitude)
     if (request !== weatherRequest.value) return
@@ -331,9 +331,9 @@ async function loadWeather(latitude, longitude, label) {
     weather.value = {
       label,
       temperature: `${Math.round(temperature)}°`,
-      condition: `${label} · ${condition}`,
-      forecast: `今日 ${Math.round(daily.temperature_2m_min[0])}–${Math.round(daily.temperature_2m_max[0])}° · 明日最高 ${Math.round(daily.temperature_2m_max[1] ?? daily.temperature_2m_max[0])}°`,
-      tip: (data.stale ? '天气暂未更新，显示最近缓存 · ' : '') + weatherAdvice(temperature, rain),
+      condition: `${label} · ${condition}` + (data.forecastOnly ? '（预报）' : ''),
+      forecast: data.forecastOnly ? `未来24小时 ${Math.round(daily.temperature_2m_min[0])}–${Math.round(daily.temperature_2m_max[0])}°` : `今日 ${Math.round(daily.temperature_2m_min[0])}–${Math.round(daily.temperature_2m_max[0])}° · 明日最高 ${Math.round(daily.temperature_2m_max[1] ?? daily.temperature_2m_max[0])}°`,
+      tip: (data.stale ? '天气暂未更新，显示最近缓存 · ' : '') + weatherAdvice(temperature, rain) + (data.forecastOnly ? ' · 预报来源：MET Norway' : ''),
       kind
     }
   } catch (error) {
@@ -365,12 +365,13 @@ async function locateWeather() {
   const position = options => new Promise((resolve, reject) => navigator.geolocation.getCurrentPosition(resolve, reject, options))
   try {
     let result
-    try { result = await position({ enableHighAccuracy: false, timeout: 15000, maximumAge: 300000 }) }
+    try { result = await position({ enableHighAccuracy: false, timeout: 8000, maximumAge: 600000 }) }
     catch (error) {
       if (error.code === 1) throw error
-      result = await position({ enableHighAccuracy: true, timeout: 15000, maximumAge: 300000 })
+      result = await position({ enableHighAccuracy: true, timeout: 7000, maximumAge: 600000 })
     }
     weatherCity.value = ''
+    locatingWeather.value = false
     await loadWeather(result.coords.latitude, result.coords.longitude, '当前位置')
   } catch (error) {
     weatherLocationError.value = error.code === 1
@@ -451,7 +452,7 @@ onBeforeUnmount(() => {
                   <option v-for="(city, key) in weatherCities" :key="key" :value="key">{{ city[2] }}</option>
                 </select>
               </label>
-              <button type="button" class="header-weather-location" :disabled="weatherBusy || locatingWeather" @click="locateWeather">{{ locatingWeather ? '定位中…' : '定位' }}</button>
+              <button type="button" class="header-weather-location" :disabled="weatherBusy || locatingWeather" @click="locateWeather">{{ locatingWeather ? '定位中…' : weatherBusy ? '获取天气…' : '定位' }}</button>
             </div>
             <div class="header-weather-main"><strong>{{ weather.temperature }}</strong><b>{{ weather.condition }}</b><span>{{ weather.forecast }}</span></div>
             <p :role="weatherLocationError ? 'status' : undefined">{{ weatherLocationError || weather.tip }}</p>

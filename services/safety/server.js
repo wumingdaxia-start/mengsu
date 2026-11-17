@@ -57,15 +57,7 @@ async function handler(req,res){const url=new URL(req.url,'http://localhost');
  const key=lat.toFixed(2)+','+lon.toFixed(2),cached=weatherCache.get(key);
  if(cached&&cached.expires>Date.now())return json(res,200,cached.data);
  try{
-  const forecast=new URL('https://api.open-meteo.com/v1/forecast');
-  for(const [field,value] of Object.entries({latitude:lat,longitude:lon,current:'temperature_2m,weather_code',daily:'temperature_2m_max,temperature_2m_min,precipitation_probability_max',forecast_days:2,timezone:'auto'}))forecast.searchParams.set(field,value);
-  let data,lastError;
-  for(let attempt=0;attempt<2;attempt++){
-   try{const response=await (options.weatherFetch||fetch)(forecast,{signal:AbortSignal.timeout(12000)});if(!response.ok)throw Error('上游天气服务异常');data=await response.json();break}catch(error){lastError=error}
-  }
-  if(!data)throw lastError||Error('天气服务暂不可用');
-  if(!Number.isFinite(data.current?.temperature_2m)||!Number.isFinite(data.current?.weather_code)||!Array.isArray(data.daily?.temperature_2m_max)||!Array.isArray(data.daily?.temperature_2m_min))throw Error('天气数据不完整');
-  const safe={current:{temperature_2m:data.current.temperature_2m,weather_code:data.current.weather_code},daily:{temperature_2m_max:data.daily.temperature_2m_max.slice(0,2),temperature_2m_min:data.daily.temperature_2m_min.slice(0,2),precipitation_probability_max:(data.daily.precipitation_probability_max||[]).slice(0,2)}};
+  const safe=await require('./weather-service').fetchWeather(options.weatherFetch||fetch,lat,lon);
   if(weatherCache.size>128)weatherCache.clear();weatherCache.set(key,{expires:Date.now()+600000,data:safe});
   return json(res,200,safe);
  }catch{if(cached&&cached.expires+1800000>Date.now())return json(res,200,{...cached.data,stale:true});return json(res,503,{message:'天气服务暂时不可用，请稍后重试'})}
