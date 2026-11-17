@@ -285,8 +285,10 @@ def list_models() -> list[dict[str, object]]:
 
 
 @app.post("/api/dreams/ask")
-async def dream_ask(body: AskBody) -> dict[str, object]:
-    return await insight.ask(body.question)
+async def dream_ask(body: AskBody, request: Request) -> dict[str, object]:
+    from .dream_context import account_dream_rows
+    rows = await account_dream_rows(request)
+    return await insight.ask(body.question, rows=rows)
 
 
 @app.post("/api/dreams/export")

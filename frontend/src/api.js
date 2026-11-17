@@ -7,7 +7,7 @@ const REQUEST_TIMEOUT_MS = 8000
 async function call(path, options = {}) {
   if (options.method && options.method !== 'GET' && !requireLogin()) throw new Error('请先登录账号后再保存')
   const controller = new AbortController()
-  const timeout = window.setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS)
+  const timeout = window.setTimeout(() => controller.abort(), options.timeoutMs || REQUEST_TIMEOUT_MS)
   let response
   try {
     response = await fetch(path, { ...options, signal: options.signal || controller.signal })
@@ -50,7 +50,7 @@ function query(params) {
 export const api = {
   weather: async (latitude, longitude) => {
     try {
-      return await call(`${SAFETY_API_BASE}/api/weather${query({ latitude, longitude })}`)
+      return await call(`${SAFETY_API_BASE}/api/weather${query({ latitude, longitude })}`, { timeoutMs: 15000 })
     } catch {
       throw new Error('天气服务暂时不可用，请稍后重试或切换城市')
     }
@@ -87,7 +87,7 @@ export const api = {
   models: () => call('/api/models'),
   palette: () => call('/api/dreams/palette'),
   dayTitle: (day) => call(`/api/dreams/day-title${query({ day })}`),
-  ask: (question) => post('/api/dreams/ask', { question }),
+  ask: (question) => call('/api/dreams/ask', { method: 'POST', headers: jsonHeaders, body: JSON.stringify({ question }), timeoutMs: 60000 }),
   exportDreams: (start, end) => post('/api/dreams/export', { start, end }),
   narrative: (start, end) => post('/api/narrative', { start, end }),
 

@@ -45,11 +45,11 @@
   }
   async function loadWeather(lat, lon, label) {
     const currentRequest = ++requestNumber;
-    find('weatherCard').classList.add('is-loading');
+    find('weatherCard').classList.add('is-loading'); find('weatherTemp').textContent = '--°'; find('weatherForecast').textContent = '正在更新天气数据…'; find('weatherTip').textContent = '';
     find('weatherCondition').textContent = '正在获取' + label + '天气…';
     const url = '/api/weather?latitude=' + encodeURIComponent(lat) + '&longitude=' + encodeURIComponent(lon);
     try {
-      const response = await fetch(url, {cache: 'no-store'});
+      const response = await fetch(url, {cache: 'no-store', signal: AbortSignal.timeout(15000)});
       if (!response.ok) throw Error('天气服务暂时不可用');
       const data = await response.json();
       if (currentRequest !== requestNumber) return;
@@ -59,9 +59,9 @@
       const rain = Number(daily.precipitation_probability_max?.[0] || 0);
       find('weatherArt').innerHTML = '<svg viewBox="0 0 48 48" aria-hidden="true">' + icons[kind] + '</svg>';
       find('weatherTemp').textContent = Math.round(now.temperature_2m) + '°';
-      find('weatherCondition').textContent = label + ' · ' + description;
-      find('weatherForecast').textContent = '今日 ' + Math.round(daily.temperature_2m_min[0]) + '–' + Math.round(daily.temperature_2m_max[0]) + '° · 明日最高 ' + Math.round(daily.temperature_2m_max[1] ?? daily.temperature_2m_max[0]) + '°';
-      find('weatherTip').textContent = advice(now.temperature_2m, rain);
+      find('weatherCondition').textContent = label + ' · ' + description + (data.forecastOnly ? '（预报）' : '');
+      find('weatherForecast').textContent = data.forecastOnly ? '未来24小时 ' + Math.round(daily.temperature_2m_min[0]) + '–' + Math.round(daily.temperature_2m_max[0]) + '°' : '今日 ' + Math.round(daily.temperature_2m_min[0]) + '–' + Math.round(daily.temperature_2m_max[0]) + '° · 明日最高 ' + Math.round(daily.temperature_2m_max[1] ?? daily.temperature_2m_max[0]) + '°';
+      find('weatherTip').textContent = (data.stale ? '天气暂未更新，显示最近缓存 · ' : '') + advice(now.temperature_2m, rain) + (data.forecastOnly ? ' · 预报来源：MET Norway' : '');
       find('weatherCard').classList.remove('is-loading');
     } catch (error) { if (currentRequest === requestNumber) unavailable(error.message || '请稍后重试'); }
   }
@@ -81,9 +81,10 @@
     const position = options => new Promise((resolve, reject) => navigator.geolocation.getCurrentPosition(resolve, reject, options));
     try {
       let result;
-      try { result = await position({enableHighAccuracy:false, timeout:15000, maximumAge:300000}); }
-      catch (error) { if (error.code === 1) throw error; result = await position({enableHighAccuracy:true, timeout:15000, maximumAge:300000}); }
+      try { result = await position({enableHighAccuracy:false, timeout:8000, maximumAge:600000}); }
+      catch (error) { if (error.code === 1) throw error; result = await position({enableHighAccuracy:true, timeout:7000, maximumAge:600000}); }
       select.selectedIndex = -1;
+      button.textContent = '获取天气…';
       await loadWeather(result.coords.latitude, result.coords.longitude, '当前位置');
     } catch (error) {
       tip(error.code === 1 ? '请在浏览器网站权限和手机系统设置中允许位置访问，再重试；也可以手动选择城市。' : error.code === 3 ? '定位等待超时，请开启手机定位、检查网络后重试，或手动选择城市。' : '暂时无法获取位置，请开启手机定位，或改用系统浏览器打开；也可以手动选择城市。');
